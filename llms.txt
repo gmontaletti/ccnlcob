@@ -1,6 +1,7 @@
 # ccnlcob
 
 [![pkgdown](https://github.com/gmontaletti/ccnlcob/actions/workflows/pkgdown.yml/badge.svg)](https://gmontaletti.github.io/ccnlcob/)
+[![R-CMD-check](https://github.com/gmontaletti/ccnlcob/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/gmontaletti/ccnlcob/actions/workflows/R-CMD-check.yaml)
 
 Analisi dei microdati delle Comunicazioni Obbligatorie (COB) per
 contratto collettivo nazionale di lavoro (CCNL).
