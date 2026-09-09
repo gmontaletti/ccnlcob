@@ -84,14 +84,12 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.4.0: Fasi 1, 2, 2 bis e 3 completate; restano stub
-[`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md),
-[`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md),
-[`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md),
-[`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md).
-I default delle funzioni sulle retribuzioni derivano dalla diagnostica
-su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`): non
-cambiarli senza nuova evidenza.
+Versione 0.5.0: Fasi 1-4 completate; resta stub solo
+[`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md)
+(Fase 5, lettura da FST/DuckDB e slice `cnelR`). I default delle
+funzioni sulle retribuzioni derivano dalla diagnostica su dati reali
+(`../reference/ccnlcob/diagnostica_retribuzione.md`): non cambiarli
+senza nuova evidenza.
 [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
 esclude per default gli avviamenti fuori dal perimetro CCNL
 (`perimetro = "ccnl"`, flag `perimetro_ccnl` in
