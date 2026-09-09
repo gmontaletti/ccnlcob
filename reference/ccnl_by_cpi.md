@@ -137,7 +137,7 @@ dt <- prepare_rapporti(cob_esempio)
 cpi <- ccnl_by_cpi(dt, measure = "giornate", lookup = cpi_esempio)
 cpi[ccnl_key == "A011"]
 #>     ccnl_key classe    cpi_code        cpi_name giornate quota_riga
-#>       <char> <char>      <char>          <char>    <int>      <num>
+#>       <char> <char>      <char>          <char>    <num>      <num>
 #>  1:     A011   CCNL F205C000169      CPI MILANO    63068 0.31266360
 #>  2:     A011   CCNL L682C000600      CPI VARESE    25116 0.12451416
 #>  3:     A011   CCNL B157C000683     CPI BRESCIA    23234 0.11518402
@@ -170,7 +170,7 @@ cpi[ccnl_key == "A011"]
 # Concentrazioni territoriali più marcate (lq è NA sotto min_n giornate)
 cpi[order(-lq)][1:5]
 #>    ccnl_key classe    cpi_code        cpi_name giornate quota_riga
-#>      <char> <char>      <char>          <char>    <int>      <num>
+#>      <char> <char>      <char>          <char>    <num>      <num>
 #> 1:     L011   CCNL E648C000580        CPI LODI     1296 0.08223350
 #> 2:     I011   CCNL E648C000580        CPI LODI     1488 0.08044113
 #> 3:     H013   CCNL       FUORI Fuori Lombardia     3378 0.26374141

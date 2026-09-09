@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,27 @@
       <small>Source: <a href="https://github.com/gmontaletti/ccnlcob/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.0" id="ccnlcob-060">ccnlcob 0.6.0<a class="anchor" aria-label="anchor" href="#ccnlcob-060"></a></h2>
+<div class="section level3">
+<h3 id="nuove-funzionalità-0-6-0">Nuove funzionalità<a class="anchor" aria-label="anchor" href="#nuove-funzionalit%C3%A0-0-6-0"></a></h3>
+<ul><li>
+<code><a href="../reference/read_rapporti.html">read_rapporti()</a></code> legge i rapporti da file FST o RDS, da un file DuckDB o da una connessione DBI (per esempio la slice <code>sl2_rapporti_36m_classificati</code> prodotta da <code>cnelR</code>), mappa i nomi del warehouse al contratto dati (<code>id_rapporto</code>, <code>codice_fiscale_lavoratore</code>, <code>ore_settim_medie</code>, …), deriva <code>prior</code> da <code>cod_tipo_orario</code>, normalizza i tipi (factor, integer64, testo numerico) e, con sorgenti DB, spinge selezione di colonne e filtro <code>where</code> nella query.</li>
+<li>Prima esecuzione su dati reali: analisi della slice cnelR di 36 mesi (8 milioni di rapporti, 37 secondi per l’intera catena) documentata in <code>reference/ccnlcob/analisi_slice_reale.md</code>; i conteggi di rapporti, lavoratori e datori per <code>codice_cnel</code> coincidono con quelli pubblicati da <code>cnelR</code> per tutti i 274 codici.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="modifiche-al-comportamento-0-6-0">Modifiche al comportamento<a class="anchor" aria-label="anchor" href="#modifiche-al-comportamento-0-6-0"></a></h3>
+<ul><li>
+<code>attivo</code> (e quindi <code>stock</code>) indica ora il rapporto aperto alla data <code>as_of</code> (fine mancante, sentinella, successiva ad <code>as_of</code> o troncata a monte dalla pipeline), come <code>n_attivi</code> di <code>cnelR</code>; un rapporto la cui fine osservata coincide con <code>as_of</code> non è più conteggiato attivo.</li>
+<li>
+<code><a href="../reference/prepare_rapporti.html">prepare_rapporti()</a></code> e <code><a href="../reference/analyze_ccnl.html">analyze_ccnl()</a></code> hanno l’argomento <code>chiavi_non_classificate</code> (default <code>"CPUB"</code>): il codice di comodo del pubblico impiego non è un CCNL e viene trattato come non classificato, come in <code>cnelR</code>.</li>
+<li>
+<code><a href="../reference/read_rapporti.html">read_rapporti()</a></code> riconosce i codici orario <code>V</code> (part-time verticale) e <code>M</code> (part-time misto) come part-time nella derivazione di <code>prior</code>.</li>
+<li>Il lookup <code>tipologie_contrattuali</code> include i codici warehouse <code>AP-ULAV</code> e <code>AP-USOM</code> (apprendistato, anche in somministrazione) con la colonna <code>fonte_mlps</code>.</li>
+<li>Le misure <code>giornate</code> e <code>giornate_effettive</code> sono sommate in doppia precisione: sulle slice reali i totali superano il limite degli interi.</li>
+<li>Il default di <code>as_of</code> ignora le date di fine successive a oggi (fini presunte o valori errati come <code>2999-12-31</code>).</li>
+</ul><hr></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="ccnlcob-050">ccnlcob 0.5.0<a class="anchor" aria-label="anchor" href="#ccnlcob-050"></a></h2>
 <div class="section level3">

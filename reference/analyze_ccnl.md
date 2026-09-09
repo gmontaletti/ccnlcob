@@ -30,6 +30,7 @@ analyze_ccnl(
   window = NULL,
   perimetro = c("ccnl", "standard", "completo"),
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   measure = "giornate",
   top_n = 20,
   cum_share = 0.8,
@@ -58,7 +59,10 @@ analyze_ccnl(
   Data di riferimento (`Date` o stringa convertibile) per lo stato dei
   rapporti (`attivo`) e per la chiusura dei rapporti aperti; `NULL`
   (default) usa la data massima non sentinella osservata fra `inizio` e
-  `fine`, cioè la data di riferimento dei dati.
+  `fine` e non successiva alla data odierna, cioè la data di riferimento
+  dei dati; le date di fine future (fini presunte o valori errati come
+  `2999-12-31`) non concorrono al default e vengono trattate come
+  rapporti aperti (`fine > as_of`).
 
 - window:
 
@@ -82,6 +86,13 @@ analyze_ccnl(
   (codice warehouse CO). Con il default (entrambe) viene usata la prima
   colonna presente in `dt`; se una colonna richiesta esplicitamente è
   assente la funzione produce un errore.
+
+- chiavi_non_classificate:
+
+  Vettore character di valori di `ccnl_key` da trattare come non
+  classificati (`NA` in `ccnl_key`), oppure `NULL` per non escludere
+  nulla. Default `"CPUB"`: codice di comodo del bridge di `cnelR` per il
+  pubblico impiego, non un CCNL misurabile. Vedi Dettagli.
 
 - measure:
 
@@ -164,10 +175,11 @@ Dettagli.
 Componenti del risultato:
 
 - `meta`: lista con `versione`, `as_of`, `window`, `perimetro`,
-  `ccnl_key`, `measure`, `n_input`, `n_finestra`, `n_rapporti`,
-  `n_lavoratori`, `copertura_ccnl`, `copertura_retribuzione`, `passi`
-  (passi eseguiti), `passi_saltati` (vettore nominato passo -\> motivo),
-  `preparazione` (attributo `ccnlcob_meta` di
+  `ccnl_key`, `chiavi_non_classificate`, `measure`, `n_input`,
+  `n_finestra`, `n_rapporti`, `n_lavoratori`, `copertura_ccnl`,
+  `copertura_retribuzione`, `passi` (passi eseguiti), `passi_saltati`
+  (vettore nominato passo -\> motivo), `preparazione` (attributo
+  `ccnlcob_meta` di
   [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md))
   e `tempi` (secondi per passo);
 
@@ -220,14 +232,14 @@ res <- analyze_ccnl(
 )
 res
 #> <ccnlcob_result>
-#>   versione:                0.5.0
+#>   versione:                0.6.0
 #>   as_of:                   2024-12-31
 #>   window:                  2022-01-01 / 2024-12-31
 #>   perimetro:               ccnl
 #>   ccnl_key:                codice_cnel
 #>   rapporti:                input 5.000, in finestra 2.927, avviati 2.436
 #>   lavoratori avviati:      371
-#>   copertura codice CCNL:   84,8%
+#>   copertura codice CCNL:   83,7%
 #>   copertura retribuzione:  73,1%
 #>   CCNL rilevanti:          10 (misura: giornate)
 #>   primi CCNL:
@@ -240,7 +252,7 @@ res
 #>     - deflate_retribuzione: nessun `indice` fornito
 res$rilevanti[, .(ccnl_key, classe, giornate, quota_giornate)]
 #>       ccnl_key           classe giornate quota_giornate
-#>         <char>           <char>    <int>          <num>
+#>         <char>           <char>    <num>          <num>
 #>  1:       A011             CCNL   118854     0.19057010
 #>  2:       H011             CCNL    62233     0.09978418
 #>  3:       T011             CCNL    49468     0.07931682
@@ -251,8 +263,8 @@ res$rilevanti[, .(ccnl_key, classe, giornate, quota_giornate)]
 #>  8:       E011             CCNL    18163     0.02912249
 #>  9:       D011             CCNL    17326     0.02778045
 #> 10:       F011             CCNL    17180     0.02754635
-#> 11: Altri CCNL       Altri CCNL   135466     0.21720573
-#> 12:       <NA> Non classificati   100932     0.16183403
+#> 11: Altri CCNL       Altri CCNL   129265     0.20726307
+#> 12:       <NA> Non classificati   107133     0.17177669
 res$qualita
 #>     ccnl_key     n n_rapporti quota_troncata copertura_retribuzione
 #>       <char> <int>      <int>          <num>                  <num>
@@ -261,27 +273,26 @@ res$qualita
 #>  3:     B011    91         74      0.2087912              0.6593407
 #>  4:     C011   163        138      0.1779141              0.7546012
 #>  5:     C012    27         24      0.1851852              0.7777778
-#>  6:     CPUB    32         28      0.2812500              0.6875000
-#>  7:     D011    81         66      0.2098765              0.7530864
-#>  8:     E011    75         62      0.2800000              0.7333333
-#>  9:     F011    82         72      0.1951220              0.6951220
-#> 10:     G011    60         53      0.2166667              0.7166667
-#> 11:     H011   308        256      0.2305195              0.7305195
-#> 12:     H012    64         55      0.2656250              0.7031250
-#> 13:     H013    34         29      0.2647059              0.7647059
-#> 14:     I011    68         58      0.2058824              0.6764706
-#> 15:     IC91   136        106      0.1985294              0.6911765
-#> 16:     K011    51         43      0.1372549              0.7254902
-#> 17:     L011    59         50      0.2033898              0.7288136
-#> 18:     M011    51         43      0.2549020              0.8431373
-#> 19:     N011    51         47      0.2156863              0.6470588
-#> 20:     P011    34         29      0.2058824              0.7058824
-#> 21:     Q011    37         31      0.2162162              0.7567568
-#> 22:     S011    32         29      0.1250000              0.6875000
-#> 23:     T011   224        189      0.2321429              0.7410714
-#> 24:     T012    44         38      0.2045455              0.7500000
-#> 25:     V011    34         25      0.1764706              0.9117647
-#> 26:     <NA>   444        355      0.2274775              0.6846847
+#>  6:     D011    81         66      0.2098765              0.7530864
+#>  7:     E011    75         62      0.2800000              0.7333333
+#>  8:     F011    82         72      0.1951220              0.6951220
+#>  9:     G011    60         53      0.2166667              0.7166667
+#> 10:     H011   308        256      0.2305195              0.7305195
+#> 11:     H012    64         55      0.2656250              0.7031250
+#> 12:     H013    34         29      0.2647059              0.7647059
+#> 13:     I011    68         58      0.2058824              0.6764706
+#> 14:     IC91   136        106      0.1985294              0.6911765
+#> 15:     K011    51         43      0.1372549              0.7254902
+#> 16:     L011    59         50      0.2033898              0.7288136
+#> 17:     M011    51         43      0.2549020              0.8431373
+#> 18:     N011    51         47      0.2156863              0.6470588
+#> 19:     P011    34         29      0.2058824              0.7058824
+#> 20:     Q011    37         31      0.2162162              0.7567568
+#> 21:     S011    32         29      0.1250000              0.6875000
+#> 22:     T011   224        189      0.2321429              0.7410714
+#> 23:     T012    44         38      0.2045455              0.7500000
+#> 24:     V011    34         25      0.1764706              0.9117647
+#> 25:     <NA>   476        383      0.2310924              0.6848739
 #>     ccnl_key     n n_rapporti quota_troncata copertura_retribuzione
 #>       <char> <int>      <int>          <num>                  <num>
 #>     copertura_ore copertura_cpi
@@ -291,27 +302,26 @@ res$qualita
 #>  3:     0.9411765     0.9340659
 #>  4:     0.9772727     0.9325153
 #>  5:     1.0000000     0.9629630
-#>  6:     0.9090909     1.0000000
-#>  7:     1.0000000     0.9506173
-#>  8:     1.0000000     0.9600000
-#>  9:     0.9615385     0.9756098
-#> 10:     1.0000000     0.9666667
-#> 11:     0.9878049     0.9448052
-#> 12:     0.9473684     0.9375000
-#> 13:     1.0000000     0.9117647
-#> 14:     0.9565217     0.9705882
-#> 15:     0.9302326     0.9558824
-#> 16:     1.0000000     0.9803922
-#> 17:     0.9333333     0.9322034
-#> 18:     1.0000000     0.9215686
-#> 19:     1.0000000     0.9607843
-#> 20:     1.0000000     0.9705882
-#> 21:     0.9444444     1.0000000
-#> 22:     1.0000000     0.9375000
-#> 23:     0.9651163     0.9732143
-#> 24:     1.0000000     0.9318182
-#> 25:     1.0000000     0.9117647
-#> 26:     0.9714286     0.9436937
+#>  6:     1.0000000     0.9506173
+#>  7:     1.0000000     0.9600000
+#>  8:     0.9615385     0.9756098
+#>  9:     1.0000000     0.9666667
+#> 10:     0.9878049     0.9448052
+#> 11:     0.9473684     0.9375000
+#> 12:     1.0000000     0.9117647
+#> 13:     0.9565217     0.9705882
+#> 14:     0.9302326     0.9558824
+#> 15:     1.0000000     0.9803922
+#> 16:     0.9333333     0.9322034
+#> 17:     1.0000000     0.9215686
+#> 18:     1.0000000     0.9607843
+#> 19:     1.0000000     0.9705882
+#> 20:     0.9444444     1.0000000
+#> 21:     1.0000000     0.9375000
+#> 22:     0.9651163     0.9732143
+#> 23:     1.0000000     0.9318182
+#> 24:     1.0000000     0.9117647
+#> 25:     0.9668874     0.9474790
 #>     copertura_ore copertura_cpi
 #>             <num>         <num>
 ```

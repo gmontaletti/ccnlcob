@@ -27,7 +27,7 @@ produce invece un errore."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -80,6 +80,7 @@ produce invece un errore.</p>
 <span>  window <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  perimetro <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ccnl"</span>, <span class="st">"standard"</span>, <span class="st">"completo"</span><span class="op">)</span>,</span>
 <span>  ccnl_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"codice_cnel"</span>, <span class="st">"ccnl_warehouse"</span><span class="op">)</span>,</span>
+<span>  chiavi_non_classificate <span class="op">=</span> <span class="st">"CPUB"</span>,</span>
 <span>  measure <span class="op">=</span> <span class="st">"giornate"</span>,</span>
 <span>  top_n <span class="op">=</span> <span class="fl">20</span>,</span>
 <span>  cum_share <span class="op">=</span> <span class="fl">0.8</span>,</span>
@@ -108,7 +109,10 @@ Non viene modificato.</p></dd>
 <dd><p>Data di riferimento (<code>Date</code> o stringa convertibile) per lo
 stato dei rapporti (<code>attivo</code>) e per la chiusura dei rapporti aperti;
 <code>NULL</code> (default) usa la data massima non sentinella osservata fra
-<code>inizio</code> e <code>fine</code>, cioè la data di riferimento dei dati.</p></dd>
+<code>inizio</code> e <code>fine</code> e non successiva alla data odierna, cioè la data di
+riferimento dei dati; le date di fine future (fini presunte o valori
+errati come <code>2999-12-31</code>) non concorrono al default e vengono trattate
+come rapporti aperti (<code>fine &gt; as_of</code>).</p></dd>
 
 
 <dt id="arg-window">window<a class="anchor" aria-label="anchor" href="#arg-window"></a></dt>
@@ -132,6 +136,14 @@ tipologie di lavoro subordinato alle quali si applica un CCNL;
 <code>"ccnl_warehouse"</code> (codice warehouse CO). Con il default (entrambe)
 viene usata la prima colonna presente in <code>dt</code>; se una colonna richiesta
 esplicitamente è assente la funzione produce un errore.</p></dd>
+
+
+<dt id="arg-chiavi-non-classificate">chiavi_non_classificate<a class="anchor" aria-label="anchor" href="#arg-chiavi-non-classificate"></a></dt>
+<dd><p>Vettore character di valori di <code>ccnl_key</code>
+da trattare come non classificati (<code>NA</code> in <code>ccnl_key</code>), oppure <code>NULL</code>
+per non escludere nulla. Default <code>"CPUB"</code>: codice di comodo del bridge
+di <code>cnelR</code> per il pubblico impiego, non un CCNL misurabile. Vedi
+Dettagli.</p></dd>
 
 
 <dt id="arg-measure">measure<a class="anchor" aria-label="anchor" href="#arg-measure"></a></dt>
@@ -208,7 +220,8 @@ Dettagli.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Componenti del risultato:</p><ul><li><p><code>meta</code>: lista con <code>versione</code>, <code>as_of</code>, <code>window</code>, <code>perimetro</code>,
-<code>ccnl_key</code>, <code>measure</code>, <code>n_input</code>, <code>n_finestra</code>, <code>n_rapporti</code>,
+<code>ccnl_key</code>, <code>chiavi_non_classificate</code>, <code>measure</code>, <code>n_input</code>,
+<code>n_finestra</code>, <code>n_rapporti</code>,
 <code>n_lavoratori</code>, <code>copertura_ccnl</code>, <code>copertura_retribuzione</code>, <code>passi</code>
 (passi eseguiti), <code>passi_saltati</code> (vettore nominato passo -&gt; motivo),
 <code>preparazione</code> (attributo <code>ccnlcob_meta</code> di <code><a href="prepare_rapporti.html">prepare_rapporti()</a></code>) e
@@ -250,14 +263,14 @@ CPI lombardo); <code>NA</code> dove il blocco non è stato calcolato.</p></li>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">res</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> &lt;ccnlcob_result&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   versione:                0.5.0</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   versione:                0.6.0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   as_of:                   2024-12-31</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   window:                  2022-01-01 / 2024-12-31</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   perimetro:               ccnl</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   ccnl_key:                codice_cnel</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   rapporti:                input 5.000, in finestra 2.927, avviati 2.436</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   lavoratori avviati:      371</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   copertura codice CCNL:   84,8%</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   copertura codice CCNL:   83,7%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   copertura retribuzione:  73,1%</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   CCNL rilevanti:          10 (misura: giornate)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   primi CCNL:</span>
@@ -270,7 +283,7 @@ CPI lombardo); <code>NA</code> dove il blocco non è stato calcolato.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     - deflate_retribuzione: nessun `indice` fornito</span>
 <span class="r-in"><span><span class="va">res</span><span class="op">$</span><span class="va">rilevanti</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">ccnl_key</span>, <span class="va">classe</span>, <span class="va">giornate</span>, <span class="va">quota_giornate</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       ccnl_key           classe giornate quota_giornate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;char&gt;           &lt;char&gt;    &lt;int&gt;          &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;char&gt;           &lt;char&gt;    &lt;num&gt;          &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  1:       A011             CCNL   118854     0.19057010</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  2:       H011             CCNL    62233     0.09978418</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:       T011             CCNL    49468     0.07931682</span>
@@ -281,8 +294,8 @@ CPI lombardo); <code>NA</code> dove il blocco non è stato calcolato.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  8:       E011             CCNL    18163     0.02912249</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  9:       D011             CCNL    17326     0.02778045</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 10:       F011             CCNL    17180     0.02754635</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11: Altri CCNL       Altri CCNL   135466     0.21720573</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:       &lt;NA&gt; Non classificati   100932     0.16183403</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: Altri CCNL       Altri CCNL   129265     0.20726307</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:       &lt;NA&gt; Non classificati   107133     0.17177669</span>
 <span class="r-in"><span><span class="va">res</span><span class="op">$</span><span class="va">qualita</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ccnl_key     n n_rapporti quota_troncata copertura_retribuzione</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt; &lt;int&gt;      &lt;int&gt;          &lt;num&gt;                  &lt;num&gt;</span>
@@ -291,27 +304,26 @@ CPI lombardo); <code>NA</code> dove il blocco non è stato calcolato.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:     B011    91         74      0.2087912              0.6593407</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  4:     C011   163        138      0.1779141              0.7546012</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  5:     C012    27         24      0.1851852              0.7777778</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     CPUB    32         28      0.2812500              0.6875000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     D011    81         66      0.2098765              0.7530864</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     E011    75         62      0.2800000              0.7333333</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     F011    82         72      0.1951220              0.6951220</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     G011    60         53      0.2166667              0.7166667</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     H011   308        256      0.2305195              0.7305195</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     H012    64         55      0.2656250              0.7031250</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     H013    34         29      0.2647059              0.7647059</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     I011    68         58      0.2058824              0.6764706</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     IC91   136        106      0.1985294              0.6911765</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     K011    51         43      0.1372549              0.7254902</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     L011    59         50      0.2033898              0.7288136</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     M011    51         43      0.2549020              0.8431373</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:     N011    51         47      0.2156863              0.6470588</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:     P011    34         29      0.2058824              0.7058824</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:     Q011    37         31      0.2162162              0.7567568</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:     S011    32         29      0.1250000              0.6875000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     T011   224        189      0.2321429              0.7410714</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     T012    44         38      0.2045455              0.7500000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25:     V011    34         25      0.1764706              0.9117647</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26:     &lt;NA&gt;   444        355      0.2274775              0.6846847</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     D011    81         66      0.2098765              0.7530864</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     E011    75         62      0.2800000              0.7333333</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     F011    82         72      0.1951220              0.6951220</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     G011    60         53      0.2166667              0.7166667</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     H011   308        256      0.2305195              0.7305195</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     H012    64         55      0.2656250              0.7031250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     H013    34         29      0.2647059              0.7647059</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     I011    68         58      0.2058824              0.6764706</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     IC91   136        106      0.1985294              0.6911765</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     K011    51         43      0.1372549              0.7254902</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     L011    59         50      0.2033898              0.7288136</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     M011    51         43      0.2549020              0.8431373</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     N011    51         47      0.2156863              0.6470588</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:     P011    34         29      0.2058824              0.7058824</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:     Q011    37         31      0.2162162              0.7567568</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:     S011    32         29      0.1250000              0.6875000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:     T011   224        189      0.2321429              0.7410714</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     T012    44         38      0.2045455              0.7500000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     V011    34         25      0.1764706              0.9117647</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25:     &lt;NA&gt;   476        383      0.2310924              0.6848739</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ccnl_key     n n_rapporti quota_troncata copertura_retribuzione</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt; &lt;int&gt;      &lt;int&gt;          &lt;num&gt;                  &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     copertura_ore copertura_cpi</span>
@@ -321,27 +333,26 @@ CPI lombardo); <code>NA</code> dove il blocco non è stato calcolato.</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:     0.9411765     0.9340659</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  4:     0.9772727     0.9325153</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  5:     1.0000000     0.9629630</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     0.9090909     1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     1.0000000     0.9506173</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     1.0000000     0.9600000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     0.9615385     0.9756098</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     1.0000000     0.9666667</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     0.9878049     0.9448052</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     0.9473684     0.9375000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     1.0000000     0.9117647</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     0.9565217     0.9705882</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     0.9302326     0.9558824</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     1.0000000     0.9803922</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     0.9333333     0.9322034</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     1.0000000     0.9215686</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:     1.0000000     0.9607843</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:     1.0000000     0.9705882</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:     0.9444444     1.0000000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:     1.0000000     0.9375000</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     0.9651163     0.9732143</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     1.0000000     0.9318182</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25:     1.0000000     0.9117647</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26:     0.9714286     0.9436937</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     1.0000000     0.9506173</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     1.0000000     0.9600000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     0.9615385     0.9756098</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     1.0000000     0.9666667</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     0.9878049     0.9448052</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     0.9473684     0.9375000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     1.0000000     0.9117647</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     0.9565217     0.9705882</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     0.9302326     0.9558824</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     1.0000000     0.9803922</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     0.9333333     0.9322034</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     1.0000000     0.9215686</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     1.0000000     0.9607843</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:     1.0000000     0.9705882</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:     0.9444444     1.0000000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:     1.0000000     0.9375000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:     0.9651163     0.9732143</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     1.0000000     0.9318182</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     1.0000000     0.9117647</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25:     0.9668874     0.9474790</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     copertura_ore copertura_cpi</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;         &lt;num&gt;</span>
 </code></pre></div>

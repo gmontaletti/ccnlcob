@@ -5,7 +5,7 @@
 Lettura, validazione del contratto dati e preparazione dei rapporti.
 
 - [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md)
-  : Legge i rapporti di lavoro da file o da connessione DBI
+  : Legge i rapporti di lavoro da file, da DuckDB o da connessione DBI
 - [`validate_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md)
   : Valida il contratto dati dei rapporti di lavoro
 - [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)

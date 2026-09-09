@@ -19,7 +19,7 @@ restituisce un nuovo data.table."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,6 +67,7 @@ restituisce un nuovo <code>data.table</code>.</p>
 <span>  as_of <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  window <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  ccnl_key <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"codice_cnel"</span>, <span class="st">"ccnl_warehouse"</span><span class="op">)</span>,</span>
+<span>  chiavi_non_classificate <span class="op">=</span> <span class="st">"CPUB"</span>,</span>
 <span>  perimetro <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ccnl"</span>, <span class="st">"standard"</span>, <span class="st">"completo"</span><span class="op">)</span>,</span>
 <span>  tipologie <span class="op">=</span> <span class="fu">ccnlcob</span><span class="fu">::</span><span class="va"><a href="tipologie_contrattuali.html">tipologie_contrattuali</a></span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -87,7 +88,10 @@ classe viene conservata in uscita).</p></dd>
 <dd><p>Data di riferimento (<code>Date</code> o stringa convertibile) per lo
 stato dei rapporti (<code>attivo</code>) e per la chiusura dei rapporti aperti;
 <code>NULL</code> (default) usa la data massima non sentinella osservata fra
-<code>inizio</code> e <code>fine</code>, cioè la data di riferimento dei dati.</p></dd>
+<code>inizio</code> e <code>fine</code> e non successiva alla data odierna, cioè la data di
+riferimento dei dati; le date di fine future (fini presunte o valori
+errati come <code>2999-12-31</code>) non concorrono al default e vengono trattate
+come rapporti aperti (<code>fine &gt; as_of</code>).</p></dd>
 
 
 <dt id="arg-window">window<a class="anchor" aria-label="anchor" href="#arg-window"></a></dt>
@@ -103,6 +107,14 @@ non sentinella.</p></dd>
 <code>"ccnl_warehouse"</code> (codice warehouse CO). Con il default (entrambe)
 viene usata la prima colonna presente in <code>dt</code>; se una colonna richiesta
 esplicitamente è assente la funzione produce un errore.</p></dd>
+
+
+<dt id="arg-chiavi-non-classificate">chiavi_non_classificate<a class="anchor" aria-label="anchor" href="#arg-chiavi-non-classificate"></a></dt>
+<dd><p>Vettore character di valori di <code>ccnl_key</code>
+da trattare come non classificati (<code>NA</code> in <code>ccnl_key</code>), oppure <code>NULL</code>
+per non escludere nulla. Default <code>"CPUB"</code>: codice di comodo del bridge
+di <code>cnelR</code> per il pubblico impiego, non un CCNL misurabile. Vedi
+Dettagli.</p></dd>
 
 
 <dt id="arg-perimetro">perimetro<a class="anchor" aria-label="anchor" href="#arg-perimetro"></a></dt>
@@ -183,6 +195,22 @@ primo avviamento interno al perimetro.</p>
 </div>
 
 <div class="section">
+<h3 id="chiavi-non-classificate">Chiavi non classificate<a class="anchor" aria-label="anchor" href="#chiavi-non-classificate"></a></h3>
+
+
+<p>Dopo la scelta della colonna chiave, i valori elencati in
+<code>chiavi_non_classificate</code> diventano <code>NA</code> in <code>ccnl_key</code> e confluiscono nel
+gruppo "Non classificati" di <code><a href="rank_ccnl.html">rank_ccnl()</a></code>; la colonna sorgente
+(<code>codice_cnel</code> o <code>ccnl_warehouse</code>) conserva il codice originale e il
+numero di righe interessate è riportato nel metadato
+<code>n_chiavi_non_classificate</code>. Il default <code>"CPUB"</code> è il codice di comodo
+assegnato dal bridge di <code>cnelR</code> ai rapporti del pubblico impiego: non
+corrisponde a un contratto dell'archivio CNEL e <code>cnelR</code> lo conta fra i
+non classificati. Con <code>chiavi_non_classificate = NULL</code> il codice resta
+una chiave ordinaria.</p>
+</div>
+
+<div class="section">
 <h3 id="sentinelle-sulle-date">Sentinelle sulle date<a class="anchor" aria-label="anchor" href="#sentinelle-sulle-date"></a></h3>
 
 
@@ -211,7 +239,8 @@ interni alla finestra, estremi inclusi, ed è quindi sempre <code>&gt;= 1</code>
 <div class="section">
 <h3 id="colonne-aggiunte">Colonne aggiunte<a class="anchor" aria-label="anchor" href="#colonne-aggiunte"></a></h3>
 
-<ul><li><p><code>ccnl_key</code> (character): chiave di analisi scelta; <code>NA</code> resta <code>NA</code>;</p></li>
+<ul><li><p><code>ccnl_key</code> (character): chiave di analisi scelta; <code>NA</code> resta <code>NA</code> e i
+valori in <code>chiavi_non_classificate</code> diventano <code>NA</code>;</p></li>
 <li><p><code>perimetro_ccnl</code> (logical): appartenenza al perimetro CCNL secondo
 <code>tipologie</code>, <code>FALSE</code> per i codici ignoti; con <code>perimetro = "ccnl"</code> è
 sempre <code>TRUE</code>;</p></li>
@@ -220,11 +249,18 @@ sempre <code>TRUE</code>;</p></li>
 <code><a href="compute_giornate.html">compute_giornate()</a></code>;</p></li>
 <li><p><code>avviato</code> (logical): <code>inizio &gt;= window[1]</code>, cioè avviamento interno
 alla finestra;</p></li>
-<li><p><code>attivo</code> (logical): rapporto in essere alla data <code>as_of</code>
-(<code>inizio &lt;= as_of &amp; fine &gt;= as_of</code>). Con una finestra esplicita che
-termina prima di <code>as_of</code>, lo stock misurato da <code><a href="rank_ccnl.html">rank_ccnl()</a></code> si
-riferisce comunque ad <code>as_of</code>: per uno stock alla fine della finestra
-passare <code>as_of = window[2]</code>;</p></li>
+<li><p><code>attivo</code> (logical): rapporto aperto alla data <code>as_of</code>, con la
+definizione di <code>cnelR</code> (<code>n_attivi</code>): <code>inizio &lt;= as_of</code> e <code>fine</code>
+originale, cioè prima della chiusura delle sentinelle, mancante,
+<code>&lt;= 1900-01-01</code> o <code>&gt; as_of</code> (incluso <code>9999-12-31</code>). Una cessazione
+osservata nel giorno <code>as_of</code> (<code>fine == as_of</code>) chiude il rapporto, che
+non è attivo; un flag <code>troncata</code> preesistente in <code>dt</code> (fine non
+osservata, già chiusa a monte alla data di stabilizzazione) conta come
+rapporto aperto. Su una slice senza <code>troncata</code> lo <code>stock</code> di
+<code><a href="rank_ccnl.html">rank_ccnl()</a></code> coincide quindi con <code>n_attivi</code> di <code>cnelR</code>. Con una
+finestra esplicita che termina prima di <code>as_of</code>, lo stock si riferisce
+comunque ad <code>as_of</code>: per uno stock alla fine della finestra passare
+<code>as_of = window[2]</code>;</p></li>
 <li><p><code>anno</code> (integer) e <code>trimestre</code> (character <code>"YYYY-Qn"</code>): coorte di
 avviamento da <code>inizio</code>;</p></li>
 <li><p><code>macro_tipologia</code> (character): macro-classe da <code>tipologie</code>, vedi
@@ -238,11 +274,13 @@ avviamento da <code>inizio</code>;</p></li>
 
 
 <p>L'attributo <code>ccnlcob_meta</code> del risultato è una lista con <code>as_of</code>,
-<code>window</code>, <code>ccnl_key</code> (nome della colonna usata), <code>perimetro</code>, <code>n_input</code>
-(righe di <code>dt</code>), <code>n_dropped_perimetro</code>, <code>n_tipologia_ignota</code>,
-<code>n_dropped_window</code>, <code>n_sentinel_fine</code>, <code>n_sentinel_inizio</code>,
-<code>n_fine_lt_inizio</code>, <code>n_retribuzione_non_numerica</code>, <code>n_ore_non_numeriche</code>
-e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a href="filter_perimetro.html">filter_perimetro()</a></code>).</p>
+<code>window</code>, <code>ccnl_key</code> (nome della colonna usata),
+<code>chiavi_non_classificate</code>, <code>perimetro</code>, <code>n_input</code> (righe di <code>dt</code>),
+<code>n_dropped_perimetro</code>, <code>n_tipologia_ignota</code>, <code>n_chiavi_non_classificate</code>
+(righe con <code>ccnl_key</code> portata a <code>NA</code>), <code>n_dropped_window</code>,
+<code>n_sentinel_fine</code>, <code>n_sentinel_inizio</code>, <code>n_fine_lt_inizio</code>,
+<code>n_retribuzione_non_numerica</code>, <code>n_ore_non_numeriche</code> e
+<code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a href="filter_perimetro.html">filter_perimetro()</a></code>).</p>
 </div>
 
     </div>
@@ -258,7 +296,9 @@ e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a hr
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu">prepare_rapporti</span><span class="op">(</span><span class="va">cob_esempio</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.</span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_meta"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"as_of"</span>, <span class="st">"n_sentinel_fine"</span>, <span class="st">"n_fine_lt_inizio"</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_meta"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"as_of"</span>, <span class="st">"n_sentinel_fine"</span>, <span class="st">"n_fine_lt_inizio"</span>, <span class="st">"n_chiavi_non_classificate"</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $as_of</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "2024-12-31"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
@@ -267,6 +307,9 @@ e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a hr
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $n_fine_lt_inizio</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] 2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> $n_chiavi_non_classificate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 56</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_meta"</span><span class="op">)</span><span class="op">$</span><span class="va">esclusi_perimetro</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    cod_tipologia_contrattuale</span>
@@ -296,12 +339,14 @@ e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a hr
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  2019       Intermittente    69</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5:  2019       Apprendistato    65</span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># finestra esplicita, chiave warehouse e nessun filtro di perimetro</span></span></span>
+<span class="r-in"><span><span class="co"># finestra esplicita, chiave warehouse e nessun filtro di perimetro;</span></span></span>
+<span class="r-in"><span><span class="co"># con chiavi_non_classificate = NULL il codice CPUB resta una chiave</span></span></span>
 <span class="r-in"><span><span class="va">dt24</span> <span class="op">&lt;-</span> <span class="fu">prepare_rapporti</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="va">cob_esempio</span>,</span></span>
 <span class="r-in"><span>  as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2024-01-01"</span>, <span class="st">"2024-12-31"</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  ccnl_key <span class="op">=</span> <span class="st">"ccnl_warehouse"</span>,</span></span>
+<span class="r-in"><span>  chiavi_non_classificate <span class="op">=</span> <span class="cn">NULL</span>,</span></span>
 <span class="r-in"><span>  perimetro <span class="op">=</span> <span class="st">"completo"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt24</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>n <span class="op">=</span> <span class="va">.N</span>, giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">ccnl_key</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">giornate</span><span class="op">)</span><span class="op">]</span></span></span>

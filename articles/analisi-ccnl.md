@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x562a9c56af20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x564012b6cf20>
 ```
 
 ## 2. Preparazione
@@ -233,6 +233,9 @@ meta[setdiff(names(meta), "esclusi_perimetro")]
 #> $ccnl_key
 #> [1] "codice_cnel"
 #> 
+#> $chiavi_non_classificate
+#> [1] "CPUB"
+#> 
 #> $perimetro
 #> [1] "ccnl"
 #> 
@@ -244,6 +247,9 @@ meta[setdiff(names(meta), "esclusi_perimetro")]
 #> 
 #> $n_tipologia_ignota
 #> [1] 0
+#> 
+#> $n_chiavi_non_classificate
+#> [1] 56
 #> 
 #> $n_dropped_window
 #> [1] 1819
@@ -412,16 +418,16 @@ knitr::kable(
 
 | ccnl_key | n_lavoratori | quota_n_lavoratori | rank_n_lavoratori | giornate | quota_giornate | rank_giornate | quota_cum_giornate |
 |:---|---:|---:|---:|---:|---:|---:|---:|
-| A011 | 218 | 0.124 | 1 | 118854 | 0.191 | 1 | 0.191 |
-| H011 | 167 | 0.095 | 2 | 62233 | 0.100 | 2 | 0.290 |
-| T011 | 136 | 0.077 | 3 | 49468 | 0.079 | 3 | 0.370 |
-| C011 | 110 | 0.062 | 4 | 31713 | 0.051 | 4 | 0.421 |
+| A011 | 218 | 0.125 | 1 | 118854 | 0.191 | 1 | 0.191 |
+| H011 | 167 | 0.096 | 2 | 62233 | 0.100 | 2 | 0.290 |
+| T011 | 136 | 0.078 | 3 | 49468 | 0.079 | 3 | 0.370 |
+| C011 | 110 | 0.063 | 4 | 31713 | 0.051 | 4 | 0.421 |
 | IC91 | 86 | 0.049 | 5 | 29904 | 0.048 | 5 | 0.468 |
-| A012 | 78 | 0.044 | 6 | 23667 | 0.038 | 6 | 0.506 |
+| A012 | 78 | 0.045 | 6 | 23667 | 0.038 | 6 | 0.506 |
 | B011 | 62 | 0.035 | 7 | 18770 | 0.030 | 7 | 0.537 |
 | F011 | 61 | 0.035 | 8 | 17180 | 0.028 | 10 | 0.621 |
-| D011 | 57 | 0.032 | 9 | 17326 | 0.028 | 9 | 0.593 |
-| E011 | 57 | 0.032 | 9 | 18163 | 0.029 | 8 | 0.566 |
+| D011 | 57 | 0.033 | 9 | 17326 | 0.028 | 9 | 0.593 |
+| E011 | 57 | 0.033 | 9 | 18163 | 0.029 | 8 | 0.566 |
 
 La riga dei non classificati chiude la tabella; la sua quota misura la
 parte del fenomeno che il raccordo dei codici CCNL non copre.
@@ -436,8 +442,8 @@ knitr::kable(
 
 | classe           | giornate | quota |
 |:-----------------|---------:|------:|
-| CCNL             |   522744 | 0.838 |
-| Non classificati |   100932 | 0.162 |
+| CCNL             |   516543 | 0.828 |
+| Non classificati |   107133 | 0.172 |
 
 Con l’argomento `periodo` il ranking è calcolato entro ciascuna coorte
 di avviamento (`anno` o `trimestre`): quote, rank e quote cumulate sono
@@ -506,8 +512,8 @@ ranking[ccnl_key %in% rilevanti, max(quota_cum_giornate)]
 #> [1] 0.802484
 ```
 
-Nel dataset di esempio la copertura del codice CNEL è pari a 0.838 delle
-giornate, per cui la soglia dell’80% del totale seleziona 21 dei 25 CCNL
+Nel dataset di esempio la copertura del codice CNEL è pari a 0.828 delle
+giornate, per cui la soglia dell’80% del totale seleziona 21 dei 24 CCNL
 classificati.
 
 Con `return = "table"` la funzione restituisce il ranking con la colonna
@@ -537,13 +543,13 @@ knitr::kable(
 
 | ccnl_key | classe | selezionato | n_lavoratori | quota_n_lavoratori | giornate | quota_giornate |
 |:---|:---|:---|---:|---:|---:|---:|
-| A011 | CCNL | TRUE | 218 | 0.124 | 118854 | 0.191 |
-| H011 | CCNL | TRUE | 167 | 0.095 | 62233 | 0.100 |
-| T011 | CCNL | TRUE | 136 | 0.077 | 49468 | 0.079 |
-| C011 | CCNL | TRUE | 110 | 0.062 | 31713 | 0.051 |
+| A011 | CCNL | TRUE | 218 | 0.125 | 118854 | 0.191 |
+| H011 | CCNL | TRUE | 167 | 0.096 | 62233 | 0.100 |
+| T011 | CCNL | TRUE | 136 | 0.078 | 49468 | 0.079 |
+| C011 | CCNL | TRUE | 110 | 0.063 | 31713 | 0.051 |
 | IC91 | CCNL | TRUE | 86 | 0.049 | 29904 | 0.048 |
-| Altri CCNL | Altri CCNL | FALSE | 848 | 0.480 | 230572 | 0.370 |
-| NA | Non classificati | FALSE | 200 | 0.113 | 100932 | 0.162 |
+| Altri CCNL | Altri CCNL | FALSE | 820 | 0.469 | 224371 | 0.360 |
+| NA | Non classificati | FALSE | 211 | 0.121 | 107133 | 0.172 |
 
 ``` r
 
@@ -701,7 +707,7 @@ cpi[, .(quota_riga = sum(quota_riga), lq_min = min(lq), lq_max = max(lq)), by = 
 #> 5:     T011          1 0.10421043 1.615597
 cpi[order(-lq)][1:5, .(ccnl_key, cpi_name, giornate, quota_colonna, lq)]
 #>    ccnl_key        cpi_name giornate quota_colonna       lq
-#>      <char>          <char>    <int>         <num>    <num>
+#>      <char>          <char>    <num>         <num>    <num>
 #> 1:     IC91     CPI SONDRIO     2286    0.16289012 3.397226
 #> 2:     A011        CPI LODI     3222    0.35170833 1.845559
 #> 3:     IC91       CPI LECCO     1581    0.08576078 1.788622
@@ -981,14 +987,14 @@ res <- analyze_ccnl(
 )
 res
 #> <ccnlcob_result>
-#>   versione:                0.5.0
+#>   versione:                0.6.0
 #>   as_of:                   2024-12-31
 #>   window:                  2019-01-01 / 2024-12-31
 #>   perimetro:               ccnl
 #>   ccnl_key:                codice_cnel
 #>   rapporti:                input 5.000, in finestra 4.746, avviati 4.746
 #>   lavoratori avviati:      400
-#>   copertura codice CCNL:   84,9%
+#>   copertura codice CCNL:   83,7%
 #>   copertura retribuzione:  73,2%
 #>   CCNL rilevanti:          5 (misura: giornate)
 #>   primi CCNL:
@@ -1007,7 +1013,7 @@ knitr::kable(res$qualita[order(-n_rapporti)][1:6], digits = 3)
 | ccnl_key | n | n_rapporti | quota_troncata | copertura_retribuzione | copertura_ore | copertura_cpi |
 |:---|---:|---:|---:|---:|---:|---:|
 | A011 | 904 | 904 | 0.121 | 0.756 | 0.988 | 0.951 |
-| NA | 719 | 719 | 0.140 | 0.709 | 0.970 | 0.937 |
+| NA | 775 | 775 | 0.142 | 0.706 | 0.968 | 0.942 |
 | H011 | 504 | 504 | 0.141 | 0.724 | 0.972 | 0.946 |
 | T011 | 354 | 354 | 0.147 | 0.734 | 0.962 | 0.972 |
 | C011 | 257 | 257 | 0.113 | 0.739 | 0.987 | 0.942 |
@@ -1029,30 +1035,55 @@ knitr::kable(manifesto[, .(oggetto, formato, righe)])
 | oggetto         | formato | righe |
 |:----------------|:--------|------:|
 | meta            | rds     |    NA |
-| ranking         | rds     |    26 |
-| ranking_periodo | rds     |   156 |
+| ranking         | rds     |    25 |
+| ranking_periodo | rds     |   150 |
 | rilevanti       | rds     |     7 |
 | keys            | rds     |    NA |
 | cpi             | fst     |    65 |
 | tipologie       | fst     |    58 |
 | retribuzioni    | rds     |    30 |
-| qualita         | rds     |    26 |
+| qualita         | rds     |    25 |
 
-## Fasi successive
-
-La funzione seguente è esportata e documentata ma non ancora
-implementata: nella versione corrente restituisce un errore che indica
-la fase prevista. Il blocco non viene eseguito e mostra l’uso previsto.
+## 11. Lettura dei rapporti da file e da database
 
 [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md)
-(Fase 5) caricherà i rapporti da un file FST/RDS o da una connessione
-DBI, per esempio la slice DuckDB `sl2_rapporti_36m_classificati`
-prodotta da `cnelR`.
+legge i rapporti da un file FST o RDS, da un file DuckDB o da una
+connessione DBI, mappa i nomi del warehouse al contratto dati
+(`id_rapporto`, `codice_fiscale_lavoratore`, `codice_fiscale_datore`,
+`ore_settim_medie`, `cod_qualifica_prof_istat_3dgt`, `sesso_lav`,
+`eta_lav_inizio`), deriva `prior` da `cod_tipo_orario` e normalizza i
+tipi (factor, `integer64`, testo numerico con eventuale virgola
+decimale). Con una sorgente DB la selezione delle colonne e il filtro
+`where` vengono spinti nella query.
 
 ``` r
 
-dt <- read_rapporti("output/rapporti_classificati.fst")
-validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
+percorso <- file.path(tempdir(), "rapporti_esempio.rds")
+saveRDS(cob_esempio, percorso)
+letti <- read_rapporti(percorso)
+#> read_rapporti(): lette 5.000 righe da /tmp/Rtmp9JqvYv/rapporti_esempio.rds.
+attr(letti, "ccnlcob_source")[c("source", "n", "colonne_mappate")]
+#> $source
+#> [1] "/tmp/Rtmp9JqvYv/rapporti_esempio.rds"
+#> 
+#> $n
+#> [1] 5000
+#> 
+#> $colonne_mappate
+#> named character(0)
+```
+
+La slice classificata da `cnelR` (`sl2_rapporti_36m_classificati`) si
+legge così; il blocco non viene eseguito nella vignetta.
+
+``` r
+
+dt <- read_rapporti(
+  "~/data/cnel/rapporti_azure.duckdb",
+  table = "sl2_rapporti_36m_classificati",
+  where = "inizio >= DATE '2025-01-01'"
+)
+res <- analyze_ccnl(dt, as_of = "2026-04-30", top_n = 25)
 ```
 
 ## Riferimenti
@@ -1070,6 +1101,8 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
   [`?compute_giornate_effettive`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md),
   [`?analyze_ccnl`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md),
   [`?write_results`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md).
+- Lettura da file e database:
+  [`?read_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md).
 - Perimetro contrattuale:
   [`?filter_perimetro`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
 - Misure e quote del ranking:

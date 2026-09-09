@@ -174,7 +174,7 @@ select_ccnl_rilevanti(
   measure = "giornate", top_n = 5, cum_share = NULL, return = "table"
 )
 #>      ccnl_key           classe selezionato giornate quota_giornate
-#>        <char>           <char>      <lgcl>    <int>          <num>
+#>        <char>           <char>      <lgcl>    <num>          <num>
 #> 1:       A011             CCNL        TRUE   185093     0.19915257
 #> 2:       H011             CCNL        TRUE    87403     0.09404209
 #> 3:       T011             CCNL        TRUE    74687     0.08036019

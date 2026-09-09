@@ -9,6 +9,9 @@ e
 il flag di appartenenza al perimetro CCNL usato da
 [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
 e il flag di esclusione dal perimetro "standard" adottato da `cnelR`.
+Oltre alle tipologie del foglio MLPS contiene due codici usati dal solo
+warehouse CO (`AP-ULAV`, apprendistato, e `AP-USOM`, apprendistato in
+somministrazione), distinti dalla colonna `fonte_mlps`.
 
 ## Usage
 
@@ -23,11 +26,13 @@ colonne:
 
 - cod_tipologia_contrattuale:
 
-  character. Codice MLPS della tipologia (es. `A.01.00`).
+  character. Codice MLPS della tipologia (es. `A.01.00`) oppure codice
+  del warehouse CO (`AP-ULAV`, `AP-USOM`).
 
 - des_tipologia_contrattuale:
 
-  character. Descrizione ufficiale MLPS della tipologia.
+  character. Descrizione ufficiale MLPS della tipologia; per i codici
+  warehouse una descrizione assegnata nel pacchetto.
 
 - macro_tipologia:
 
@@ -53,11 +58,19 @@ colonne:
   logical. `TRUE` per le tipologie escluse dal perimetro "standard" di
   `cnelR` (`C.01.00`, `B.04.00`, `B.03.00`, `A.04.00`, `A.04.01`).
 
+- fonte_mlps:
+
+  logical. `TRUE` per le righe del foglio MLPS, `FALSE` per i codici del
+  solo warehouse CO (`AP-ULAV` con macro-classe `Apprendistato`,
+  `AP-USOM` con macro-classe `Somministrazione`; entrambi con
+  `perimetro_ccnl = TRUE` e `esclusa_standard = FALSE`).
+
 ## Source
 
 Ministero del Lavoro e delle Politiche Sociali, "Classificazioni
 Standard" delle Comunicazioni Obbligatorie, foglio ST-TIPO CONTRATTI,
-Rev.093 del 2026-04-26.
+Rev.093 del 2026-04-26; codici warehouse aggiunti in
+`data-raw/tipologie_contrattuali.R`.
 
 ## See also
 
@@ -85,12 +98,12 @@ head(tipologie_contrattuali)
 #> 4:                                            APPRENDISTATO EX ART.16 L. 196/97
 #> 5: APPRENDISTATO PER L'ESPLETAMENTO DEL DIRITTO DOVERE DI ISTRUZIONE FORMAZIONE
 #> 6:                                            APPRENDISTATO PROFESSIONALIZZANTE
-#>        macro_tipologia perimetro_ccnl esclusa_standard
-#>                 <char>         <lgcl>           <lgcl>
-#> 1: Tempo indeterminato           TRUE            FALSE
-#> 2:   Tempo determinato           TRUE            FALSE
-#> 3:   Tempo determinato           TRUE            FALSE
-#> 4:       Apprendistato           TRUE            FALSE
-#> 5:       Apprendistato           TRUE            FALSE
-#> 6:       Apprendistato           TRUE            FALSE
+#>        macro_tipologia perimetro_ccnl esclusa_standard fonte_mlps
+#>                 <char>         <lgcl>           <lgcl>     <lgcl>
+#> 1: Tempo indeterminato           TRUE            FALSE       TRUE
+#> 2:   Tempo determinato           TRUE            FALSE       TRUE
+#> 3:   Tempo determinato           TRUE            FALSE       TRUE
+#> 4:       Apprendistato           TRUE            FALSE       TRUE
+#> 5:       Apprendistato           TRUE            FALSE       TRUE
+#> 6:       Apprendistato           TRUE            FALSE       TRUE
 ```

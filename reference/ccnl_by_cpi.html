@@ -13,7 +13,7 @@ di avviamento (periodo)."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -166,7 +166,7 @@ comparire in più CPI.</p>
 <span class="r-in"><span><span class="va">cpi</span> <span class="op">&lt;-</span> <span class="fu">ccnl_by_cpi</span><span class="op">(</span><span class="va">dt</span>, measure <span class="op">=</span> <span class="st">"giornate"</span>, lookup <span class="op">=</span> <span class="va">cpi_esempio</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cpi</span><span class="op">[</span><span class="va">ccnl_key</span> <span class="op">==</span> <span class="st">"A011"</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ccnl_key classe    cpi_code        cpi_name giornate quota_riga</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt; &lt;char&gt;      &lt;char&gt;          &lt;char&gt;    &lt;int&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt; &lt;char&gt;      &lt;char&gt;          &lt;char&gt;    &lt;num&gt;      &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  1:     A011   CCNL F205C000169      CPI MILANO    63068 0.31266360</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  2:     A011   CCNL L682C000600      CPI VARESE    25116 0.12451416</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:     A011   CCNL B157C000683     CPI BRESCIA    23234 0.11518402</span>
@@ -199,7 +199,7 @@ comparire in più CPI.</p>
 <span class="r-in"><span><span class="co"># Concentrazioni territoriali più marcate (lq è NA sotto min_n giornate)</span></span></span>
 <span class="r-in"><span><span class="va">cpi</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">lq</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ccnl_key classe    cpi_code        cpi_name giornate quota_riga</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt; &lt;char&gt;      &lt;char&gt;          &lt;char&gt;    &lt;int&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt; &lt;char&gt;      &lt;char&gt;          &lt;char&gt;    &lt;num&gt;      &lt;num&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     L011   CCNL E648C000580        CPI LODI     1296 0.08223350</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:     I011   CCNL E648C000580        CPI LODI     1488 0.08044113</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:     H013   CCNL       FUORI Fuori Lombardia     3378 0.26374141</span>

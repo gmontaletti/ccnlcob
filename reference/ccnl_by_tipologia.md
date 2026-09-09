@@ -183,14 +183,14 @@ data.table::dcast(largo, ccnl_key ~ tipologia, value.var = "quota_riga")[1:5]
 #> Key: <ccnl_key>
 #>    ccnl_key Apprendistato   Domestico Intermittente Somministrazione
 #>      <char>         <num>       <num>         <num>            <num>
-#> 1:     <NA>    0.08901252 0.023643950    0.09040334        0.1279555
+#> 1:     <NA>    0.09032258 0.023225806    0.09161290        0.1277419
 #> 2:     A011    0.07079646 0.015486726    0.06858407        0.1261062
 #> 3:     A012    0.07471264 0.017241379    0.06896552        0.1206897
 #> 4:     B011    0.08974359 0.006410256    0.14102564        0.1217949
 #> 5:     C011    0.06614786 0.015564202    0.07392996        0.1478599
 #>    Tempo determinato Tempo indeterminato
 #>                <num>               <num>
-#> 1:         0.3546592           0.3143255
+#> 1:         0.3574194           0.3096774
 #> 2:         0.4092920           0.3097345
 #> 3:         0.4655172           0.2528736
 #> 4:         0.3269231           0.3141026
@@ -243,7 +243,7 @@ ccnl_by_tipologia(
 #> 17:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO
 #> 18: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE
 #>     giornate   quota_riga quota_colonna         lq
-#>        <int>        <num>         <num>      <num>
+#>        <num>        <num>         <num>      <num>
 #>  1:     5521 0.3304602861   0.232512108 1.21654477
 #>  2:     4376 0.2619261387   0.148404382 0.77647816
 #>  3:     2250 0.1346740887   0.192917774 1.00938016

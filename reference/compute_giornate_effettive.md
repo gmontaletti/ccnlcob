@@ -93,7 +93,7 @@ dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = ccnl
 #>    ccnl_key giornate effettive
 #>      <char>    <int>     <num>
 #> 1:     A011   201712 16799.999
-#> 2:     <NA>   175536 15147.374
+#> 2:     <NA>   187177 16437.284
 #> 3:     H011   100535 10827.786
 #> 4:     T011    85544  8237.873
 #> 5:     C011    49655  5424.802

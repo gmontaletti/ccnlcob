@@ -81,9 +81,11 @@ Le misure sono definite sulle righe di `dt` così:
   allocati pro quota, vedi
   [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md));
 
-- `stock`: numero di rapporti con `attivo == TRUE` alla data `as_of`
-  fissata in
-  [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md).
+- `stock`: numero di rapporti con `attivo == TRUE`, cioè aperti alla
+  data `as_of` fissata in
+  [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+  (fine originale mancante, sentinella o successiva ad `as_of`);
+  coincide con `n_attivi` di `cnelR`.
 
 Se `avviato` o `attivo` mancano vengono considerati `TRUE` per tutte le
 righe, con un messaggio; un valore `NA` equivale a `FALSE`. Le colonne
@@ -116,11 +118,14 @@ Other ranking:
 dt <- data.table::copy(cob_esempio)[
   fine >= inizio & fine <= as.Date("2024-12-31")
 ]
+# attivo: rapporto aperto ad as_of; nel dataset di esempio la fine non
+# osservata e' stata chiusa a monte alla data di stabilizzazione
+# (troncata = 1)
 dt[, `:=`(
   ccnl_key = codice_cnel,
   giornate = as.integer(fine - inizio + 1L),
   avviato = TRUE,
-  attivo = fine >= as.Date("2024-12-31"),
+  attivo = troncata == 1L,
   anno = data.table::year(inizio)
 )]
 #>          id      cf     inizio       fine codice_cnel   ccnl
@@ -187,7 +192,7 @@ head(ranking)
 #> 5:     IC91   CCNL          151         0.05324401                 5
 #> 6:     A012   CCNL          126         0.04442877                 6
 #>    quota_cum_n_lavoratori giornate quota_giornate rank_giornate
-#>                     <num>    <int>          <num>         <int>
+#>                     <num>    <num>          <num>         <int>
 #> 1:              0.1096615   185093     0.19915257             1
 #> 2:              0.1971086    87403     0.09404209             2
 #> 3:              0.2669252    74687     0.08036019             3
@@ -207,7 +212,7 @@ head(ranking)
 per_anno <- rank_ccnl(dt, measures = "giornate", periodo = "anno")
 per_anno[anno == 2024L & rank_giornate <= 3L]
 #>     anno ccnl_key classe giornate quota_giornate rank_giornate
-#>    <int>   <char> <char>    <int>          <num>         <int>
+#>    <int>   <char> <char>    <num>          <num>         <int>
 #> 1:  2024     A011   CCNL    16777     0.19332350             1
 #> 2:  2024     H011   CCNL     8913     0.10270563             2
 #> 3:  2024     T011   CCNL     7738     0.08916596             3
@@ -224,7 +229,7 @@ etichette <- data.table::data.table(
 )
 rank_ccnl(dt, measures = "giornate", ccnl_labels = etichette)[1:3]
 #>    ccnl_key classe      ccnl_titolo giornate quota_giornate rank_giornate
-#>      <char> <char>           <char>    <int>          <num>         <int>
+#>      <char> <char>           <char>    <num>          <num>         <int>
 #> 1:     A011   CCNL Titolo CCNL A011   185093     0.19915257             1
 #> 2:     H011   CCNL Titolo CCNL H011    87403     0.09404209             2
 #> 3:     T011   CCNL             <NA>    74687     0.08036019             3

@@ -4,12 +4,18 @@
 Sociali) con la macro-classe usata da classify_tipologia() e
 ccnl_by_tipologia(), il flag di appartenenza al perimetro CCNL usato da
 filter_perimetro() e il flag di esclusione dal perimetro "standard"
-adottato da cnelR.'><meta property="og:description" content='Lookup delle tipologie contrattuali delle Comunicazioni Obbligatorie
+adottato da cnelR. Oltre alle tipologie del foglio MLPS contiene due
+codici usati dal solo warehouse CO (AP-ULAV, apprendistato, e
+AP-USOM, apprendistato in somministrazione), distinti dalla colonna
+fonte_mlps.'><meta property="og:description" content='Lookup delle tipologie contrattuali delle Comunicazioni Obbligatorie
 (classificazioni standard del Ministero del Lavoro e delle Politiche
 Sociali) con la macro-classe usata da classify_tipologia() e
 ccnl_by_tipologia(), il flag di appartenenza al perimetro CCNL usato da
 filter_perimetro() e il flag di esclusione dal perimetro "standard"
-adottato da cnelR.'></head><body>
+adottato da cnelR. Oltre alle tipologie del foglio MLPS contiene due
+codici usati dal solo warehouse CO (AP-ULAV, apprendistato, e
+AP-USOM, apprendistato in somministrazione), distinti dalla colonna
+fonte_mlps.'></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -17,7 +23,7 @@ adottato da cnelR.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +60,10 @@ adottato da cnelR.'></head><body>
 Sociali) con la macro-classe usata da <code><a href="classify_tipologia.html">classify_tipologia()</a></code> e
 <code><a href="ccnl_by_tipologia.html">ccnl_by_tipologia()</a></code>, il flag di appartenenza al perimetro CCNL usato da
 <code><a href="filter_perimetro.html">filter_perimetro()</a></code> e il flag di esclusione dal perimetro "standard"
-adottato da <code>cnelR</code>.</p>
+adottato da <code>cnelR</code>. Oltre alle tipologie del foglio MLPS contiene due
+codici usati dal solo warehouse CO (<code>AP-ULAV</code>, apprendistato, e
+<code>AP-USOM</code>, apprendistato in somministrazione), distinti dalla colonna
+<code>fonte_mlps</code>.</p>
     </div>
 
     <div class="section level2">
@@ -67,11 +76,13 @@ adottato da <code>cnelR</code>.</p>
     <p>Un <code>data.table</code> con una riga per codice di tipologia contrattuale
 e le colonne:</p><dl><dt>cod_tipologia_contrattuale</dt>
 <dd><p>character. Codice MLPS della tipologia
-(es. <code>A.01.00</code>).</p></dd>
+(es. <code>A.01.00</code>) oppure codice del warehouse CO (<code>AP-ULAV</code>,
+<code>AP-USOM</code>).</p></dd>
 
 <dt>des_tipologia_contrattuale</dt>
 <dd><p>character. Descrizione ufficiale MLPS
-della tipologia.</p></dd>
+della tipologia; per i codici warehouse una descrizione assegnata nel
+pacchetto.</p></dd>
 
 <dt>macro_tipologia</dt>
 <dd><p>character. Macro-classe di analisi, una fra:
@@ -96,13 +107,20 @@ Le regole complete sono in <code>data-raw/tipologie_contrattuali.R</code>.</p></
 perimetro "standard" di <code>cnelR</code> (<code>C.01.00</code>, <code>B.04.00</code>, <code>B.03.00</code>,
 <code>A.04.00</code>, <code>A.04.01</code>).</p></dd>
 
+<dt>fonte_mlps</dt>
+<dd><p>logical. <code>TRUE</code> per le righe del foglio MLPS, <code>FALSE</code>
+per i codici del solo warehouse CO (<code>AP-ULAV</code> con macro-classe
+<code>Apprendistato</code>, <code>AP-USOM</code> con macro-classe <code>Somministrazione</code>;
+entrambi con <code>perimetro_ccnl = TRUE</code> e <code>esclusa_standard = FALSE</code>).</p></dd>
+
 
 </dl></div>
     <div class="section level2">
     <h2 id="source">Source<a class="anchor" aria-label="anchor" href="#source"></a></h2>
     <p>Ministero del Lavoro e delle Politiche Sociali, "Classificazioni
 Standard" delle Comunicazioni Obbligatorie, foglio ST-TIPO CONTRATTI,
-Rev.093 del 2026-04-26.</p>
+Rev.093 del 2026-04-26; codici warehouse aggiunti in
+<code>data-raw/tipologie_contrattuali.R</code>.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -129,14 +147,14 @@ Rev.093 del 2026-04-26.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:                                            APPRENDISTATO EX ART.16 L. 196/97</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5: APPRENDISTATO PER L'ESPLETAMENTO DEL DIRITTO DOVERE DI ISTRUZIONE FORMAZIONE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6:                                            APPRENDISTATO PROFESSIONALIZZANTE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        macro_tipologia perimetro_ccnl esclusa_standard</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                 &lt;char&gt;         &lt;lgcl&gt;           &lt;lgcl&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Tempo indeterminato           TRUE            FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:   Tempo determinato           TRUE            FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:   Tempo determinato           TRUE            FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:       Apprendistato           TRUE            FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:       Apprendistato           TRUE            FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6:       Apprendistato           TRUE            FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        macro_tipologia perimetro_ccnl esclusa_standard fonte_mlps</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                 &lt;char&gt;         &lt;lgcl&gt;           &lt;lgcl&gt;     &lt;lgcl&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Tempo indeterminato           TRUE            FALSE       TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:   Tempo determinato           TRUE            FALSE       TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:   Tempo determinato           TRUE            FALSE       TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:       Apprendistato           TRUE            FALSE       TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:       Apprendistato           TRUE            FALSE       TRUE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:       Apprendistato           TRUE            FALSE       TRUE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -16,6 +16,7 @@ prepare_rapporti(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 )
@@ -36,7 +37,10 @@ prepare_rapporti(
   Data di riferimento (`Date` o stringa convertibile) per lo stato dei
   rapporti (`attivo`) e per la chiusura dei rapporti aperti; `NULL`
   (default) usa la data massima non sentinella osservata fra `inizio` e
-  `fine`, cioè la data di riferimento dei dati.
+  `fine` e non successiva alla data odierna, cioè la data di riferimento
+  dei dati; le date di fine future (fini presunte o valori errati come
+  `2999-12-31`) non concorrono al default e vengono trattate come
+  rapporti aperti (`fine > as_of`).
 
 - window:
 
@@ -51,6 +55,13 @@ prepare_rapporti(
   (codice warehouse CO). Con il default (entrambe) viene usata la prima
   colonna presente in `dt`; se una colonna richiesta esplicitamente è
   assente la funzione produce un errore.
+
+- chiavi_non_classificate:
+
+  Vettore character di valori di `ccnl_key` da trattare come non
+  classificati (`NA` in `ccnl_key`), oppure `NULL` per non escludere
+  nulla. Default `"CPUB"`: codice di comodo del bridge di `cnelR` per il
+  pubblico impiego, non un CCNL misurabile. Vedi Dettagli.
 
 - perimetro:
 
@@ -131,6 +142,20 @@ riassuntivo, sopprimibile. La data di riferimento di default
 da non dipendere dal perimetro; la finestra di default parte invece dal
 primo avviamento interno al perimetro.
 
+### Chiavi non classificate
+
+Dopo la scelta della colonna chiave, i valori elencati in
+`chiavi_non_classificate` diventano `NA` in `ccnl_key` e confluiscono
+nel gruppo "Non classificati" di
+[`rank_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md);
+la colonna sorgente (`codice_cnel` o `ccnl_warehouse`) conserva il
+codice originale e il numero di righe interessate è riportato nel
+metadato `n_chiavi_non_classificate`. Il default `"CPUB"` è il codice di
+comodo assegnato dal bridge di `cnelR` ai rapporti del pubblico impiego:
+non corrisponde a un contratto dell'archivio CNEL e `cnelR` lo conta fra
+i non classificati. Con `chiavi_non_classificate = NULL` il codice resta
+una chiave ordinaria.
+
 ### Sentinelle sulle date
 
 Questa è l'unica funzione del pacchetto che interviene sulle sentinelle,
@@ -159,7 +184,8 @@ estremi inclusi, ed è quindi sempre `>= 1`.
 
 ### Colonne aggiunte
 
-- `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA`;
+- `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA` e i
+  valori in `chiavi_non_classificate` diventano `NA`;
 
 - `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo
   `tipologie`, `FALSE` per i codici ignoti; con `perimetro = "ccnl"` è
@@ -173,12 +199,19 @@ estremi inclusi, ed è quindi sempre `>= 1`.
 - `avviato` (logical): `inizio >= window[1]`, cioè avviamento interno
   alla finestra;
 
-- `attivo` (logical): rapporto in essere alla data `as_of`
-  (`inizio <= as_of & fine >= as_of`). Con una finestra esplicita che
-  termina prima di `as_of`, lo stock misurato da
+- `attivo` (logical): rapporto aperto alla data `as_of`, con la
+  definizione di `cnelR` (`n_attivi`): `inizio <= as_of` e `fine`
+  originale, cioè prima della chiusura delle sentinelle, mancante,
+  `<= 1900-01-01` o `> as_of` (incluso `9999-12-31`). Una cessazione
+  osservata nel giorno `as_of` (`fine == as_of`) chiude il rapporto, che
+  non è attivo; un flag `troncata` preesistente in `dt` (fine non
+  osservata, già chiusa a monte alla data di stabilizzazione) conta come
+  rapporto aperto. Su una slice senza `troncata` lo `stock` di
   [`rank_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md)
-  si riferisce comunque ad `as_of`: per uno stock alla fine della
-  finestra passare `as_of = window[2]`;
+  coincide quindi con `n_attivi` di `cnelR`. Con una finestra esplicita
+  che termina prima di `as_of`, lo stock si riferisce comunque ad
+  `as_of`: per uno stock alla fine della finestra passare
+  `as_of = window[2]`;
 
 - `anno` (integer) e `trimestre` (character `"YYYY-Qn"`): coorte di
   avviamento da `inizio`;
@@ -193,11 +226,13 @@ estremi inclusi, ed è quindi sempre `>= 1`.
 ### Metadati
 
 L'attributo `ccnlcob_meta` del risultato è una lista con `as_of`,
-`window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
-(righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
-`n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
-`n_fine_lt_inizio`, `n_retribuzione_non_numerica`, `n_ore_non_numeriche`
-e `esclusi_perimetro` (la tabella `esclusi` di
+`window`, `ccnl_key` (nome della colonna usata),
+`chiavi_non_classificate`, `perimetro`, `n_input` (righe di `dt`),
+`n_dropped_perimetro`, `n_tipologia_ignota`, `n_chiavi_non_classificate`
+(righe con `ccnl_key` portata a `NA`), `n_dropped_window`,
+`n_sentinel_fine`, `n_sentinel_inizio`, `n_fine_lt_inizio`,
+`n_retribuzione_non_numerica`, `n_ore_non_numeriche` e
+`esclusi_perimetro` (la tabella `esclusi` di
 [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)).
 
 ## See also
@@ -212,7 +247,9 @@ Other ingresso:
 library(data.table)
 dt <- prepare_rapporti(cob_esempio)
 #> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
-attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
+attr(dt, "ccnlcob_meta")[c(
+  "as_of", "n_sentinel_fine", "n_fine_lt_inizio", "n_chiavi_non_classificate"
+)]
 #> $as_of
 #> [1] "2024-12-31"
 #> 
@@ -221,6 +258,9 @@ attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
 #> 
 #> $n_fine_lt_inizio
 #> [1] 2
+#> 
+#> $n_chiavi_non_classificate
+#> [1] 56
 #> 
 attr(dt, "ccnlcob_meta")$esclusi_perimetro
 #>    cod_tipologia_contrattuale
@@ -250,12 +290,14 @@ dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 #> 4:  2019       Intermittente    69
 #> 5:  2019       Apprendistato    65
 
-# finestra esplicita, chiave warehouse e nessun filtro di perimetro
+# finestra esplicita, chiave warehouse e nessun filtro di perimetro;
+# con chiavi_non_classificate = NULL il codice CPUB resta una chiave
 dt24 <- prepare_rapporti(
   cob_esempio,
   as_of = as.Date("2024-12-31"),
   window = as.Date(c("2024-01-01", "2024-12-31")),
   ccnl_key = "ccnl_warehouse",
+  chiavi_non_classificate = NULL,
   perimetro = "completo"
 )
 dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]

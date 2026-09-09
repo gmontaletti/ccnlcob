@@ -61,7 +61,7 @@ dt[giornate > 0, sum(giornate), by = ccnl_key][order(-V1)][1:5]
 #>    ccnl_key    V1
 #>      <char> <int>
 #> 1:     A011 37796
-#> 2:     <NA> 33850
+#> 2:     <NA> 36305
 #> 3:     H011 20936
 #> 4:     T011 16852
 #> 5:     C011 12407

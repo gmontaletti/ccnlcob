@@ -15,7 +15,7 @@ avviene a valle con select_ccnl_rilevanti()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -120,8 +120,10 @@ nella finestra di analisi);</p></li>
 <li><p><code>giornate</code>: somma di <code>giornate</code> (giorni-contratto nella finestra);</p></li>
 <li><p><code>giornate_effettive</code>: somma di <code>giornate_effettive</code> (giorni-persona
 allocati pro quota, vedi <code><a href="compute_giornate_effettive.html">compute_giornate_effettive()</a></code>);</p></li>
-<li><p><code>stock</code>: numero di rapporti con <code>attivo == TRUE</code> alla data <code>as_of</code>
-fissata in <code><a href="prepare_rapporti.html">prepare_rapporti()</a></code>.</p></li>
+<li><p><code>stock</code>: numero di rapporti con <code>attivo == TRUE</code>, cioè aperti alla
+data <code>as_of</code> fissata in <code><a href="prepare_rapporti.html">prepare_rapporti()</a></code> (fine originale mancante,
+sentinella o successiva ad <code>as_of</code>); coincide con <code>n_attivi</code> di
+<code>cnelR</code>.</p></li>
 </ul><p>Se <code>avviato</code> o <code>attivo</code> mancano vengono considerati <code>TRUE</code> per tutte le
 righe, con un messaggio; un valore <code>NA</code> equivale a <code>FALSE</code>. Le colonne
 <code>datore</code> e <code>giornate_effettive</code> sono richieste solo dalle misure che le
@@ -149,11 +151,14 @@ classificata. Se il totale del gruppo è zero le quote sono <code>NA</code>.</p>
 <span class="r-in"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy</a></span><span class="op">(</span><span class="va">cob_esempio</span><span class="op">)</span><span class="op">[</span></span></span>
 <span class="r-in"><span>  <span class="va">fine</span> <span class="op">&gt;=</span> <span class="va">inizio</span> <span class="op">&amp;</span> <span class="va">fine</span> <span class="op">&lt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">]</span></span></span>
+<span class="r-in"><span><span class="co"># attivo: rapporto aperto ad as_of; nel dataset di esempio la fine non</span></span></span>
+<span class="r-in"><span><span class="co"># osservata e' stata chiusa a monte alla data di stabilizzazione</span></span></span>
+<span class="r-in"><span><span class="co"># (troncata = 1)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span><span class="op">[</span>, <span class="fu">`:=`</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  ccnl_key <span class="op">=</span> <span class="va">codice_cnel</span>,</span></span>
 <span class="r-in"><span>  giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">fine</span> <span class="op">-</span> <span class="va">inizio</span> <span class="op">+</span> <span class="fl">1L</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  avviato <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
-<span class="r-in"><span>  attivo <span class="op">=</span> <span class="va">fine</span> <span class="op">&gt;=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  attivo <span class="op">=</span> <span class="va">troncata</span> <span class="op">==</span> <span class="fl">1L</span>,</span></span>
 <span class="r-in"><span>  anno <span class="op">=</span> <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/IDateTime.html" class="external-link">year</a></span><span class="op">(</span><span class="va">inizio</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          id      cf     inizio       fine codice_cnel   ccnl</span>
@@ -220,7 +225,7 @@ classificata. Se il totale del gruppo è zero le quote sono <code>NA</code>.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 5:     IC91   CCNL          151         0.05324401                 5</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 6:     A012   CCNL          126         0.04442877                 6</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    quota_cum_n_lavoratori giornate quota_giornate rank_giornate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                     &lt;num&gt;    &lt;int&gt;          &lt;num&gt;         &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                     &lt;num&gt;    &lt;num&gt;          &lt;num&gt;         &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:              0.1096615   185093     0.19915257             1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:              0.1971086    87403     0.09404209             2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:              0.2669252    74687     0.08036019             3</span>
@@ -240,7 +245,7 @@ classificata. Se il totale del gruppo è zero le quote sono <code>NA</code>.</p>
 <span class="r-in"><span><span class="va">per_anno</span> <span class="op">&lt;-</span> <span class="fu">rank_ccnl</span><span class="op">(</span><span class="va">dt</span>, measures <span class="op">=</span> <span class="st">"giornate"</span>, periodo <span class="op">=</span> <span class="st">"anno"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">per_anno</span><span class="op">[</span><span class="va">anno</span> <span class="op">==</span> <span class="fl">2024L</span> <span class="op">&amp;</span> <span class="va">rank_giornate</span> <span class="op">&lt;=</span> <span class="fl">3L</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     anno ccnl_key classe giornate quota_giornate rank_giornate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;   &lt;char&gt; &lt;char&gt;    &lt;int&gt;          &lt;num&gt;         &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;int&gt;   &lt;char&gt; &lt;char&gt;    &lt;num&gt;          &lt;num&gt;         &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:  2024     A011   CCNL    16777     0.19332350             1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  2024     H011   CCNL     8913     0.10270563             2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:  2024     T011   CCNL     7738     0.08916596             3</span>
@@ -257,7 +262,7 @@ classificata. Se il totale del gruppo è zero le quote sono <code>NA</code>.</p>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">rank_ccnl</span><span class="op">(</span><span class="va">dt</span>, measures <span class="op">=</span> <span class="st">"giornate"</span>, ccnl_labels <span class="op">=</span> <span class="va">etichette</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ccnl_key classe      ccnl_titolo giornate quota_giornate rank_giornate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt; &lt;char&gt;           &lt;char&gt;    &lt;int&gt;          &lt;num&gt;         &lt;int&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt; &lt;char&gt;           &lt;char&gt;    &lt;num&gt;          &lt;num&gt;         &lt;int&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1:     A011   CCNL Titolo CCNL A011   185093     0.19915257             1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:     H011   CCNL Titolo CCNL H011    87403     0.09404209             2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3:     T011   CCNL             &lt;NA&gt;    74687     0.08036019             3</span>

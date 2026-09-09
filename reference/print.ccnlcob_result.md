@@ -43,14 +43,14 @@ Other orchestrazione:
 res <- analyze_ccnl(cob_esempio, lookup_cpi = cpi_esempio, min_n = 10)
 print(res)
 #> <ccnlcob_result>
-#>   versione:                0.5.0
+#>   versione:                0.6.0
 #>   as_of:                   2024-12-31
 #>   window:                  2019-01-01 / 2024-12-31
 #>   perimetro:               ccnl
 #>   ccnl_key:                codice_cnel
 #>   rapporti:                input 5.000, in finestra 4.746, avviati 4.746
 #>   lavoratori avviati:      400
-#>   copertura codice CCNL:   84,9%
+#>   copertura codice CCNL:   83,7%
 #>   copertura retribuzione:  73,2%
 #>   CCNL rilevanti:          20 (misura: giornate)
 #>   primi CCNL:
