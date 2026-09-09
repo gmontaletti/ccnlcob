@@ -536,40 +536,74 @@ knitr::kable(
 )
 ```
 
-## Fasi successive
+## 9. Giornate effettive
 
-Le funzioni seguenti sono esportate e documentate ma non ancora
-implementate: nella versione corrente restituiscono un errore che indica la
-fase prevista. I blocchi di questa sezione non vengono eseguiti e mostrano
-l'uso previsto sul dataset preparato nelle sezioni precedenti.
+`giornate` conta i giorni-contratto: una persona con due rapporti
+concorrenti contribuisce due volte agli stessi giorni.
+`compute_giornate_effettive()` ripartisce ogni giorno-persona pro quota fra
+i rapporti concorrenti (1/`arco`), così che la somma per persona coincida
+con i giorni effettivamente lavorati nella finestra. La segmentazione usa
+punti di rottura a `inizio` e `fine + 1` con estremi inclusivi; i totali per
+persona coincidono con `sum(durata[arco > 0])` di `vecshift::vecshift()`,
+che resta il riferimento dell'ecosistema.
 
-`compute_giornate_effettive()` (Fase 4) userà i segmenti di
-`vecshift::vecshift()` per ripartire pro quota (1/`arco`) i giorni in cui la
-stessa persona ha più rapporti concorrenti, in modo che la somma per persona
-coincida con i giorni-persona occupati.
-
-```{r giornate-effettive, eval = FALSE}
+```{r giornate-effettive}
 compute_giornate_effettive(dt)
-dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
+attr(dt, "ccnlcob_giornate_effettive")[c("n_persone_sovrapposizioni", "giornate_totali", "giornate_effettive_totali")]
+per_persona <- dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
+knitr::kable(head(per_persona[giornate > effettive][order(-giornate)], 5), digits = 1)
 ```
 
-`analyze_ccnl()` (Fase 4) eseguirà l'intero flusso restituendo un oggetto
-`ccnlcob_result`, e `write_results()` (Fase 4) serializzerà le tabelle
-piccole in RDS e i cubi in FST.
+Con la colonna presente, `rank_ccnl()` accetta la misura
+`giornate_effettive`: la quota di un CCNL molto usato in rapporti
+concorrenti (per esempio intermittenti) scende rispetto a `giornate`.
 
-```{r orchestrazione, eval = FALSE}
+```{r ranking-effettive}
+confronto <- rank_ccnl(dt, measures = c("giornate", "giornate_effettive"))
+knitr::kable(
+  head(confronto[, .(ccnl_key, giornate, quota_giornate, giornate_effettive, quota_giornate_effettive)], 8),
+  digits = c(0, 0, 3, 0, 3)
+)
+```
+
+## 10. Analisi completa e serializzazione
+
+`analyze_ccnl()` esegue l'intero flusso su una copia dei dati grezzi e
+restituisce un oggetto `ccnlcob_result` con metadati, passi eseguiti e
+saltati, ranking per finestra e per periodo, CCNL rilevanti, distribuzioni
+per CPI e tipologia, retribuzioni (con deflazione se si fornisce un indice)
+e una tabella di qualità per CCNL. I blocchi opzionali non disponibili (per
+esempio il CPI senza lookup né `longworkR`) vengono saltati e annotati, mai
+inventati.
+
+```{r analisi-completa}
 res <- analyze_ccnl(
   cob_esempio,
-  as_of = as.Date("2024-12-31"),
-  window = as.Date(c("2022-01-01", "2024-12-31")),
-  top_n = 20,
-  cum_share = 0.8,
-  geo = "sede_lavoro",
-  periodo = "anno"
+  lookup_cpi = cpi_esempio,
+  indice = data.table(anno = 2019:2024, indice = c(100, 99.8, 101.7, 110.0, 116.3, 117.5)),
+  base = 2024L,
+  top_n = 5
 )
 res
-write_results(res, dir = "output/ccnl")
+names(res)
+knitr::kable(res$qualita[order(-n_rapporti)][1:6], digits = 3)
 ```
+
+L'indice dei prezzi qui è fittizio, a solo scopo illustrativo. `write_results()`
+serializza il risultato secondo il contratto di uscita: tabelle piccole in
+RDS, cubi in FST (compressione 85, con gli attributi conservati in `meta`).
+
+```{r serializzazione}
+cartella <- file.path(tempdir(), "ccnl_output")
+manifesto <- write_results(res, cartella, overwrite = TRUE)
+knitr::kable(manifesto[, .(oggetto, formato, righe)])
+```
+
+## Fasi successive
+
+La funzione seguente è esportata e documentata ma non ancora implementata:
+nella versione corrente restituisce un errore che indica la fase prevista.
+Il blocco non viene eseguito e mostra l'uso previsto.
 
 `read_rapporti()` (Fase 5) caricherà i rapporti da un file FST/RDS o da una
 connessione DBI, per esempio la slice DuckDB `sl2_rapporti_36m_classificati`
@@ -585,6 +619,7 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
 - Contratto dati in ingresso: `?validate_rapporti`.
 - Regole sulle sentinelle e colonne derivate: `?prepare_rapporti`.
 - Retribuzioni: `?clean_retribuzione`, `?normalize_fte`, `?median_retribuzione`, `?deflate_retribuzione`.
+- Giornate effettive, analisi completa e serializzazione: `?compute_giornate_effettive`, `?analyze_ccnl`, `?write_results`.
 - Perimetro contrattuale: `?filter_perimetro`.
 - Misure e quote del ranking: `?rank_ccnl`, `?select_ccnl_rilevanti`.
 - Mapping comune -> CPI e distribuzione territoriale: `?add_cpi`,

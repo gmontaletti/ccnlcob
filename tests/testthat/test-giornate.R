@@ -137,19 +137,231 @@ test_that("compute_giornate() rifiuta input non validi", {
   )
 })
 
-# 3. Stub -----
+# 3. compute_giornate_effettive() -----
 
-test_that("compute_giornate_effettive() segnala che la funzione non è ancora implementata", {
-  expect_error(
-    compute_giornate_effettive(data.table::copy(fixture)),
-    "non ancora implementata"
+# Unione degli intervalli (giorni-persona occupati) calcolata in modo
+# indipendente, per persona.
+.giorni_unione <- function(dt, window = NULL) {
+  inizio <- as.integer(dt$inizio)
+  fine <- as.integer(dt$fine)
+  if (!is.null(window)) {
+    inizio <- pmax(inizio, as.integer(window[1L]))
+    fine <- pmin(fine, as.integer(window[2L]))
+  }
+  ok <- fine >= inizio
+  giorni <- Map(seq, inizio[ok], fine[ok])
+  data.table::data.table(cf = dt$cf[ok], giorni = giorni)[
+    ,
+    .(unione = length(unique(unlist(giorni)))),
+    by = cf
+  ]
+}
+
+test_that("compute_giornate_effettive() ripartisce a meta' i 6 giorni di sovrapposizione fra due rapporti", {
+  dt <- data.table::data.table(
+    id = 1:2,
+    cf = "A",
+    inizio = as.Date(c("2023-01-01", "2023-01-10")),
+    fine = as.Date(c("2023-01-15", "2023-01-20"))
+  )
+  out <- compute_giornate_effettive(dt)
+  expect_identical(out, dt)
+  # rapporto 1: 9 giorni esclusivi (1-9) + 6/2; rapporto 2: 5 esclusivi (16-20) + 6/2
+  expect_equal(dt$giornate_effettive, c(9 + 3, 5 + 3))
+  expect_type(dt$giornate_effettive, "double")
+  expect_equal(sum(dt$giornate_effettive), 20)
+  info <- attr(dt, "ccnlcob_giornate_effettive")
+  expect_named(
+    info,
+    c(
+      "window",
+      "n_persone_sovrapposizioni",
+      "giornate_totali",
+      "giornate_effettive_totali"
+    )
+  )
+  expect_null(info$window)
+  expect_identical(info$n_persone_sovrapposizioni, 1L)
+  expect_equal(info$giornate_totali, 15 + 11)
+  expect_equal(info$giornate_effettive_totali, 20)
+})
+
+test_that("compute_giornate_effettive() con tre rapporti concorrenti alloca 1/3 nel tratto comune", {
+  dt <- data.table::data.table(
+    id = 1:3,
+    cf = "A",
+    inizio = as.Date(c("2023-01-01", "2023-01-05", "2023-01-08")),
+    fine = as.Date(c("2023-01-10", "2023-01-12", "2023-01-09"))
+  )
+  compute_giornate_effettive(dt)
+  # segmenti: 1-4 (arco 1), 5-7 (arco 2), 8-9 (arco 3), 10 (arco 2), 11-12 (arco 1)
+  expect_equal(
+    dt$giornate_effettive,
+    c(4 + 3 / 2 + 2 / 3 + 1 / 2, 3 / 2 + 2 / 3 + 1 / 2 + 2, 2 / 3)
+  )
+  expect_equal(sum(dt$giornate_effettive), 12)
+})
+
+test_that("compute_giornate_effettive() assegna meta' a ciascuno di due intervalli identici", {
+  dt <- data.table::data.table(
+    id = 1:2,
+    cf = "A",
+    inizio = as.Date("2023-03-01"),
+    fine = as.Date("2023-03-10")
+  )
+  compute_giornate_effettive(dt)
+  expect_equal(dt$giornate_effettive, c(5, 5))
+})
+
+test_that("compute_giornate_effettive() non toglie nulla a intervalli contigui o a persone diverse", {
+  dt <- data.table::data.table(
+    id = 1:4,
+    cf = c("A", "A", "B", "C"),
+    inizio = as.Date(c("2023-01-01", "2023-01-11", "2023-01-05", "2023-01-05")),
+    fine = as.Date(c("2023-01-10", "2023-01-20", "2023-01-09", "2023-01-09"))
+  )
+  compute_giornate(dt)
+  compute_giornate_effettive(dt)
+  expect_equal(dt$giornate_effettive, as.numeric(dt$giornate))
+  expect_identical(
+    attr(dt, "ccnlcob_giornate_effettive")$n_persone_sovrapposizioni,
+    0L
   )
 })
 
-# TODO Fase 4 (compute_giornate_effettive):
-# - `sum(giornate_effettive)` per `cf` uguale ai giorni-persona occupati,
-#   calcolati indipendentemente con `seq` di date (unione degli intervalli)
-# - due rapporti identici e sovrapposti: metà giornate ciascuno (1/`arco`)
-# - rapporto isolato: `giornate_effettive == giornate`
-# - `skip_if_not_installed("vecshift")` sui test che chiamano vecshift
-# - coerenza con `compute_giornate()` quando non ci sono sovrapposizioni
+test_that("compute_giornate_effettive() taglia alla finestra e azzera i rapporti esterni", {
+  dt <- data.table::data.table(
+    id = 1:3,
+    cf = "A",
+    inizio = as.Date(c("2022-12-01", "2023-01-10", "2024-02-01")),
+    fine = as.Date(c("2023-01-31", "2023-02-10", "2024-03-01"))
+  )
+  compute_giornate_effettive(dt, window = .w2023)
+  # in finestra: 1-31 gennaio e 10 gen-10 feb; sovrapposti 10-31 gennaio (22 giorni)
+  expect_equal(dt$giornate_effettive, c(9 + 11, 11 + 10, 0))
+  expect_equal(sum(dt$giornate_effettive), 41)
+  info <- attr(dt, "ccnlcob_giornate_effettive")
+  expect_identical(info$window, .w2023)
+  expect_equal(info$giornate_totali, 31 + 32)
+})
+
+test_that("compute_giornate_effettive() accetta la finestra come stringhe e restituisce NA su date mancanti", {
+  dt <- data.table::data.table(
+    id = 1:3,
+    cf = c("A", "A", "B"),
+    inizio = as.Date(c("2023-01-01", "2023-01-10", NA)),
+    fine = as.Date(c("2023-01-15", "2023-01-20", "2023-02-01"))
+  )
+  compute_giornate_effettive(dt, window = c("2023-01-01", "2023-12-31"))
+  expect_equal(dt$giornate_effettive[1:2], c(12, 8))
+  expect_true(is.na(dt$giornate_effettive[3]))
+})
+
+test_that("compute_giornate_effettive() tratta i cf mancanti come persone isolate", {
+  dt <- data.table::data.table(
+    id = 1:2,
+    cf = NA_character_,
+    inizio = as.Date("2023-01-01"),
+    fine = as.Date("2023-01-10")
+  )
+  compute_giornate_effettive(dt)
+  expect_equal(dt$giornate_effettive, c(10, 10))
+})
+
+test_that("compute_giornate_effettive() modifica per riferimento, sovrascrive e lavora su IDate", {
+  dt <- data.table::data.table(
+    id = 1:2,
+    cf = "A",
+    inizio = data.table::as.IDate(c("2023-01-01", "2023-01-10")),
+    fine = data.table::as.IDate(c("2023-01-15", "2023-01-20")),
+    giornate_effettive = -1
+  )
+  alias <- dt
+  out <- compute_giornate_effettive(dt)
+  expect_identical(alias$giornate_effettive, c(12, 8))
+  expect_true(inherits(dt$inizio, "IDate"))
+  expect_invisible(compute_giornate_effettive(dt))
+})
+
+test_that("compute_giornate_effettive() rispetta l'invariante dei giorni-persona sulla fixture", {
+  dt <- prepare_rapporti(fixture)
+  w <- attr(dt, "ccnlcob_meta")$window
+  compute_giornate_effettive(dt, window = w)
+  eff <- dt[, .(effettive = sum(giornate_effettive)), by = cf]
+  unione <- .giorni_unione(dt, window = w)
+  confronto <- merge(eff, unione, by = "cf")
+  expect_identical(nrow(confronto), nrow(eff))
+  expect_equal(confronto$effettive, as.numeric(confronto$unione))
+  expect_true(all(dt$giornate_effettive <= dt$giornate + 1e-9))
+  # persone con un solo rapporto: nessuna riallocazione
+  singoli <- dt[, .N, by = cf][N == 1L, cf]
+  expect_equal(
+    dt[cf %in% singoli, giornate_effettive],
+    as.numeric(dt[cf %in% singoli, giornate])
+  )
+  info <- attr(dt, "ccnlcob_giornate_effettive")
+  expect_equal(info$giornate_totali, sum(dt$giornate))
+  expect_equal(info$giornate_effettive_totali, sum(unione$unione))
+  expect_true(info$n_persone_sovrapposizioni <= data.table::uniqueN(dt$cf))
+})
+
+test_that("compute_giornate_effettive() e' additivo rispetto alla misura di rank_ccnl()", {
+  dt <- prepare_rapporti(fixture)
+  compute_giornate_effettive(dt, window = attr(dt, "ccnlcob_meta")$window)
+  rk <- rank_ccnl(dt, measures = c("giornate", "giornate_effettive"))
+  expect_equal(sum(rk$giornate_effettive), sum(dt$giornate_effettive))
+  expect_true(all(rk$giornate_effettive <= rk$giornate + 1e-9))
+})
+
+test_that("compute_giornate_effettive() rifiuta input non validi", {
+  df <- data.frame(id = 1L, cf = "A", inizio = Sys.Date(), fine = Sys.Date())
+  expect_error(compute_giornate_effettive(df), "data.table")
+  dt <- data.table::data.table(id = 1L, inizio = Sys.Date(), fine = Sys.Date())
+  expect_error(compute_giornate_effettive(dt), "Colonne mancanti: cf")
+  dt <- data.table::data.table(
+    id = 1L,
+    cf = "A",
+    inizio = "2023-01-01",
+    fine = Sys.Date()
+  )
+  expect_error(compute_giornate_effettive(dt), "classe Date")
+  dt <- data.table::data.table(
+    id = 1L,
+    cf = "A",
+    inizio = Sys.Date(),
+    fine = Sys.Date()
+  )
+  expect_error(
+    compute_giornate_effettive(dt, window = as.Date("2023-01-01")),
+    "due date"
+  )
+  expect_error(
+    compute_giornate_effettive(dt, window = as.Date(c("2023-12-31", "2023-01-01"))),
+    "ordinata"
+  )
+})
+
+test_that("compute_giornate_effettive() coincide con i totali per persona di vecshift", {
+  skip_if_not_installed("vecshift")
+  dt <- prepare_rapporti(fixture)
+  compute_giornate_effettive(dt)
+  eff <- dt[, .(effettive = sum(giornate_effettive)), by = cf]
+  seg <- data.table::as.data.table(
+    vecshift::vecshift(dt[, .(id, cf, inizio, fine, prior)])
+  )
+  vs <- seg[arco > 0, .(vecshift = sum(as.numeric(durata))), by = cf]
+  confronto <- merge(eff, vs, by = "cf")
+  expect_identical(nrow(confronto), nrow(eff))
+  expect_equal(confronto$effettive, confronto$vecshift)
+})
+
+test_that("compute_giornate_effettive() elabora cob_esempio in tempi contenuti", {
+  cob <- .carica_dataset("cob_esempio")
+  dt <- prepare_rapporti(cob)
+  tempo <- system.time(
+    compute_giornate_effettive(dt, window = attr(dt, "ccnlcob_meta")$window)
+  )[["elapsed"]]
+  expect_lt(tempo, 5)
+  expect_false(anyNA(dt$giornate_effettive))
+  expect_true(attr(dt, "ccnlcob_giornate_effettive")$n_persone_sovrapposizioni > 0L)
+})

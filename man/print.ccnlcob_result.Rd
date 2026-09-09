@@ -4,10 +4,12 @@
 \alias{print.ccnlcob_result}
 \title{Stampa sintetica di un risultato ccnlcob_result}
 \usage{
-\method{print}{ccnlcob_result}(x, ...)
+\method{print}{ccnlcob_result}(x, n = 5L, ...)
 }
 \arguments{
 \item{x}{Oggetto di classe \code{ccnlcob_result}.}
+
+\item{n}{Numero di CCNL rilevanti da elencare (default 5).}
 
 \item{...}{Ignorato; presente per coerenza con il generico \code{\link[=print]{print()}}.}
 }
@@ -15,14 +17,13 @@
 \code{x}, restituito invisibilmente.
 }
 \description{
-Mostra i metadati principali e le dimensioni delle tabelle contenute in un
-oggetto prodotto da \code{\link[=analyze_ccnl]{analyze_ccnl()}}.
+Mostra versione, finestra, perimetro, numerosità, coperture, i primi
+CCNL rilevanti con la loro quota e i passi saltati di un oggetto prodotto
+da \code{\link[=analyze_ccnl]{analyze_ccnl()}}.
 }
 \examples{
-\dontrun{
-res <- analyze_ccnl(cob_esempio)
+res <- analyze_ccnl(cob_esempio, lookup_cpi = cpi_esempio, min_n = 10)
 print(res)
-}
 }
 \seealso{
 Other orchestrazione: 

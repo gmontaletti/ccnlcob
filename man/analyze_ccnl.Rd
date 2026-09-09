@@ -8,22 +8,52 @@ analyze_ccnl(
   dt,
   as_of = NULL,
   window = NULL,
+  perimetro = c("ccnl", "standard", "completo"),
+  ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  measure = "giornate",
   top_n = 20,
   cum_share = 0.8,
-  geo = "sede_lavoro",
-  periodo = "anno",
+  geo = c("sede_lavoro", "residenza"),
+  lookup_cpi = NULL,
+  periodo = c("anno", "trimestre"),
   indice = NULL,
-  ...
+  base = NULL,
+  effettive = TRUE,
+  min_n = 30L,
+  tipologie = ccnlcob::tipologie_contrattuali,
+  quiet = TRUE
 )
 }
 \arguments{
-\item{dt}{Un \code{data.table} di rapporti conforme a \code{\link[=validate_rapporti]{validate_rapporti()}}.}
+\item{dt}{Un \code{data.table} di rapporti conforme a \code{\link[=validate_rapporti]{validate_rapporti()}}.
+Non viene modificato.}
 
-\item{as_of}{Data di riferimento (\code{Date}) per lo stock e i rapporti aperti;
-vedi \code{\link[=prepare_rapporti]{prepare_rapporti()}}.}
+\item{as_of}{Data di riferimento (\code{Date} o stringa convertibile) per lo
+stato dei rapporti (\code{attivo}) e per la chiusura dei rapporti aperti;
+\code{NULL} (default) usa la data massima non sentinella osservata fra
+\code{inizio} e \code{fine}, cioè la data di riferimento dei dati.}
 
-\item{window}{Vettore di due \code{Date} che delimita l'analisi; vedi
-\code{\link[=prepare_rapporti]{prepare_rapporti()}}.}
+\item{window}{Vettore di due \code{Date} (o stringhe convertibili),
+\code{c(inizio, fine)}, che delimita l'analisi; \code{NULL} (default) usa
+\code{c(min(inizio), as_of)}, dove il minimo è calcolato sugli avviamenti
+non sentinella.}
+
+\item{perimetro}{Perimetro contrattuale applicato da \code{\link[=filter_perimetro]{filter_perimetro()}}
+prima di ogni altro trattamento: \code{"ccnl"} (default) conserva solo le
+tipologie di lavoro subordinato alle quali si applica un CCNL;
+\code{"standard"} conserva il perimetro "standard" di \code{cnelR};
+\code{"completo"} non esclude nulla. Vedi Dettagli.}
+
+\item{ccnl_key}{Colonna da usare come chiave CCNL di analisi:
+\code{"codice_cnel"} (codice CNEL a 4 caratteri prodotto da \code{cnelR}) oppure
+\code{"ccnl_warehouse"} (codice warehouse CO). Con il default (entrambe)
+viene usata la prima colonna presente in \code{dt}; se una colonna richiesta
+esplicitamente è assente la funzione produce un errore.}
+
+\item{measure}{Misura di rilevanza usata per selezionare i CCNL e per la
+distribuzione per CPI: una fra \code{"n_rapporti"}, \code{"n_lavoratori"},
+\code{"n_datori"}, \code{"giornate"} (default), \code{"giornate_effettive"},
+\code{"stock"}.}
 
 \item{top_n}{Numero massimo di CCNL rilevanti; vedi
 \code{\link[=select_ccnl_rilevanti]{select_ccnl_rilevanti()}}.}
@@ -34,55 +64,94 @@ rilevanti; vedi \code{\link[=select_ccnl_rilevanti]{select_ccnl_rilevanti()}}.}
 \item{geo}{Geografia per il CPI (\code{"sede_lavoro"} o \code{"residenza"}); vedi
 \code{\link[=add_cpi]{add_cpi()}}.}
 
+\item{lookup_cpi}{Lookup esplicito comune -> CPI (colonne \code{belfiore},
+\code{cpi_code}, \code{cpi_name}) passato ad \code{\link[=add_cpi]{add_cpi()}}; \code{NULL} usa \code{longworkR}
+se installato e se i file di mapping in \code{SHARED_DATA_DIR} sono
+presenti, altrimenti il blocco CPI viene saltato.}
+
 \item{periodo}{Periodo di avviamento per le serie temporali (\code{"anno"} o
 \code{"trimestre"}).}
 
-\item{indice}{\code{data.table} opzionale con \code{periodo} e \code{indice} per la
-deflazione; \code{NULL} per omettere i valori reali.}
+\item{indice}{\code{data.table} opzionale con la colonna di periodo (chiamata
+come \code{periodo} oppure \code{periodo}) e la colonna \code{indice} per la
+deflazione delle retribuzioni; \code{NULL} per omettere i valori reali.}
 
-\item{...}{Argomenti aggiuntivi passati a \code{\link[=add_cpi]{add_cpi()}} (\code{lookup}),
-\code{\link[=clean_retribuzione]{clean_retribuzione()}} (\code{method}, \code{k}) e \code{\link[=median_retribuzione]{median_retribuzione()}}
-(\code{min_n}, \code{weights}).}
+\item{base}{Periodo base per la deflazione; \code{NULL} usa l'ultimo periodo
+presente. Vedi \code{\link[=deflate_retribuzione]{deflate_retribuzione()}}.}
+
+\item{effettive}{Se \code{TRUE} (default) calcola \code{giornate_effettive} e la
+include fra le misure del ranking.}
+
+\item{min_n}{Numerosità minima sotto la quale i quozienti di
+localizzazione e i quantili di retribuzione vengono mascherati.}
+
+\item{tipologie}{Lookup delle tipologie contrattuali con le colonne
+\code{cod_tipologia_contrattuale}, \code{macro_tipologia}, \code{perimetro_ccnl} e
+\code{esclusa_standard}; default \link{tipologie_contrattuali}.}
+
+\item{quiet}{Se \code{TRUE} (default) sopprime i \code{message()} dei passi
+intermedi.}
 }
 \value{
 Una lista di classe \code{ccnlcob_result} con gli elementi elencati nei
 Dettagli.
 }
 \description{
-Orchestra i passi del pacchetto (preparazione, giornate, ranking,
-selezione, distribuzione per CPI e per tipologia, retribuzioni) e
-restituisce un oggetto di classe \code{ccnlcob_result} con le tabelle
-precomputate per dashboard e report.
+Orchestra, su una copia di \code{dt}, l'intera catena del pacchetto:
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}, \code{\link[=compute_giornate_effettive]{compute_giornate_effettive()}}, \code{\link[=add_cpi]{add_cpi()}},
+\code{\link[=rank_ccnl]{rank_ccnl()}}, \code{\link[=select_ccnl_rilevanti]{select_ccnl_rilevanti()}}, \code{\link[=ccnl_by_cpi]{ccnl_by_cpi()}},
+\code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}}, \code{\link[=clean_retribuzione]{clean_retribuzione()}}, \code{\link[=normalize_fte]{normalize_fte()}},
+\code{\link[=median_retribuzione]{median_retribuzione()}} e \code{\link[=deflate_retribuzione]{deflate_retribuzione()}}. Restituisce un
+oggetto di classe \code{ccnlcob_result} con le tabelle precomputate per
+dashboard e report, da serializzare con \code{\link[=write_results]{write_results()}}. I blocchi
+facoltativi (giornate effettive, CPI, retribuzioni, deflazione) vengono
+saltati, con motivazione registrata in \code{meta$passi_saltati}, quando le
+colonne o le risorse necessarie non sono disponibili; un input non valido
+produce invece un errore.
 }
 \details{
 Componenti del risultato:
 \itemize{
-\item \code{meta}: \code{as_of}, \code{window}, \code{n_rapporti}, \code{n_lavoratori},
-\code{copertura_ccnl}, \code{copertura_retribuzione}, \code{versione};
-\item \code{ranking}: output di \code{\link[=rank_ccnl]{rank_ccnl()}};
-\item \code{rilevanti}: output di \code{\link[=select_ccnl_rilevanti]{select_ccnl_rilevanti()}} con etichette;
-\item \code{cpi}: output di \code{\link[=ccnl_by_cpi]{ccnl_by_cpi()}} sui CCNL rilevanti;
-\item \code{tipologie}: output di \code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}} sui CCNL rilevanti;
-\item \code{retribuzioni}: output di \code{\link[=median_retribuzione]{median_retribuzione()}} ed eventuale
-\code{\link[=deflate_retribuzione]{deflate_retribuzione()}};
-\item \code{qualita}: per CCNL, copertura del codice, copertura della retribuzione
-e quota di rapporti con \code{troncata == 1}.
+\item \code{meta}: lista con \code{versione}, \code{as_of}, \code{window}, \code{perimetro},
+\code{ccnl_key}, \code{measure}, \code{n_input}, \code{n_finestra}, \code{n_rapporti},
+\code{n_lavoratori}, \code{copertura_ccnl}, \code{copertura_retribuzione}, \code{passi}
+(passi eseguiti), \code{passi_saltati} (vettore nominato passo -> motivo),
+\code{preparazione} (attributo \code{ccnlcob_meta} di \code{\link[=prepare_rapporti]{prepare_rapporti()}}) e
+\code{tempi} (secondi per passo);
+\item \code{ranking} e \code{ranking_periodo}: output di \code{\link[=rank_ccnl]{rank_ccnl()}} sull'intera
+finestra e per \code{periodo}, con le misure \code{n_rapporti}, \code{n_lavoratori},
+\code{n_datori} (se \code{datore} è presente), \code{giornate}, \code{giornate_effettive}
+(se calcolate) e \code{stock};
+\item \code{rilevanti}: tabella di \code{\link[=select_ccnl_rilevanti]{select_ccnl_rilevanti()}} con il residuo
+"Altri CCNL"; \code{keys}: le chiavi selezionate;
+\item \code{cpi}: output di \code{\link[=ccnl_by_cpi]{ccnl_by_cpi()}} sui CCNL rilevanti (\code{NULL} se
+saltato);
+\item \code{tipologie}: output di \code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}} (macro-tipologia per
+orario, misura \code{n_rapporti}) sui CCNL rilevanti;
+\item \code{retribuzioni}: output di \code{\link[=median_retribuzione]{median_retribuzione()}} sui CCNL rilevanti,
+con le colonne \verb{_reale} se \code{indice} è fornito (\code{NULL} se la colonna
+\code{retribuzione} manca);
+\item \code{qualita}: per \code{ccnl_key} (inclusi i non classificati) \code{n} righe,
+\code{n_rapporti} avviati, \code{quota_troncata}, \code{copertura_retribuzione},
+\code{copertura_ore} (part-time con ore valide), \code{copertura_cpi} (righe con
+CPI lombardo); \code{NA} dove il blocco non è stato calcolato.
 }
 }
 \examples{
-\dontrun{
 res <- analyze_ccnl(
   cob_esempio,
-  as_of = as.Date("2024-12-31"),
   window = as.Date(c("2022-01-01", "2024-12-31")),
-  top_n = 20,
-  cum_share = 0.8
+  lookup_cpi = cpi_esempio,
+  top_n = 10,
+  min_n = 10
 )
 res
-res$ranking
-}
+res$rilevanti[, .(ccnl_key, classe, giornate, quota_giornate)]
+res$qualita
 }
 \seealso{
+\code{\link[=write_results]{write_results()}} per la serializzazione.
+
 Other orchestrazione: 
 \code{\link{print.ccnlcob_result}()},
 \code{\link{write_results}()}

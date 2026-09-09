@@ -26,8 +26,10 @@ Piano di sviluppo dettagliato: `../reference/ccnlcob/piano_sviluppo.md`
   Non reimplementare il bridge; consumare `codice_cnel` già prodotto.
 - Mapping comune → CPI: `longworkR::add_cpi_via_belfiore()`. Non copiare le
   utilità geografiche.
-- Segmentazione intervalli e giornate: `vecshift::vecshift()` (colonne `arco`,
-  `durata`).
+- Segmentazione intervalli e giornate: `vecshift::vecshift()` è il riferimento
+  (colonne `arco`, `durata`); `compute_giornate_effettive()` usa una scansione
+  interna a estremi inclusivi e verifica nei test che i totali per persona
+  coincidano con quelli di vecshift.
 - `data_pipeline` non porta la colonna `ccnl`: la lineage con CCNL è la slice
   DuckDB di `cnelR` (`sl2_rapporti_36m_classificati`).
 

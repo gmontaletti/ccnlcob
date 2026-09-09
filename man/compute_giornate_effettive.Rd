@@ -7,9 +7,10 @@
 compute_giornate_effettive(dt, window = NULL)
 }
 \arguments{
-\item{dt}{Un \code{data.table} con le colonne \code{inizio} e \code{fine} di classe
-\code{Date} (\code{IDate} accettata), tipicamente l'output di
-\code{\link[=prepare_rapporti]{prepare_rapporti()}}. Viene modificato per riferimento.}
+\item{dt}{Un \code{data.table} con le colonne \code{id}, \code{cf}, \code{inizio} e \code{fine}
+(\code{Date} o \code{IDate}), tipicamente l'output di \code{\link[=prepare_rapporti]{prepare_rapporti()}}, che
+ha già risolto le sentinelle sulle date. Viene modificato per
+riferimento.}
 
 \item{window}{Vettore di due \code{Date} (o stringhe convertibili),
 \code{c(inizio, fine)}, ordinate; \code{NULL} (default) non applica alcun taglio
@@ -17,36 +18,64 @@ e conta l'intera durata del rapporto.}
 }
 \value{
 \code{dt} con la colonna \code{giornate_effettive} (numeric) aggiunta per
-riferimento, restituito invisibilmente.
+riferimento, restituito invisibilmente. L'attributo
+\code{ccnlcob_giornate_effettive} è una lista con \code{window},
+\code{n_persone_sovrapposizioni} (persone con almeno un giorno in cui hanno
+più di un rapporto), \code{giornate_totali} (somma dei giorni-contratto
+nella finestra) e \code{giornate_effettive_totali} (somma dei giorni-persona).
 }
 \description{
-Aggiunge la colonna \code{giornate_effettive}: i giorni-persona che ciascun
-rapporto riceve dopo aver ripartito i giorni in cui la stessa persona ha
-più rapporti concorrenti. La somma per persona coincide con i giorni-persona
-occupati; la somma per CCNL è la misura di rilevanza usata da
-\code{\link[=rank_ccnl]{rank_ccnl()}}.
+Aggiunge (o sovrascrive) per riferimento la colonna \code{giornate_effettive}:
+i giorni-persona che ciascun rapporto riceve dopo aver ripartito i giorni
+in cui la stessa persona ha più rapporti concorrenti. Ogni giorno-persona
+compreso nella finestra viene diviso in parti uguali (1/\code{arco}) fra i
+rapporti attivi in quel giorno, così che la somma di \code{giornate_effettive}
+sui rapporti di una persona coincida con i giorni in cui la persona è
+occupata (unione degli intervalli, tagliata alla finestra). La somma per
+CCNL è la misura \code{giornate_effettive} di \code{\link[=rank_ccnl]{rank_ccnl()}}.
 }
 \details{
-Algoritmo:
+Algoritmo, esatto su date intere con estremi inclusi e interamente
+vettorizzato con \code{data.table}:
 \enumerate{
-\item per ciascuna persona \code{vecshift::vecshift()} produce segmenti disgiunti
-con \code{arco} = numero di rapporti concorrenti nel segmento;
-\item un join non-equi associa ogni rapporto ai segmenti della stessa
-persona che interseca;
-\item \code{giornate_effettive = sum(giorni_intersezione / arco)} per rapporto.
+\item gli intervalli sono tagliati alla finestra; i rapporti interamente
+fuori finestra ricevono 0;
+\item le persone con un solo rapporto (o con \code{cf} mancante) ricevono
+\code{giornate_effettive = giornate} senza ulteriori calcoli;
+\item per le altre persone i punti di rottura sono le date \code{inizio} e
+\code{fine + 1} dei rapporti; ogni coppia di punti consecutivi definisce un
+segmento \verb{[b_k, b_(k+1) - 1]} e \code{arco} è il numero di rapporti della
+persona che coprono il segmento (somma cumulata degli eventi di
+apertura e chiusura);
+\item un join non-equi associa ogni rapporto ai segmenti che copre e gli
+assegna \code{giorni_segmento / arco}; la somma per rapporto è
+\code{giornate_effettive}.
 }
 
-Quando due CCNL diversi si sovrappongono, ciascuno riceve metà dei giorni.
-Invariante: \code{sum(giornate_effettive)} per \code{cf} è uguale ai giorni-persona
-occupati nella finestra. Il passo è l'unico non lineare del pacchetto e
-viene eseguito a blocchi di persone.
+Quando due CCNL diversi si sovrappongono, ciascuno riceve metà dei
+giorni. Invariante: la somma di \code{giornate_effettive} per \code{cf} è uguale ai
+giorni-persona occupati nella finestra; per le persone senza
+sovrapposizioni \code{giornate_effettive == giornate}. Righe con date mancanti
+ricevono \code{NA}.
+
+Rispetto a \code{vecshift::vecshift()}, che assegna il giorno di transizione
+al segmento precedente, la suddivisione in segmenti differisce di un
+giorno per ogni transizione; il totale per persona coincide
+(\code{sum(durata[arco > 0])} di \code{vecshift}). Il pacchetto non dipende da
+\code{vecshift} per questo calcolo.
 }
 \examples{
-\dontrun{
+library(data.table)
 dt <- prepare_rapporti(cob_esempio)
 compute_giornate_effettive(dt, window = as.Date(c("2023-01-01", "2023-12-31")))
-dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = ccnl_key]
-}
+dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = ccnl_key][
+  order(-effettive)
+][1:5]
+attr(dt, "ccnlcob_giornate_effettive")$n_persone_sovrapposizioni
+
+# invariante: per persona, la somma coincide con i giorni occupati
+compute_giornate_effettive(dt)
+dt[cf == dt$cf[1], .(id, inizio, fine, giornate, giornate_effettive)]
 }
 \seealso{
 Other giornate: 

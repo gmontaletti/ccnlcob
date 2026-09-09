@@ -4,7 +4,12 @@
 \alias{write_results}
 \title{Serializza i risultati di analyze_ccnl()}
 \usage{
-write_results(result, dir, formats = c(small = "rds", cube = "fst"))
+write_results(
+  result,
+  dir,
+  formats = c(small = "rds", cube = "fst"),
+  overwrite = FALSE
+)
 }
 \arguments{
 \item{result}{Oggetto di classe \code{ccnlcob_result} prodotto da
@@ -15,24 +20,44 @@ write_results(result, dir, formats = c(small = "rds", cube = "fst"))
 \item{formats}{Vettore character nominato con i formati per le tabelle
 piccole (\code{small}) e per i cubi (\code{cube}). Valori ammessi: \code{"rds"},
 \code{"fst"}.}
+
+\item{overwrite}{Se \code{FALSE} (default) la funzione si ferma con un errore
+quando uno dei file di destinazione esiste già.}
 }
 \value{
-Vettore character nominato con i percorsi dei file scritti,
-restituito invisibilmente.
+Un \code{data.table} con una riga per file scritto e le colonne
+\code{oggetto}, \code{file} (percorso), \code{formato}, \code{righe} (\code{NA} per gli oggetti
+non tabellari) e \code{byte}, restituito invisibilmente.
 }
 \description{
 Scrive su disco le tabelle contenute in un oggetto \code{ccnlcob_result}
 seguendo la convenzione dell'ecosistema: RDS per le tabelle piccole
-(\code{meta}, \code{ranking}, \code{rilevanti}, \code{retribuzioni}, \code{qualita}) e FST con
-compressione 85 per i cubi (\code{cpi}, \code{tipologie}).
+(\code{ranking}, \code{ranking_periodo}, \code{rilevanti}, \code{retribuzioni}, \code{qualita}) e
+FST con compressione 85 per i cubi (\code{cpi}, \code{tipologie}). \code{meta} e \code{keys}
+non sono tabelle e vengono sempre scritti in RDS.
+}
+\details{
+I file sono \code{meta.rds}, \verb{ranking.<f>}, \verb{ranking_periodo.<f>},
+\verb{rilevanti.<f>}, \code{keys.rds}, \verb{cpi.<f>}, \verb{tipologie.<f>},
+\verb{retribuzioni.<f>} e \verb{qualita.<f>}, con \verb{<f>} pari al formato della
+famiglia. Gli elementi \code{NULL} del risultato (passi saltati) non producono
+file e sono elencati in \code{meta$oggetti_assenti}. Il formato FST non
+conserva gli attributi delle tabelle (\code{ccnlcob_ranking},
+\code{ccnlcob_crosstab}, ...): per ogni tabella scritta essi vengono salvati
+in \code{meta$attributi[[nome]]}, così che \code{meta.rds} permetta di ricostruirli
+con \code{\link[=attr]{attr()}}. \code{meta$file} riporta il manifesto dei file scritti.
 }
 \examples{
-\dontrun{
-res <- analyze_ccnl(cob_esempio, window = as.Date(c("2022-01-01", "2024-12-31")))
-write_results(res, dir = "output/ccnl")
-}
+res <- analyze_ccnl(cob_esempio, lookup_cpi = cpi_esempio, min_n = 10)
+dir_out <- file.path(tempdir(), "ccnl")
+manifesto <- write_results(res, dir = dir_out, overwrite = TRUE)
+manifesto
+readRDS(file.path(dir_out, "meta.rds"))$versione
+unlink(dir_out, recursive = TRUE)
 }
 \seealso{
+\code{\link[=analyze_ccnl]{analyze_ccnl()}} per la produzione del risultato.
+
 Other orchestrazione: 
 \code{\link{analyze_ccnl}()},
 \code{\link{print.ccnlcob_result}()}

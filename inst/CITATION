@@ -7,12 +7,12 @@ bibentry(
   author = person("Giampaolo", "Montaletti",
                   comment = c(ORCID = "0009-0002-5327-1122")),
   year = "2026",
-  note = "R package version 0.4.0",
+  note = "R package version 0.5.0",
   url = "https://github.com/gmontaletti/ccnlcob",
   textVersion = paste(
     "Montaletti, G. (2026).",
     "ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)",
-    "(Version 0.4.0) [R package].",
+    "(Version 0.5.0) [R package].",
     "https://github.com/gmontaletti/ccnlcob"
   )
 )
