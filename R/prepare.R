@@ -4,10 +4,11 @@
 #'
 #' Normalizza un dataset di rapporti di lavoro conforme al contratto dati:
 #' rinomina le colonne (varianti maiuscole della pipeline e `ccnl` in
-#' `ccnl_warehouse`), risolve le sentinelle sulle date, esclude i rapporti
-#' esterni alla finestra di analisi e aggiunge le colonne derivate usate
-#' dalle funzioni analitiche. L'input non viene mai modificato: la funzione
-#' lavora su una copia e restituisce un nuovo `data.table`.
+#' `ccnl_warehouse`), applica il perimetro contrattuale, risolve le
+#' sentinelle sulle date, esclude i rapporti esterni alla finestra di
+#' analisi e aggiunge le colonne derivate usate dalle funzioni analitiche.
+#' L'input non viene mai modificato: la funzione lavora su una copia e
+#' restituisce un nuovo `data.table`.
 #'
 #' @param dt Un `data.table` con una riga per rapporto di lavoro; vedi
 #'   [validate_rapporti()] per il contratto dati. Le colonne `inizio` e
@@ -26,9 +27,14 @@
 #'   `"ccnl_warehouse"` (codice warehouse CO). Con il default (entrambe)
 #'   viene usata la prima colonna presente in `dt`; se una colonna richiesta
 #'   esplicitamente è assente la funzione produce un errore.
+#' @param perimetro Perimetro contrattuale applicato da [filter_perimetro()]
+#'   prima di ogni altro trattamento: `"ccnl"` (default) conserva solo le
+#'   tipologie di lavoro subordinato alle quali si applica un CCNL;
+#'   `"standard"` conserva il perimetro "standard" di `cnelR`;
+#'   `"completo"` non esclude nulla. Vedi Dettagli.
 #' @param tipologie Lookup delle tipologie contrattuali con le colonne
-#'   `cod_tipologia_contrattuale` e `macro_tipologia`; default
-#'   [tipologie_contrattuali].
+#'   `cod_tipologia_contrattuale`, `macro_tipologia`, `perimetro_ccnl` e
+#'   `esclusa_standard`; default [tipologie_contrattuali].
 #'
 #' @details
 #' ## Normalizzazione dei nomi
@@ -39,6 +45,28 @@
 #' `eta`), `SESSO_LAV` (in `sesso`). La colonna sorgente `ccnl` (codice
 #' warehouse) viene rinominata `ccnl_warehouse` se quest'ultima è assente.
 #' Il contratto dati viene verificato dopo la rinomina.
+#'
+#' ## Perimetro contrattuale
+#' Subito dopo la verifica del contratto dati la funzione richiama
+#' [filter_perimetro()] con il `perimetro` scelto:
+#' - `"ccnl"` (default) conserva i rapporti con `perimetro_ccnl == TRUE`
+#'   nel lookup, cioè il lavoro subordinato al quale si applica un CCNL
+#'   (codici `A.`, `F.`, `G.01.00`, `G.02.00`, `H.01.00`, `H.03.00`, `I.`,
+#'   `N.`); esclude collaborazioni e parasubordinati (`B.`), tirocini e
+#'   work experience (`C.`), lavoro autonomo nello spettacolo (`G.03.00`),
+#'   lavoro congiunto in agricoltura (`H.02.00`), associazione in
+#'   partecipazione (`L.`), contratti di agenzia (`M.`) e i codici ignoti;
+#' - `"standard"` conserva i rapporti con `esclusa_standard == FALSE`
+#'   (perimetro di `cnelR`), codici ignoti inclusi;
+#' - `"completo"` conserva tutte le righe e riproduce il comportamento
+#'   delle versioni fino alla 0.2.0, che non applicavano alcun perimetro.
+#'
+#' Le righe escluse sono conteggiate in `n_dropped_perimetro` e dettagliate
+#' per tipologia in `esclusi_perimetro`; [filter_perimetro()] emette un
+#' `message()` riassuntivo, sopprimibile. La data di riferimento di default
+#' (`as_of = NULL`) è calcolata prima del filtro, su tutti i rapporti, così
+#' da non dipendere dal perimetro; la finestra di default parte invece dal
+#' primo avviamento interno al perimetro.
 #'
 #' ## Sentinelle sulle date
 #' Questa è l'unica funzione del pacchetto che interviene sulle sentinelle,
@@ -62,6 +90,9 @@
 #'
 #' ## Colonne aggiunte
 #' - `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA`;
+#' - `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo
+#'   `tipologie`, `FALSE` per i codici ignoti; con `perimetro = "ccnl"` è
+#'   sempre `TRUE`;
 #' - `troncata`, `troncata_inizio` (integer 0/1): flag delle sentinelle;
 #' - `giornate` (integer): giorni-contratto nella finestra, vedi
 #'   [compute_giornate()];
@@ -81,28 +112,33 @@
 #'
 #' ## Metadati
 #' L'attributo `ccnlcob_meta` del risultato è una lista con `as_of`,
-#' `window`, `ccnl_key` (nome della colonna usata), `n_input`,
-#' `n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio` e
-#' `n_fine_lt_inizio`.
+#' `window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
+#' (righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
+#' `n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
+#' `n_fine_lt_inizio` e `esclusi_perimetro` (la tabella `esclusi` di
+#' [filter_perimetro()]).
 #'
 #' @return Un nuovo `data.table` con le colonne di `dt` (rinominate come
 #'   descritto) e le colonne derivate elencate nei Dettagli, limitato ai
-#'   rapporti che intersecano la finestra; l'attributo `ccnlcob_meta`
-#'   riporta i parametri e i conteggi. L'input non viene modificato.
+#'   rapporti interni al perimetro che intersecano la finestra; l'attributo
+#'   `ccnlcob_meta` riporta i parametri e i conteggi. L'input non viene
+#'   modificato.
 #' @family ingresso
 #' @export
 #' @examples
 #' library(data.table)
 #' dt <- prepare_rapporti(cob_esempio)
 #' attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
+#' attr(dt, "ccnlcob_meta")$esclusi_perimetro
 #' dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 #'
-#' # finestra esplicita e chiave warehouse
+#' # finestra esplicita, chiave warehouse e nessun filtro di perimetro
 #' dt24 <- prepare_rapporti(
 #'   cob_esempio,
 #'   as_of = as.Date("2024-12-31"),
 #'   window = as.Date(c("2024-01-01", "2024-12-31")),
-#'   ccnl_key = "ccnl_warehouse"
+#'   ccnl_key = "ccnl_warehouse",
+#'   perimetro = "completo"
 #' )
 #' dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]
 prepare_rapporti <- function(
@@ -110,6 +146,7 @@ prepare_rapporti <- function(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 ) {
   # 1.1 Controlli preliminari e copia -----
@@ -117,6 +154,7 @@ prepare_rapporti <- function(
     .assert_rapporti(dt, require = "base", caller = "prepare_rapporti")
   }
   ccnl_key <- match.arg(ccnl_key, several.ok = TRUE)
+  perimetro <- match.arg(perimetro)
   as_of <- .as_as_of(as_of, caller = "prepare_rapporti")
   window <- .as_window(window, caller = "prepare_rapporti")
   n_input <- nrow(dt)
@@ -125,14 +163,20 @@ prepare_rapporti <- function(
   .normalize_names(out)
   .assert_rapporti(out, require = "base", caller = "prepare_rapporti")
 
-  # 1.2 Chiave CCNL -----
-  key_col <- .select_ccnl_key(out, ccnl_key)
-  data.table::set(out, j = "ccnl_key", value = as.character(out[[key_col]]))
-
-  # 1.3 Sentinelle sulle date e finestra -----
+  # 1.2 Perimetro contrattuale -----
+  # as_of di default è calcolata su tutti i rapporti, prima del filtro.
   if (is.null(as_of)) {
     as_of <- .default_as_of(out)
   }
+  out <- filter_perimetro(out, perimetro = perimetro, tipologie = tipologie)
+  info_perimetro <- attr(out, "ccnlcob_perimetro")
+  data.table::setattr(out, "ccnlcob_perimetro", NULL)
+
+  # 1.3 Chiave CCNL -----
+  key_col <- .select_ccnl_key(out, ccnl_key)
+  data.table::set(out, j = "ccnl_key", value = as.character(out[[key_col]]))
+
+  # 1.4 Sentinelle sulle date e finestra -----
   conteggi <- .clamp_dates(out, as_of = as_of)
   if (is.null(window)) {
     window <- .default_window(out, as_of = as_of)
@@ -143,7 +187,7 @@ prepare_rapporti <- function(
     out <- out[!fuori]
   }
 
-  # 1.4 Colonne derivate -----
+  # 1.5 Colonne derivate -----
   compute_giornate(out, window = window)
   data.table::set(out, j = "avviato", value = out[["inizio"]] >= window[1L])
   data.table::set(
@@ -168,16 +212,20 @@ prepare_rapporti <- function(
   )
   data.table::set(out, j = "orario", value = orario)
 
-  # 1.5 Metadati -----
+  # 1.6 Metadati -----
   meta <- list(
     as_of = as_of,
     window = window,
     ccnl_key = key_col,
+    perimetro = perimetro,
     n_input = as.integer(n_input),
+    n_dropped_perimetro = info_perimetro$n_dropped,
+    n_tipologia_ignota = info_perimetro$n_tipologia_ignota,
     n_dropped_window = as.integer(n_dropped_window),
     n_sentinel_fine = conteggi$n_sentinel_fine,
     n_sentinel_inizio = conteggi$n_sentinel_inizio,
-    n_fine_lt_inizio = conteggi$n_fine_lt_inizio
+    n_fine_lt_inizio = conteggi$n_fine_lt_inizio,
+    esclusi_perimetro = info_perimetro$esclusi
   )
   data.table::setattr(out, "ccnlcob_meta", meta)
   out[]

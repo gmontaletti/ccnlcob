@@ -47,14 +47,16 @@ dt <- copy(cob_esempio)
 validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
 
 # 2. preparazione: rinomina, sentinelle sulle date, finestra, chiave CCNL,
-#    giornate di contratto, periodo di avviamento, macro-tipologia, orario
+#    giornate di contratto, periodo di avviamento, macro-tipologia, orario;
+#    il perimetro di default ("ccnl") esclude collaborazioni, tirocini e le
+#    altre tipologie senza CCNL, conteggiandole in esclusi_perimetro
 dt <- prepare_rapporti(
   dt,
   as_of = as.Date("2024-12-31"),
   window = as.Date(c("2022-01-01", "2024-12-31")),
   ccnl_key = "codice_cnel"
 )
-attr(dt, "ccnlcob_meta")
+attr(dt, "ccnlcob_meta")$esclusi_perimetro
 dt[, .(rapporti = .N, giornate = sum(giornate)), by = .(anno, macro_tipologia)]
 
 # 3. ranking: per ogni misura valore, quota, rank e quota cumulata;
@@ -91,30 +93,31 @@ La vignetta `analisi-ccnl` (`vignette("analisi-ccnl", package = "ccnlcob")`) ese
 
 ## Stato di sviluppo
 
-Versione 0.2.0: le Fasi 1 e 2 del piano di sviluppo sono completate. Il pacchetto fornisce il contratto dati (`validate_rapporti()`), la preparazione dei rapporti (`prepare_rapporti()`, `classify_tipologia()`), le giornate di contratto (`compute_giornate()`), il ranking con selezione dei CCNL (`rank_ccnl()`, `select_ccnl_rilevanti()`), la distribuzione territoriale per CPI (`add_cpi()`, `ccnl_by_cpi()`, lookup di esempio `cpi_esempio`) e la distribuzione per tipologia contrattuale (`ccnl_by_tipologia()`). Le funzioni delle Fasi 3-6 sono esportate e documentate con la firma definitiva ma restituiscono un errore esplicito con la fase di implementazione prevista.
+Versione 0.3.0: le Fasi 1 e 2 del piano di sviluppo sono completate e il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto fornisce il contratto dati (`validate_rapporti()`), il perimetro contrattuale (flag `perimetro_ccnl` in `tipologie_contrattuali`, `filter_perimetro()`, argomento `perimetro` di `prepare_rapporti()` con default `"ccnl"`), la preparazione dei rapporti (`prepare_rapporti()`, `classify_tipologia()`), le giornate di contratto (`compute_giornate()`), il ranking con selezione dei CCNL (`rank_ccnl()`, `select_ccnl_rilevanti()`), la distribuzione territoriale per CPI (`add_cpi()`, `ccnl_by_cpi()`, lookup di esempio `cpi_esempio`) e la distribuzione per tipologia contrattuale (`ccnl_by_tipologia()`). Le funzioni delle Fasi 3-6 sono esportate e documentate con la firma definitiva ma restituiscono un errore esplicito con la fase di implementazione prevista.
 
 | Fase | Versione | Contenuto | Stato |
 |---|---|---|---|
 | 0 | 0.0.0.9000 | scheletro, contratto dati, stub documentati, fixture sintetica | completata |
 | 1 | 0.1.0 | `validate_rapporti()`, `prepare_rapporti()`, `compute_giornate()`, `classify_tipologia()`, `rank_ccnl()`, `select_ccnl_rilevanti()`, vignetta | completata |
 | 2 | 0.2.0 | `add_cpi()`, `ccnl_by_cpi()`, `ccnl_by_tipologia()`, dataset `cpi_esempio` | completata |
-| 3 | 0.3.0 | `clean_retribuzione()`, `normalize_fte()`, `median_retribuzione()`, `deflate_retribuzione()` | prevista |
-| 4 | 0.4.0 | `compute_giornate_effettive()`, `analyze_ccnl()`, `write_results()` | prevista |
-| 5 | 0.5.0 | `read_rapporti()` da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | prevista |
-| 6 | 0.6.0 | grafici opzionali e report Quarto | prevista |
+| 2 bis | 0.3.0 | perimetro CCNL: flag `perimetro_ccnl`, `filter_perimetro()`, argomento `perimetro` di `prepare_rapporti()` | completata |
+| 3 | 0.4.0 | `clean_retribuzione()`, `normalize_fte()`, `median_retribuzione()`, `deflate_retribuzione()` | prevista |
+| 4 | 0.5.0 | `compute_giornate_effettive()`, `analyze_ccnl()`, `write_results()` | prevista |
+| 5 | 0.6.0 | `read_rapporti()` da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | prevista |
+| 6 | 0.7.0 | grafici opzionali e report Quarto | prevista |
 
 ## Citazione
 
 Per citare ccnlcob nelle pubblicazioni:
 
-Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)* (Version 0.2.0) [R package]. https://github.com/gmontaletti/ccnlcob
+Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)* (Version 0.3.0) [R package]. https://github.com/gmontaletti/ccnlcob
 
 Voce BibTeX:
 ```bibtex
 @software{montaletti2026ccnlcob,
   author = {Montaletti, Giampaolo},
   title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},
-  version = {0.2.0},
+  version = {0.3.0},
   year = {2026},
   url = {https://github.com/gmontaletti/ccnlcob}
 }

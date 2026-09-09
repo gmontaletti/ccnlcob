@@ -24,11 +24,13 @@ lavoro), come si distribuiscono per CPI (Centro per l'Impiego), come si
 distribuiscono per tipologia contrattuale e come evolve la retribuzione
 mediana dichiarata all'avviamento.
 
-Nella versione 0.2.0 sono operative le prime due fasi del flusso:
+Nella versione 0.3.0 sono operative le prime due fasi del flusso:
 validazione del contratto dati, preparazione dei rapporti, calcolo delle
 giornate di contratto, ranking e selezione dei CCNL rilevanti (Fase 1),
 distribuzione territoriale per CPI e distribuzione per tipologia
-contrattuale (Fase 2). I blocchi di codice di queste sezioni vengono
+contrattuale (Fase 2), oltre al perimetro contrattuale applicato in
+ingresso da `prepare_rapporti()` tramite `filter_perimetro()`. I blocchi di
+codice di queste sezioni vengono
 eseguiti sul dataset sintetico `cob_esempio` incluso nel pacchetto, con il
 lookup comune -> CPI `cpi_esempio`. Le funzioni delle fasi successive
 (retribuzioni, giornate effettive, orchestrazione, lettura dei dati) sono
@@ -69,6 +71,9 @@ str(dt)
 
 - rinomina le varianti maiuscole prodotte dalla pipeline COB e la colonna
   sorgente `ccnl` (codice warehouse) in `ccnl_warehouse`;
+- applica il perimetro contrattuale (argomento `perimetro`, default
+  `"ccnl"`) tramite `filter_perimetro()`, escludendo le tipologie alle
+  quali non si applica un CCNL (vedi il paragrafo seguente);
 - sceglie la chiave di analisi `ccnl_key`: per default `codice_cnel` se
   presente, altrimenti `ccnl_warehouse`;
 - risolve le sentinelle sulle date. Una `fine` mancante, non successiva a
@@ -89,7 +94,27 @@ avviamento non sentinella ad `as_of`. Nell'esempio entrambi i parametri sono
 espliciti: la finestra copre il triennio 2022-2024 e lo stato dei rapporti è
 valutato al 31 dicembre 2024.
 
-```{r preparazione}
+### Perimetro contrattuale
+
+Non tutti gli avviamenti registrati nelle Comunicazioni Obbligatorie sono
+rapporti di lavoro subordinato ai quali si applica un contratto collettivo.
+Restano fuori le collaborazioni e il lavoro occasionale (codici MLPS `B.`),
+i tirocini, i lavori socialmente utili e le work experience (`C.`), il
+lavoro autonomo nello spettacolo (`G.03.00`), il lavoro congiunto in
+agricoltura (`H.02.00`), l'associazione in partecipazione (`L.`) e il
+contratto di agenzia (`M.`). Includere questi rapporti nelle classifiche
+dei CCNL altera le misure di rilevanza: le giornate e le persone attribuite
+a un CCNL comprenderebbero rapporti che quel contratto non regola. Per
+questo `prepare_rapporti()` applica per default il perimetro `"ccnl"`,
+definito dal flag `perimetro_ccnl` del lookup `tipologie_contrattuali`,
+prima di ogni altro trattamento. I codici assenti dal lookup sono trattati
+come fuori perimetro e conteggiati a parte.
+
+L'esclusione non è mai silenziosa: `filter_perimetro()` emette un messaggio
+riassuntivo, riportato di seguito una sola volta, e i conteggi restano nei
+metadati.
+
+```{r preparazione, message = TRUE}
 dt <- prepare_rapporti(
   dt,
   as_of = as.Date("2024-12-31"),
@@ -98,16 +123,54 @@ dt <- prepare_rapporti(
 )
 ```
 
+I metadati riportano il perimetro applicato, il numero di rapporti esclusi
+e la tabella `esclusi_perimetro` con le righe escluse per tipologia.
+
+```{r perimetro-esclusi}
+meta <- attr(dt, "ccnlcob_meta")
+meta[c("perimetro", "n_input", "n_dropped_perimetro", "n_tipologia_ignota")]
+knitr::kable(meta$esclusi_perimetro)
+```
+
+Nel dataset di esempio il perimetro esclude `r meta$n_dropped_perimetro`
+rapporti su `r meta$n_input` in `r nrow(meta$esclusi_perimetro)` tipologie,
+con `r meta$n_tipologia_ignota` codici ignoti. Sono disponibili tre
+perimetri:
+
+- `"ccnl"` (default): conserva le tipologie con `perimetro_ccnl == TRUE`;
+  i codici ignoti vengono esclusi;
+- `"standard"`: riproduce il perimetro di `cnelR`, che esclude solo le
+  tipologie con `esclusa_standard == TRUE` nel lookup; i codici ignoti
+  vengono conservati;
+- `"completo"`: non esclude nulla e riproduce il comportamento delle
+  versioni fino alla 0.2.0. La colonna logica `perimetro_ccnl` resta
+  disponibile per distinguere i rapporti.
+
+Il filtro può essere applicato anche al dato grezzo con
+`filter_perimetro()`, che restituisce un nuovo `data.table` con la colonna
+`perimetro_ccnl` e l'attributo `ccnlcob_perimetro`; l'input non viene
+modificato.
+
+```{r perimetro-standard, message = FALSE}
+std <- filter_perimetro(cob_esempio, perimetro = "standard")
+attr(std, "ccnlcob_perimetro")[c("perimetro", "n_input", "n_kept", "n_dropped")]
+tutto <- filter_perimetro(cob_esempio, perimetro = "completo")
+tutto[, .N, by = perimetro_ccnl]
+```
+
 L'attributo `ccnlcob_meta` conserva i parametri usati e i conteggi delle
-correzioni: rapporti in ingresso, rapporti esclusi perché esterni alla
-finestra, sentinelle su `fine` e su `inizio`, intervalli con `fine < inizio`.
+correzioni: rapporti in ingresso, rapporti esclusi dal perimetro, rapporti
+esclusi perché esterni alla finestra, sentinelle su `fine` e su `inizio`,
+intervalli con `fine < inizio`.
 
 ```{r meta}
-attr(dt, "ccnlcob_meta")
+meta[setdiff(names(meta), "esclusi_perimetro")]
 ```
 
 Le colonne aggiunte hanno il seguente significato:
 
+- `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo il
+  lookup; con il perimetro di default vale sempre `TRUE`;
 - `giornate` (integer): giorni di contratto compresi nella finestra, estremi
   inclusi. Un rapporto iniziato prima di `window[1]` o terminato dopo
   `window[2]` conta solo la parte interna alla finestra; poiché i rapporti
@@ -480,6 +543,7 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
 
 - Contratto dati in ingresso: `?validate_rapporti`.
 - Regole sulle sentinelle e colonne derivate: `?prepare_rapporti`.
+- Perimetro contrattuale: `?filter_perimetro`.
 - Misure e quote del ranking: `?rank_ccnl`, `?select_ccnl_rilevanti`.
 - Mapping comune -> CPI e distribuzione territoriale: `?add_cpi`,
   `?ccnl_by_cpi`.

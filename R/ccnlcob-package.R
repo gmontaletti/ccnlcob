@@ -75,6 +75,7 @@ utils::globalVariables(c(
   "des_tipologia_contrattuale",
   "macro_tipologia",
   "esclusa_standard",
+  "perimetro_ccnl",
   "tipologia",
   "prior",
   "orario",

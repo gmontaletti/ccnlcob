@@ -50,10 +50,11 @@ reference:
       - ccnl_by_cpi
 
   - title: Tipologie
-    desc: Macro-classi contrattuali e distribuzione dei CCNL per tipologia.
+    desc: Macro-classi contrattuali, perimetro CCNL e distribuzione dei CCNL per tipologia.
     contents:
       - ccnl_by_tipologia
       - classify_tipologia
+      - filter_perimetro
 
   - title: Retribuzioni
     desc: Pulizia, normalizzazione FTE, mediana per coorte e deflazione.

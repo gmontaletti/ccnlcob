@@ -9,6 +9,7 @@ prepare_rapporti(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 )
 }
@@ -34,23 +35,31 @@ non sentinella.}
 viene usata la prima colonna presente in \code{dt}; se una colonna richiesta
 esplicitamente è assente la funzione produce un errore.}
 
+\item{perimetro}{Perimetro contrattuale applicato da \code{\link[=filter_perimetro]{filter_perimetro()}}
+prima di ogni altro trattamento: \code{"ccnl"} (default) conserva solo le
+tipologie di lavoro subordinato alle quali si applica un CCNL;
+\code{"standard"} conserva il perimetro "standard" di \code{cnelR};
+\code{"completo"} non esclude nulla. Vedi Dettagli.}
+
 \item{tipologie}{Lookup delle tipologie contrattuali con le colonne
-\code{cod_tipologia_contrattuale} e \code{macro_tipologia}; default
-\link{tipologie_contrattuali}.}
+\code{cod_tipologia_contrattuale}, \code{macro_tipologia}, \code{perimetro_ccnl} e
+\code{esclusa_standard}; default \link{tipologie_contrattuali}.}
 }
 \value{
 Un nuovo \code{data.table} con le colonne di \code{dt} (rinominate come
 descritto) e le colonne derivate elencate nei Dettagli, limitato ai
-rapporti che intersecano la finestra; l'attributo \code{ccnlcob_meta}
-riporta i parametri e i conteggi. L'input non viene modificato.
+rapporti interni al perimetro che intersecano la finestra; l'attributo
+\code{ccnlcob_meta} riporta i parametri e i conteggi. L'input non viene
+modificato.
 }
 \description{
 Normalizza un dataset di rapporti di lavoro conforme al contratto dati:
 rinomina le colonne (varianti maiuscole della pipeline e \code{ccnl} in
-\code{ccnl_warehouse}), risolve le sentinelle sulle date, esclude i rapporti
-esterni alla finestra di analisi e aggiunge le colonne derivate usate
-dalle funzioni analitiche. L'input non viene mai modificato: la funzione
-lavora su una copia e restituisce un nuovo \code{data.table}.
+\code{ccnl_warehouse}), applica il perimetro contrattuale, risolve le
+sentinelle sulle date, esclude i rapporti esterni alla finestra di
+analisi e aggiunge le colonne derivate usate dalle funzioni analitiche.
+L'input non viene mai modificato: la funzione lavora su una copia e
+restituisce un nuovo \code{data.table}.
 }
 \details{
 \subsection{Normalizzazione dei nomi}{
@@ -62,6 +71,32 @@ se la colonna minuscola corrispondente è assente: \code{INIZIO}, \code{FINE},
 \code{eta}), \code{SESSO_LAV} (in \code{sesso}). La colonna sorgente \code{ccnl} (codice
 warehouse) viene rinominata \code{ccnl_warehouse} se quest'ultima è assente.
 Il contratto dati viene verificato dopo la rinomina.
+}
+
+\subsection{Perimetro contrattuale}{
+
+Subito dopo la verifica del contratto dati la funzione richiama
+\code{\link[=filter_perimetro]{filter_perimetro()}} con il \code{perimetro} scelto:
+\itemize{
+\item \code{"ccnl"} (default) conserva i rapporti con \code{perimetro_ccnl == TRUE}
+nel lookup, cioè il lavoro subordinato al quale si applica un CCNL
+(codici \code{A.}, \code{F.}, \code{G.01.00}, \code{G.02.00}, \code{H.01.00}, \code{H.03.00}, \code{I.},
+\code{N.}); esclude collaborazioni e parasubordinati (\code{B.}), tirocini e
+work experience (\code{C.}), lavoro autonomo nello spettacolo (\code{G.03.00}),
+lavoro congiunto in agricoltura (\code{H.02.00}), associazione in
+partecipazione (\code{L.}), contratti di agenzia (\code{M.}) e i codici ignoti;
+\item \code{"standard"} conserva i rapporti con \code{esclusa_standard == FALSE}
+(perimetro di \code{cnelR}), codici ignoti inclusi;
+\item \code{"completo"} conserva tutte le righe e riproduce il comportamento
+delle versioni fino alla 0.2.0, che non applicavano alcun perimetro.
+}
+
+Le righe escluse sono conteggiate in \code{n_dropped_perimetro} e dettagliate
+per tipologia in \code{esclusi_perimetro}; \code{\link[=filter_perimetro]{filter_perimetro()}} emette un
+\code{message()} riassuntivo, sopprimibile. La data di riferimento di default
+(\code{as_of = NULL}) è calcolata prima del filtro, su tutti i rapporti, così
+da non dipendere dal perimetro; la finestra di default parte invece dal
+primo avviamento interno al perimetro.
 }
 
 \subsection{Sentinelle sulle date}{
@@ -93,6 +128,9 @@ interni alla finestra, estremi inclusi, ed è quindi sempre \verb{>= 1}.
 \subsection{Colonne aggiunte}{
 \itemize{
 \item \code{ccnl_key} (character): chiave di analisi scelta; \code{NA} resta \code{NA};
+\item \code{perimetro_ccnl} (logical): appartenenza al perimetro CCNL secondo
+\code{tipologie}, \code{FALSE} per i codici ignoti; con \code{perimetro = "ccnl"} è
+sempre \code{TRUE};
 \item \code{troncata}, \code{troncata_inizio} (integer 0/1): flag delle sentinelle;
 \item \code{giornate} (integer): giorni-contratto nella finestra, vedi
 \code{\link[=compute_giornate]{compute_giornate()}};
@@ -115,23 +153,27 @@ avviamento da \code{inizio};
 \subsection{Metadati}{
 
 L'attributo \code{ccnlcob_meta} del risultato è una lista con \code{as_of},
-\code{window}, \code{ccnl_key} (nome della colonna usata), \code{n_input},
-\code{n_dropped_window}, \code{n_sentinel_fine}, \code{n_sentinel_inizio} e
-\code{n_fine_lt_inizio}.
+\code{window}, \code{ccnl_key} (nome della colonna usata), \code{perimetro}, \code{n_input}
+(righe di \code{dt}), \code{n_dropped_perimetro}, \code{n_tipologia_ignota},
+\code{n_dropped_window}, \code{n_sentinel_fine}, \code{n_sentinel_inizio},
+\code{n_fine_lt_inizio} e \code{esclusi_perimetro} (la tabella \code{esclusi} di
+\code{\link[=filter_perimetro]{filter_perimetro()}}).
 }
 }
 \examples{
 library(data.table)
 dt <- prepare_rapporti(cob_esempio)
 attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
+attr(dt, "ccnlcob_meta")$esclusi_perimetro
 dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 
-# finestra esplicita e chiave warehouse
+# finestra esplicita, chiave warehouse e nessun filtro di perimetro
 dt24 <- prepare_rapporti(
   cob_esempio,
   as_of = as.Date("2024-12-31"),
   window = as.Date(c("2024-01-01", "2024-12-31")),
-  ccnl_key = "ccnl_warehouse"
+  ccnl_key = "ccnl_warehouse",
+  perimetro = "completo"
 )
 dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]
 }

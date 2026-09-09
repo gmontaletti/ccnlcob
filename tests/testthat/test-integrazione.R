@@ -4,6 +4,11 @@
 # indipendenti in base R sui dati grezzi (sentinelle, finestra, giornate,
 # misure per CCNL). I test unitari di ciascuna funzione stanno nei rispettivi
 # file test-prepare.R, test-giornate.R e test-ranking.R.
+#
+# Le sezioni 2-9 usano `perimetro = "completo"`, che riproduce il
+# comportamento delle versioni fino alla 0.2.0 (nessuna esclusione per
+# tipologia): i calcoli indipendenti lavorano su tutte le righe grezze. Il
+# perimetro CCNL di default e' verificato end to end nella sezione 10.
 
 # 1. Fixture e calcoli indipendenti -----
 
@@ -111,7 +116,7 @@ cob <- .carica_dataset("cob_esempio")
   cl$ccnl_key[order(cl[[paste0("rank_", measure)]], cl$ccnl_key)]
 }
 
-prep <- prepare_rapporti(cob)
+prep <- prepare_rapporti(cob, perimetro = "completo")
 ranking <- rank_ccnl(prep, measures = .misure)
 
 # 2. prepare_rapporti() su cob_esempio -----
@@ -124,7 +129,11 @@ test_that("i metadati di prepare_rapporti() coincidono con i conteggi indipenden
   expect_identical(meta$as_of, as_of)
   expect_identical(meta$window, ind$window)
   expect_identical(meta$ccnl_key, "codice_cnel")
+  expect_identical(meta$perimetro, "completo")
   expect_identical(meta$n_input, nrow(cob))
+  expect_identical(meta$n_dropped_perimetro, 0L)
+  expect_identical(meta$n_tipologia_ignota, 0L)
+  expect_identical(nrow(meta$esclusi_perimetro), 0L)
   expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
   expect_identical(meta$n_sentinel_inizio, ind$n_sentinel_inizio)
   expect_identical(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
@@ -406,7 +415,11 @@ test_that("la tabella di select_ccnl_rilevanti() riassume i CCNL esclusi in una 
 
 test_that("con una finestra esplicita la catena rispetta i limiti e ricompone i giorni tagliati", {
   finestra <- as.Date(c("2021-01-01", "2022-12-31"))
-  prep_w <- prepare_rapporti(cob, window = c("2021-01-01", "2022-12-31"))
+  prep_w <- prepare_rapporti(
+    cob,
+    window = c("2021-01-01", "2022-12-31"),
+    perimetro = "completo"
+  )
   meta <- attr(prep_w, "ccnlcob_meta")
   ind <- .prepara_indipendente(cob, .as_of_indipendente(cob), window = finestra)
 
@@ -456,8 +469,8 @@ test_that("con una finestra esplicita la catena rispetta i limiti e ricompone i 
 # 7. Determinismo -----
 
 test_that("la catena è deterministica e non modifica i propri input", {
-  p1 <- prepare_rapporti(cob)
-  p2 <- prepare_rapporti(cob)
+  p1 <- prepare_rapporti(cob, perimetro = "completo")
+  p2 <- prepare_rapporti(cob, perimetro = "completo")
   expect_identical(p1, p2)
   expect_identical(p1, prep)
 
@@ -495,7 +508,7 @@ test_that("la catena è deterministica e non modifica i propri input", {
 test_that("una fixture nuova attraversa l'intera catena senza errori e con totali coerenti", {
   raw <- generate_cob_sintetico(n_persone = 60, n_rapporti = 400, seed = 7)
   expect_no_error({
-    prep_f <- prepare_rapporti(raw)
+    prep_f <- prepare_rapporti(raw, perimetro = "completo")
     ranking_f <- rank_ccnl(prep_f, measures = .misure)
     keys_f <- select_ccnl_rilevanti(
       ranking_f,
@@ -535,7 +548,11 @@ test_that("una fixture nuova attraversa l'intera catena senza errori e con total
 
 test_that("la catena funziona con la chiave warehouse, senza classe non classificata", {
   raw <- generate_cob_sintetico(n_persone = 60, n_rapporti = 400, seed = 7)
-  prep_wh <- prepare_rapporti(raw, ccnl_key = "ccnl_warehouse")
+  prep_wh <- prepare_rapporti(
+    raw,
+    ccnl_key = "ccnl_warehouse",
+    perimetro = "completo"
+  )
   expect_identical(attr(prep_wh, "ccnlcob_meta")$ccnl_key, "ccnl_warehouse")
   expect_false(anyNA(prep_wh$ccnl_key))
   expect_identical(prep_wh$ccnl_key, raw$ccnl[match(prep_wh$id, raw$id)])
@@ -921,6 +938,7 @@ test_that("il filtro ccnl di ccnl_by_cpi() conserva solo le chiavi selezionate s
   )
   expect_identical(length(keys), 5L)
   filtrata <- ccnl_by_cpi(prep_cpi, measure = "giornate", ccnl = keys)
+  # nota: `prep` e' la fixture con perimetro "completo" (sezione 1)
 
   expect_setequal(unique(filtrata$ccnl_key), keys)
   expect_false(anyNA(filtrata$ccnl_key))
@@ -1067,7 +1085,7 @@ test_that("ccnl_by_tipologia() riproduce la distribuzione per macro-classe e ora
 test_that("una fixture nuova attraversa la catena di Fase 2 senza errori e con totali coerenti", {
   raw <- generate_cob_sintetico(n_persone = 80, n_rapporti = 600, seed = 11)
   expect_no_error({
-    prep_f <- prepare_rapporti(raw)
+    prep_f <- prepare_rapporti(raw, perimetro = "completo")
     add_cpi(prep_f, lookup = cpi_lookup)
     ranking_f <- rank_ccnl(prep_f, measures = c("giornate", "n_rapporti"))
     keys_f <- select_ccnl_rilevanti(
@@ -1173,4 +1191,359 @@ test_that("min_n maschera lq senza eliminare righe né alterare le quote", {
   )
   expect_true(any(is.na(parziale$lq)) && !all(is.na(parziale$lq)))
   expect_identical(parziale$quota_riga, cpi_tab$quota_riga)
+})
+
+# 10. Perimetro CCNL -----
+
+# Comportamento di default di prepare_rapporti() (perimetro = "ccnl") e di
+# filter_perimetro(), confrontato con il flag ricostruito in base R dal lookup
+# tipologie_contrattuali: righe escluse, metadati, sentinelle e finestra
+# calcolate sulle sole righe conservate, totali di rank_ccnl() sul sottoinsieme.
+# I test unitari di filter_perimetro() stanno in test-perimetro.R.
+
+# Flag di perimetro indipendente: TRUE se il codice MLPS e' nel lookup con
+# perimetro_ccnl == TRUE; i codici ignoti (NA da match) sono fuori perimetro.
+.flag_perimetro <- function(raw, lookup = tipologie_lookup) {
+  idx <- match(
+    as.character(raw$cod_tipologia_contrattuale),
+    as.character(lookup$cod_tipologia_contrattuale)
+  )
+  flag <- lookup$perimetro_ccnl[idx]
+  flag[is.na(flag)] <- FALSE
+  flag
+}
+
+# Flag del perimetro standard: escluse solo le righe con esclusa_standard TRUE;
+# i codici ignoti restano.
+.flag_standard <- function(raw, lookup = tipologie_lookup) {
+  idx <- match(
+    as.character(raw$cod_tipologia_contrattuale),
+    as.character(lookup$cod_tipologia_contrattuale)
+  )
+  esclusa <- lookup$esclusa_standard[idx]
+  is.na(esclusa) | !esclusa
+}
+
+.attesi_esclusi <- c(
+  C.01.00 = 110L,
+  B.03.00 = 90L,
+  B.04.00 = 35L,
+  C.03.00 = 19L
+)
+
+test_that("prepare_rapporti() di default esclude le righe fuori perimetro CCNL e le conteggia nei metadati", {
+  prep_p <- suppressMessages(prepare_rapporti(cob))
+  meta <- attr(prep_p, "ccnlcob_meta")
+  keep <- .flag_perimetro(cob)
+
+  # insieme delle righe escluse: esattamente quelle con flag FALSE
+  expect_setequal(setdiff(cob$id, prep_p$id), cob$id[!keep])
+  expect_true(all(prep_p$id %in% cob$id[keep]))
+  expect_false(anyDuplicated(prep_p$id) > 0L)
+
+  # metadati
+  expect_identical(meta$perimetro, "ccnl")
+  expect_identical(meta$n_input, 5000L)
+  expect_identical(meta$n_input, nrow(cob))
+  expect_identical(meta$n_dropped_perimetro, 254L)
+  expect_identical(meta$n_dropped_perimetro, sum(!keep))
+  expect_identical(meta$n_tipologia_ignota, 0L)
+  expect_identical(
+    nrow(prep_p),
+    5000L - 254L - meta$n_dropped_window
+  )
+  expect_identical(
+    nrow(prep_p),
+    meta$n_input - meta$n_dropped_perimetro - meta$n_dropped_window
+  )
+  expect_true(all(prep_p$perimetro_ccnl))
+  expect_type(prep_p$perimetro_ccnl, "logical")
+
+  # tabella degli esclusi: quattro codici, conteggi attesi, somma 254
+  esclusi <- meta$esclusi_perimetro
+  expect_s3_class(esclusi, "data.table")
+  expect_identical(
+    names(esclusi),
+    c(
+      "cod_tipologia_contrattuale",
+      "des_tipologia_contrattuale",
+      "macro_tipologia",
+      "n"
+    )
+  )
+  expect_identical(nrow(esclusi), 4L)
+  expect_setequal(esclusi$cod_tipologia_contrattuale, names(.attesi_esclusi))
+  expect_identical(
+    esclusi$n[match(
+      names(.attesi_esclusi),
+      esclusi$cod_tipologia_contrattuale
+    )],
+    unname(.attesi_esclusi)
+  )
+  expect_identical(sum(esclusi$n), 254L)
+  expect_identical(sum(esclusi$n), meta$n_dropped_perimetro)
+  # ordine decrescente di n
+  expect_false(is.unsorted(rev(esclusi$n)))
+  # conteggi contro table() sulle righe grezze escluse
+  conteggio_raw <- table(cob$cod_tipologia_contrattuale[!keep])
+  expect_identical(
+    esclusi$n,
+    as.integer(conteggio_raw[esclusi$cod_tipologia_contrattuale])
+  )
+  # macro-classe degli esclusi dal lookup
+  expect_identical(
+    esclusi$macro_tipologia,
+    tipologie_lookup$macro_tipologia[match(
+      esclusi$cod_tipologia_contrattuale,
+      tipologie_lookup$cod_tipologia_contrattuale
+    )]
+  )
+  # nessuna tipologia esclusa sopravvive nel microdato
+  expect_false(any(
+    prep_p$cod_tipologia_contrattuale %in% esclusi$cod_tipologia_contrattuale
+  ))
+
+  # sentinelle e finestra: conteggi indipendenti sulle sole righe conservate,
+  # con as_of calcolata su tutte le righe (prima del filtro)
+  as_of <- .as_of_indipendente(cob)
+  ind <- .prepara_indipendente(cob[keep], as_of)
+  expect_identical(meta$as_of, as_of)
+  expect_identical(meta$window, ind$window)
+  expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
+  expect_identical(meta$n_sentinel_inizio, ind$n_sentinel_inizio)
+  expect_identical(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
+  expect_identical(meta$n_dropped_window, ind$n_dropped_window)
+  expect_identical(
+    meta$n_sentinel_fine,
+    sum(
+      (cob$fine == .sent_max | cob$fine == .sent_min | cob$fine > as_of) & keep
+    )
+  )
+  # le sentinelle sono contate dopo il filtro: meno di quelle sul dato intero
+  meta_tot <- attr(prep, "ccnlcob_meta")
+  expect_lte(meta$n_sentinel_fine, meta_tot$n_sentinel_fine)
+  expect_lte(meta$n_fine_lt_inizio, meta_tot$n_fine_lt_inizio)
+  expect_gt(meta$n_sentinel_fine, 0L)
+
+  # riga per riga sul sottoinsieme
+  expect_identical(sort(prep_p$id), sort(ind$righe$id))
+  righe <- ind$righe[match(prep_p$id, ind$righe$id), ]
+  expect_identical(as.Date(prep_p$inizio), righe$inizio)
+  expect_identical(as.Date(prep_p$fine), righe$fine)
+  expect_identical(prep_p$giornate, righe$giornate)
+  expect_identical(prep_p$troncata, righe$troncata)
+  expect_identical(prep_p$avviato, righe$avviato)
+  expect_identical(prep_p$attivo, righe$attivo)
+
+  # le righe conservate coincidono con quelle del dato completo, stesse
+  # colonne derivate
+  comuni <- prep[match(prep_p$id, prep$id)]
+  expect_identical(prep_p$giornate, comuni$giornate)
+  expect_identical(prep_p$ccnl_key, comuni$ccnl_key)
+  expect_identical(prep_p$macro_tipologia, comuni$macro_tipologia)
+  expect_identical(
+    setdiff(names(prep_p), names(prep)),
+    character(0)
+  )
+  expect_true("perimetro_ccnl" %in% names(prep))
+  expect_identical(
+    prep$perimetro_ccnl,
+    .flag_perimetro(cob)[match(prep$id, cob$id)]
+  )
+
+  # l'input non e' stato modificato
+  expect_false("perimetro_ccnl" %in% names(cob))
+  expect_identical(nrow(cob), 5000L)
+})
+
+test_that("prepare_rapporti() segnala con un messaggio le righe escluse dal perimetro", {
+  expect_message(prepare_rapporti(cob), "perimetro")
+  expect_message(
+    prepare_rapporti(cob),
+    "esclusi 254 rapporti su 5000"
+  )
+  expect_message(prepare_rapporti(cob, perimetro = "standard"), "standard")
+  expect_no_message(prepare_rapporti(cob, perimetro = "completo"))
+  expect_message(filter_perimetro(cob), "4 tipologie")
+  expect_no_message(filter_perimetro(cob, perimetro = "completo"))
+})
+
+test_that("con perimetro = 'standard' prepare_rapporti() esclude solo i codici esclusa_standard", {
+  prep_s <- suppressMessages(prepare_rapporti(cob, perimetro = "standard"))
+  meta <- attr(prep_s, "ccnlcob_meta")
+  keep_s <- .flag_standard(cob)
+
+  expect_identical(meta$perimetro, "standard")
+  expect_identical(meta$n_dropped_perimetro, 235L)
+  expect_identical(meta$n_dropped_perimetro, sum(!keep_s))
+  expect_setequal(setdiff(cob$id, prep_s$id), cob$id[!keep_s])
+  expect_identical(
+    nrow(prep_s),
+    meta$n_input - meta$n_dropped_perimetro - meta$n_dropped_window
+  )
+  expect_setequal(
+    meta$esclusi_perimetro$cod_tipologia_contrattuale,
+    c("C.01.00", "B.03.00", "B.04.00")
+  )
+  expect_identical(sum(meta$esclusi_perimetro$n), 235L)
+  # C.03.00 (LSU) resta nello standard ma non nel perimetro CCNL: la colonna
+  # perimetro_ccnl lo segnala senza eliminarlo
+  expect_true("C.03.00" %in% prep_s$cod_tipologia_contrattuale)
+  expect_identical(
+    sum(!prep_s$perimetro_ccnl),
+    sum(prep_s$cod_tipologia_contrattuale == "C.03.00")
+  )
+  expect_identical(
+    prep_s$perimetro_ccnl,
+    .flag_perimetro(cob)[match(prep_s$id, cob$id)]
+  )
+  # standard e ccnl: lo standard conserva 19 righe in piu' (C.03.00)
+  prep_p <- suppressMessages(prepare_rapporti(cob))
+  expect_identical(nrow(prep_s) - nrow(prep_p), 19L)
+  expect_true(all(prep_p$id %in% prep_s$id))
+})
+
+test_that("filter_perimetro() e prepare_rapporti() escludono le stesse righe", {
+  filtrato <- suppressMessages(filter_perimetro(cob))
+  prep_p <- suppressMessages(prepare_rapporti(cob))
+  info <- attr(filtrato, "ccnlcob_perimetro")
+  meta <- attr(prep_p, "ccnlcob_meta")
+  keep <- .flag_perimetro(cob)
+
+  expect_setequal(setdiff(cob$id, filtrato$id), setdiff(cob$id, prep_p$id))
+  expect_identical(filtrato$id, cob$id[keep])
+  expect_identical(info$perimetro, "ccnl")
+  expect_identical(info$n_input, 5000L)
+  expect_identical(info$n_kept, sum(keep))
+  expect_identical(info$n_dropped, meta$n_dropped_perimetro)
+  expect_identical(info$n_tipologia_ignota, meta$n_tipologia_ignota)
+  expect_identical(info$esclusi, meta$esclusi_perimetro)
+  expect_identical(nrow(filtrato), info$n_kept)
+  expect_identical(nrow(filtrato), info$n_input - info$n_dropped)
+  expect_true(all(filtrato$perimetro_ccnl))
+  # filter_perimetro() non tocca sentinelle e date
+  expect_identical(filtrato$fine, cob$fine[keep])
+  expect_identical(filtrato$inizio, cob$inizio[keep])
+  # prepare_rapporti() non espone l'attributo di filter_perimetro()
+  expect_null(attr(prep_p, "ccnlcob_perimetro"))
+
+  # perimetro completo: tutte le righe, colonna aggiunta con il flag
+  completo <- filter_perimetro(cob, perimetro = "completo")
+  info_c <- attr(completo, "ccnlcob_perimetro")
+  expect_identical(nrow(completo), nrow(cob))
+  expect_identical(completo$id, cob$id)
+  expect_identical(info_c$n_dropped, 0L)
+  expect_identical(info_c$n_kept, 5000L)
+  expect_identical(nrow(info_c$esclusi), 0L)
+  expect_true("perimetro_ccnl" %in% names(completo))
+  expect_identical(completo$perimetro_ccnl, keep)
+  expect_identical(sum(!completo$perimetro_ccnl), 254L)
+  expect_identical(
+    setdiff(names(completo), names(cob)),
+    "perimetro_ccnl"
+  )
+  # l'input non viene modificato
+  expect_false("perimetro_ccnl" %in% names(cob))
+})
+
+test_that("i totali di rank_ccnl() sul perimetro CCNL coincidono con il calcolo indipendente sul sottoinsieme", {
+  prep_p <- suppressMessages(prepare_rapporti(cob))
+  ranking_p <- rank_ccnl(prep_p, measures = .misure)
+  keep <- .flag_perimetro(cob)
+  ind <- .prepara_indipendente(cob[keep], .as_of_indipendente(cob))
+
+  .expect_misure_uguali(ranking_p, .misure_base(ind$righe))
+  expect_identical(sum(ranking_p$giornate), sum(ind$righe$giornate))
+  expect_identical(sum(ranking_p$n_rapporti), sum(ind$righe$avviato))
+  expect_identical(sum(ranking_p$stock), sum(ind$righe$attivo))
+  expect_identical(sum(ranking_p$giornate), sum(prep_p$giornate))
+  for (m in .misure) {
+    expect_equal(sum(ranking_p[[paste0("quota_", m)]]), 1, tolerance = 1e-12)
+  }
+
+  # rispetto al perimetro completo: meno giornate, mai di piu' per chiave
+  expect_lt(sum(ranking_p$giornate), sum(ranking$giornate))
+  expect_identical(
+    sum(ranking$giornate) - sum(ranking_p$giornate),
+    sum(prep$giornate[!prep$perimetro_ccnl])
+  )
+  m <- match(ranking_p$ccnl_key, ranking$ccnl_key)
+  expect_false(anyNA(m))
+  expect_true(all(ranking_p$giornate <= ranking$giornate[m]))
+  expect_true(all(ranking_p$n_rapporti <= ranking$n_rapporti[m]))
+  expect_true(all(ranking_p$n_lavoratori <= ranking$n_lavoratori[m]))
+  expect_true(all(ranking_p$stock <= ranking$stock[m]))
+  # le chiavi sparite dal ranking, se ce ne sono, avevano solo righe escluse
+  sparite <- setdiff(
+    .chiave_chr(ranking$ccnl_key),
+    .chiave_chr(ranking_p$ccnl_key)
+  )
+  for (k in sparite) {
+    righe_k <- prep[.chiave_chr(ccnl_key) == k]
+    expect_false(any(righe_k$perimetro_ccnl))
+  }
+
+  # la selezione resta un prefisso dell'ordine di rank
+  keys <- select_ccnl_rilevanti(
+    ranking_p,
+    measure = "giornate",
+    cum_share = 0.8
+  )
+  expect_gt(length(keys), 0L)
+  expect_identical(
+    keys,
+    .ordine_selezione(ranking_p, "giornate")[seq_along(keys)]
+  )
+  expect_true(all(keys %in% prep_p$ccnl_key))
+})
+
+test_that("una fixture nuova attraversa la catena con il perimetro di default e conteggi coerenti", {
+  raw <- generate_cob_sintetico(n_persone = 60, n_rapporti = 400, seed = 7)
+  keep <- .flag_perimetro(raw)
+  expect_gt(sum(!keep), 0L)
+
+  expect_no_error(suppressMessages({
+    prep_f <- prepare_rapporti(raw)
+    add_cpi(prep_f, lookup = cpi_lookup)
+    ranking_f <- rank_ccnl(prep_f, measures = .misure)
+    keys_f <- select_ccnl_rilevanti(
+      ranking_f,
+      measure = "giornate",
+      cum_share = 0.8
+    )
+    cpi_f <- ccnl_by_cpi(prep_f, measure = "giornate")
+    tip_f <- ccnl_by_tipologia(prep_f, measure = "n_rapporti")
+  }))
+  expect_message(prepare_rapporti(raw), "perimetro")
+
+  meta <- attr(prep_f, "ccnlcob_meta")
+  expect_identical(meta$perimetro, "ccnl")
+  expect_identical(meta$n_input, 400L)
+  expect_identical(meta$n_input, sum(keep) + meta$n_dropped_perimetro)
+  expect_identical(meta$n_dropped_perimetro, sum(!keep))
+  expect_identical(sum(meta$esclusi_perimetro$n), meta$n_dropped_perimetro)
+  expect_identical(
+    nrow(prep_f),
+    400L - meta$n_dropped_perimetro - meta$n_dropped_window
+  )
+  expect_setequal(setdiff(raw$id, prep_f$id), raw$id[!keep])
+  expect_true(all(prep_f$perimetro_ccnl))
+
+  ind <- .prepara_indipendente(raw[keep], .as_of_indipendente(raw))
+  expect_identical(meta$as_of, ind$as_of)
+  expect_identical(meta$window, ind$window)
+  expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
+  expect_identical(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
+  expect_identical(meta$n_dropped_window, ind$n_dropped_window)
+  expect_identical(sum(prep_f$giornate), sum(ind$righe$giornate))
+  .expect_misure_uguali(ranking_f, .misure_base(ind$righe))
+
+  expect_identical(sum(cpi_f$giornate), sum(prep_f$giornate))
+  expect_identical(sum(tip_f$n_rapporti), sum(prep_f$avviato))
+  # nessuna macro-classe fuori perimetro (Collaborazioni, Tirocinio) resta
+  expect_false(any(tip_f$tipologia %in% c("Collaborazioni", "Tirocinio")))
+  expect_setequal(
+    keys_f,
+    .ordine_selezione(ranking_f, "giornate")[seq_along(keys_f)]
+  )
 })

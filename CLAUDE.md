@@ -72,10 +72,12 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.2.0: Fasi 1 e 2 completate (`validate_rapporti()`, `prepare_rapporti()`,
-`compute_giornate()`, `classify_tipologia()`, `rank_ccnl()`,
-`select_ccnl_rilevanti()`, `add_cpi()`, `ccnl_by_cpi()`, `ccnl_by_tipologia()`);
-le altre funzioni esportate sono stub. Le misure per gruppo sono calcolate
+Versione 0.3.0: Fasi 1, 2 e 2 bis completate (`validate_rapporti()`,
+`prepare_rapporti()`, `compute_giornate()`, `classify_tipologia()`, `rank_ccnl()`,
+`select_ccnl_rilevanti()`, `add_cpi()`, `ccnl_by_cpi()`, `ccnl_by_tipologia()`,
+`filter_perimetro()`); le altre funzioni esportate sono stub.
+`prepare_rapporti()` esclude per default gli avviamenti fuori dal perimetro CCNL
+(`perimetro = "ccnl"`, flag `perimetro_ccnl` in `tipologie_contrattuali`). Le misure per gruppo sono calcolate
 da `.aggregate_misure()` (`R/crosstab.R`), usato sia da `rank_ccnl()` sia dalle
 tabelle incrociate.
 Le fasi successive sono elencate in `../reference/ccnlcob/piano_sviluppo.md` §8.

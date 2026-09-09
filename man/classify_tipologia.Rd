@@ -38,6 +38,7 @@ classify_tipologia(c("X.02", "X.01", "A.01.00"), tipologie = lookup)
 }
 \seealso{
 Other tipologie: 
-\code{\link{ccnl_by_tipologia}()}
+\code{\link{ccnl_by_tipologia}()},
+\code{\link{filter_perimetro}()}
 }
 \concept{tipologie}

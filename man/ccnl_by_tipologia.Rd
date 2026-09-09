@@ -123,6 +123,7 @@ ccnl_by_tipologia(
 \code{\link[=classify_tipologia]{classify_tipologia()}}, \code{\link[=rank_ccnl]{rank_ccnl()}}, \code{\link[=ccnl_by_cpi]{ccnl_by_cpi()}}.
 
 Other tipologie: 
-\code{\link{classify_tipologia}()}
+\code{\link{classify_tipologia}()},
+\code{\link{filter_perimetro}()}
 }
 \concept{tipologie}

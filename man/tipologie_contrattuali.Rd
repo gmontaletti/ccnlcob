@@ -16,6 +16,16 @@ della tipologia.}
 \verb{Tempo indeterminato}, \verb{Tempo determinato}, \code{Apprendistato},
 \code{Somministrazione}, \code{Intermittente}, \code{Collaborazioni}, \code{Tirocinio},
 \code{Domestico}, \code{Altro}.}
+\item{perimetro_ccnl}{logical. \code{TRUE} per le tipologie di lavoro
+subordinato alle quali si applica un CCNL: tutti i codici \code{A.}
+(incluso il lavoro domestico), \code{F.} (marittimo), \code{G.01.00} e
+\code{G.02.00} (spettacolo subordinato), \code{H.01.00} e \code{H.03.00}
+(agricoltura subordinata), \code{I.} (pubblica amministrazione) e \code{N.}
+(piattaforma). \code{FALSE} per \code{B.} (collaborazioni e parasubordinati),
+\code{C.} (tirocini, LSU e work experience), \code{G.03.00} (lavoro autonomo
+nello spettacolo), \code{H.02.00} (lavoro congiunto in agricoltura),
+\code{L.} (associazione in partecipazione) e \code{M.} (contratto di agenzia).
+Le regole complete sono in \code{data-raw/tipologie_contrattuali.R}.}
 \item{esclusa_standard}{logical. \code{TRUE} per le tipologie escluse dal
 perimetro "standard" di \code{cnelR} (\code{C.01.00}, \code{B.04.00}, \code{B.03.00},
 \code{A.04.00}, \code{A.04.01}).}
@@ -33,13 +43,15 @@ tipologie_contrattuali
 Lookup delle tipologie contrattuali delle Comunicazioni Obbligatorie
 (classificazioni standard del Ministero del Lavoro e delle Politiche
 Sociali) con la macro-classe usata da \code{\link[=classify_tipologia]{classify_tipologia()}} e
-\code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}} e il flag di esclusione dal perimetro "standard"
+\code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}}, il flag di appartenenza al perimetro CCNL usato da
+\code{\link[=filter_perimetro]{filter_perimetro()}} e il flag di esclusione dal perimetro "standard"
 adottato da \code{cnelR}.
 }
 \examples{
 head(tipologie_contrattuali)
 }
 \seealso{
-\code{\link[=classify_tipologia]{classify_tipologia()}}, \code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}}
+\code{\link[=classify_tipologia]{classify_tipologia()}}, \code{\link[=filter_perimetro]{filter_perimetro()}},
+\code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}}
 }
 \keyword{datasets}

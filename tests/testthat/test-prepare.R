@@ -102,7 +102,7 @@ test_that("prepare_rapporti() risolve le sentinelle su fine e le conteggia", {
   expect_gt(n_1900, 0L)
   expect_gt(n_neg, 0L)
 
-  out <- prepare_rapporti(dt)
+  out <- prepare_rapporti(dt, perimetro = "completo")
   meta <- attr(out, "ccnlcob_meta")
   as_of_atteso <- max(c(
     dt$inizio,
@@ -178,7 +178,12 @@ test_that("giornate coincide con fine - inizio + 1 nella finestra di default", {
 test_that("prepare_rapporti() taglia le giornate ai bordi della finestra e rimuove le righe esterne", {
   dt <- data.table::copy(fixture)
   w <- as.Date(c("2022-01-01", "2022-12-31"))
-  out <- prepare_rapporti(dt, as_of = as.Date("2024-12-31"), window = w)
+  out <- prepare_rapporti(
+    dt,
+    as_of = as.Date("2024-12-31"),
+    window = w,
+    perimetro = "completo"
+  )
   meta <- attr(out, "ccnlcob_meta")
   expect_identical(meta$window, w)
   expect_true(all(out$inizio <= w[2L]))
@@ -195,7 +200,8 @@ test_that("prepare_rapporti() taglia le giornate ai bordi della finestra e rimuo
   out2 <- prepare_rapporti(
     dt,
     as_of = "2024-12-31",
-    window = c("2022-01-01", "2022-12-31")
+    window = c("2022-01-01", "2022-12-31"),
+    perimetro = "completo"
   )
   expect_identical(out2$giornate, out$giornate)
   expect_identical(attr(out2, "ccnlcob_meta")$as_of, as.Date("2024-12-31"))
@@ -240,7 +246,8 @@ test_that("avviato e attivo seguono la finestra e as_of sulla tabella a mano", {
   out <- prepare_rapporti(
     .mini(),
     as_of = as.Date("2023-12-31"),
-    window = as.Date(c("2023-01-01", "2023-12-31"))
+    window = as.Date(c("2023-01-01", "2023-12-31")),
+    perimetro = "completo"
   )
   meta <- attr(out, "ccnlcob_meta")
   expect_identical(out$id, 1:3)
@@ -258,8 +265,8 @@ test_that("avviato e attivo seguono la finestra e as_of sulla tabella a mano", {
   expect_identical(out$orario, c("FT", "PT", "FT"))
 })
 
-test_that("con i default la tabella a mano non perde righe e as_of è la data massima", {
-  out <- prepare_rapporti(.mini())
+test_that("senza filtro di perimetro la tabella a mano non perde righe e as_of è la data massima", {
+  out <- prepare_rapporti(.mini(), perimetro = "completo")
   meta <- attr(out, "ccnlcob_meta")
   expect_identical(meta$as_of, as.Date("2024-06-30"))
   expect_identical(meta$window, as.Date(c("2022-01-01", "2024-06-30")))
@@ -273,8 +280,29 @@ test_that("con i default la tabella a mano non perde righe e as_of è la data ma
 
 test_that("prior non 0/1 produce orario NA", {
   dt <- .mini()[, prior := c(1L, 0L, NA_integer_, 2L, 1L)]
-  out <- prepare_rapporti(dt)
+  out <- prepare_rapporti(dt, perimetro = "completo")
   expect_identical(out$orario, c("FT", "PT", NA, NA, "FT"))
+})
+
+test_that("con il default il perimetro CCNL esclude il tirocinio e il codice ignoto della tabella a mano", {
+  expect_message(out <- prepare_rapporti(.mini()), "esclusi 2 rapporti su 5")
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(out$id, c(1L, 2L, 4L))
+  expect_identical(meta$perimetro, "ccnl")
+  expect_identical(meta$n_input, 5L)
+  expect_identical(meta$n_dropped_perimetro, 2L)
+  expect_identical(meta$n_tipologia_ignota, 1L)
+  expect_identical(meta$n_dropped_window, 0L)
+  expect_true(all(out$perimetro_ccnl))
+  expect_identical(
+    meta$esclusi_perimetro$cod_tipologia_contrattuale,
+    c("C.01.00", "ZZZ")
+  )
+  expect_identical(meta$esclusi_perimetro$n, c(1L, 1L))
+  # as_of di default resta la data massima di tutti i rapporti, anche esclusi
+  expect_identical(meta$as_of, as.Date("2024-06-30"))
+  # la finestra parte dal primo avviamento nel perimetro
+  expect_identical(meta$window, as.Date(c("2022-01-01", "2024-06-30")))
 })
 
 # 4. Nomi delle colonne e chiave CCNL -----
@@ -330,7 +358,7 @@ test_that("prepare_rapporti() normalizza le varianti maiuscole della pipeline", 
 test_that("prepare_rapporti() non rinomina se la colonna minuscola esiste già", {
   dt <- data.table::copy(fixture)
   dt[, SESSO_LAV := "X"]
-  out <- prepare_rapporti(dt)
+  out <- prepare_rapporti(dt, perimetro = "completo")
   expect_identical(out$sesso, fixture$sesso)
   expect_true("SESSO_LAV" %in% names(out))
 
@@ -368,17 +396,111 @@ test_that("l'attributo ccnlcob_meta ha i campi attesi", {
       "as_of",
       "window",
       "ccnl_key",
+      "perimetro",
       "n_input",
+      "n_dropped_perimetro",
+      "n_tipologia_ignota",
       "n_dropped_window",
       "n_sentinel_fine",
       "n_sentinel_inizio",
-      "n_fine_lt_inizio"
+      "n_fine_lt_inizio",
+      "esclusi_perimetro"
     )
   )
   expect_s3_class(meta$as_of, "Date")
   expect_s3_class(meta$window, "Date")
   expect_identical(length(meta$window), 2L)
   expect_type(meta$n_input, "integer")
+  expect_type(meta$perimetro, "character")
+  expect_type(meta$n_dropped_perimetro, "integer")
+  expect_type(meta$n_tipologia_ignota, "integer")
+  expect_s3_class(meta$esclusi_perimetro, "data.table")
+  expect_identical(
+    names(meta$esclusi_perimetro),
+    c(
+      "cod_tipologia_contrattuale",
+      "des_tipologia_contrattuale",
+      "macro_tipologia",
+      "n"
+    )
+  )
+})
+
+# 4b. Perimetro contrattuale -----
+
+test_that("con il default prepare_rapporti() esclude esattamente le tipologie B. e C. della fixture", {
+  dt <- data.table::copy(fixture)
+  fuori <- grepl("^[BC]\\.", dt$cod_tipologia_contrattuale)
+  expect_gt(sum(fuori), 0L)
+  expect_message(out <- prepare_rapporti(dt), "filter_perimetro")
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(meta$perimetro, "ccnl")
+  expect_identical(meta$n_input, nrow(dt))
+  expect_identical(meta$n_dropped_perimetro, sum(fuori))
+  expect_identical(meta$n_tipologia_ignota, 0L)
+  expect_identical(nrow(out), nrow(dt) - sum(fuori) - meta$n_dropped_window)
+  expect_identical(sort(out$id), sort(dt$id[!fuori]))
+  expect_true("perimetro_ccnl" %in% names(out))
+  expect_true(all(out$perimetro_ccnl))
+  expect_false(any(grepl("^[BC]\\.", out$cod_tipologia_contrattuale)))
+  expect_identical(sum(meta$esclusi_perimetro$n), meta$n_dropped_perimetro)
+  expect_identical(
+    sort(meta$esclusi_perimetro$cod_tipologia_contrattuale),
+    sort(unique(dt$cod_tipologia_contrattuale[fuori]))
+  )
+  # l'attributo di filter_perimetro() non resta sul risultato
+  expect_null(attr(out, "ccnlcob_perimetro"))
+  # i conteggi delle sentinelle riguardano solo le righe nel perimetro
+  expect_identical(
+    meta$n_sentinel_fine,
+    sum(dt$fine[!fuori] == .sent_max | dt$fine[!fuori] == .sent_min)
+  )
+})
+
+test_that("perimetro = 'standard' esclude solo i codici esclusa_standard", {
+  dt <- data.table::copy(fixture)
+  esclusi_std <- c("C.01.00", "B.04.00", "B.03.00", "A.04.00", "A.04.01")
+  fuori <- dt$cod_tipologia_contrattuale %in% esclusi_std
+  expect_gt(sum(fuori), 0L)
+  out <- suppressMessages(prepare_rapporti(dt, perimetro = "standard"))
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(meta$perimetro, "standard")
+  expect_identical(meta$n_dropped_perimetro, sum(fuori))
+  expect_identical(sort(out$id), sort(dt$id[!fuori]))
+  expect_true(all(
+    meta$esclusi_perimetro$cod_tipologia_contrattuale %in% esclusi_std
+  ))
+  # C.03.00 resta nello standard ma è fuori dal perimetro CCNL
+  expect_true("C.03.00" %in% out$cod_tipologia_contrattuale)
+  expect_identical(
+    out$perimetro_ccnl,
+    !grepl("^[BC]\\.", out$cod_tipologia_contrattuale)
+  )
+})
+
+test_that("perimetro = 'completo' riproduce il comportamento precedente e aggiunge perimetro_ccnl", {
+  dt <- data.table::copy(fixture)
+  expect_no_message(out <- prepare_rapporti(dt, perimetro = "completo"))
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(meta$perimetro, "completo")
+  expect_identical(meta$n_dropped_perimetro, 0L)
+  expect_identical(nrow(meta$esclusi_perimetro), 0L)
+  expect_identical(nrow(out), nrow(dt))
+  expect_identical(
+    out$perimetro_ccnl,
+    !grepl("^[BC]\\.", out$cod_tipologia_contrattuale)
+  )
+  # il risultato di default coincide con il completo ristretto al perimetro
+  rif <- suppressMessages(prepare_rapporti(dt))
+  sotto <- out[perimetro_ccnl == TRUE]
+  expect_identical(sotto$id, rif$id)
+  expect_identical(sotto$giornate, rif$giornate)
+  expect_identical(sotto$fine, rif$fine)
+  expect_identical(sotto$troncata, rif$troncata)
+})
+
+test_that("prepare_rapporti() rifiuta un perimetro non ammesso", {
+  expect_error(prepare_rapporti(data.table::copy(fixture), perimetro = "altro"))
 })
 
 # 5. Errori -----
@@ -427,6 +549,18 @@ test_that("prepare_rapporti() rifiuta window e as_of non validi", {
 test_that("prepare_rapporti() rifiuta un lookup tipologie privo delle colonne richieste", {
   expect_error(
     prepare_rapporti(data.table::copy(fixture), tipologie = data.frame(x = 1)),
+    "tipologie"
+  )
+  # senza macro_tipologia il filtro passa ma la classificazione fallisce
+  solo_perimetro <- data.frame(
+    cod_tipologia_contrattuale = "A.01.00",
+    perimetro_ccnl = TRUE,
+    esclusa_standard = FALSE
+  )
+  expect_error(
+    suppressMessages(
+      prepare_rapporti(data.table::copy(fixture), tipologie = solo_perimetro)
+    ),
     "macro_tipologia"
   )
 })
