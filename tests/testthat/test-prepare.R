@@ -20,14 +20,14 @@ fixture <- generate_cob_sintetico(
     inizio = as.Date(c(
       "2022-06-01", # prima della finestra, termina dentro
       "2023-03-01", # interamente dentro, chiuso prima di as_of
-      "2023-10-01", # dentro, aperto ad as_of
+      "2023-10-01", # dentro, aperto (fine sentinella 9999-12-31)
       "2022-01-01", # termina prima della finestra
       "2024-02-01" # inizia dopo la finestra
     )),
     fine = as.Date(c(
       "2023-02-15",
       "2023-06-30",
-      "2023-12-31",
+      "9999-12-31",
       "2022-12-31",
       "2024-06-30"
     )),
@@ -88,9 +88,79 @@ test_that("prepare_rapporti() rinomina ccnl in ccnl_warehouse e aggiunge le colo
 
 test_that("prepare_rapporti() usa codice_cnel come chiave di default e conserva i NA", {
   out <- prepare_rapporti(data.table::copy(fixture))
-  expect_identical(out$ccnl_key, out$codice_cnel)
-  expect_identical(attr(out, "ccnlcob_meta")$ccnl_key, "codice_cnel")
+  meta <- attr(out, "ccnlcob_meta")
+  # CPUB (default di chiavi_non_classificate) diventa NA; la sorgente resta
+  attesa <- out$codice_cnel
+  attesa[attesa %in% "CPUB"] <- NA_character_
+  expect_identical(out$ccnl_key, attesa)
+  expect_identical(meta$ccnl_key, "codice_cnel")
+  expect_identical(meta$chiavi_non_classificate, "CPUB")
+  expect_identical(
+    meta$n_chiavi_non_classificate,
+    as.integer(sum(out$codice_cnel %in% "CPUB"))
+  )
   expect_true(anyNA(out$ccnl_key))
+  # con chiavi_non_classificate = NULL la chiave coincide con la sorgente
+  out0 <- prepare_rapporti(
+    data.table::copy(fixture),
+    chiavi_non_classificate = NULL
+  )
+  expect_identical(out0$ccnl_key, out0$codice_cnel)
+  expect_null(attr(out0, "ccnlcob_meta")$chiavi_non_classificate)
+  expect_identical(attr(out0, "ccnlcob_meta")$n_chiavi_non_classificate, 0L)
+})
+
+test_that("chiavi_non_classificate porta a NA i codici indicati e li conteggia", {
+  dt <- .mini()[, codice_cnel := c("A011", "CPUB", "B011", "CPUB", "ZZZZ")]
+  out <- prepare_rapporti(dt, perimetro = "completo")
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(out$ccnl_key, c("A011", NA, "B011", NA, "ZZZZ"))
+  expect_identical(out$codice_cnel, c("A011", "CPUB", "B011", "CPUB", "ZZZZ"))
+  expect_identical(meta$n_chiavi_non_classificate, 2L)
+
+  # insieme esplicito, con duplicati e stringhe vuote ignorati
+  out2 <- prepare_rapporti(
+    dt,
+    perimetro = "completo",
+    chiavi_non_classificate = c("ZZZZ", "CPUB", "CPUB", "")
+  )
+  meta2 <- attr(out2, "ccnlcob_meta")
+  expect_identical(out2$ccnl_key, c("A011", NA, "B011", NA, NA))
+  expect_identical(meta2$chiavi_non_classificate, c("ZZZZ", "CPUB"))
+  expect_identical(meta2$n_chiavi_non_classificate, 3L)
+
+  # character(0) equivale a NULL
+  out3 <- prepare_rapporti(
+    dt,
+    perimetro = "completo",
+    chiavi_non_classificate = character(0)
+  )
+  expect_identical(out3$ccnl_key, out3$codice_cnel)
+  expect_null(attr(out3, "ccnlcob_meta")$chiavi_non_classificate)
+
+  # la regola si applica anche alla chiave warehouse
+  dt_wh <- data.table::copy(dt)[, ccnl := c("100", "CPUB", "200", "300", "400")]
+  out4 <- prepare_rapporti(
+    dt_wh,
+    perimetro = "completo",
+    ccnl_key = "ccnl_warehouse"
+  )
+  expect_identical(out4$ccnl_key, c("100", NA, "200", "300", "400"))
+  expect_identical(attr(out4, "ccnlcob_meta")$n_chiavi_non_classificate, 1L)
+
+  # argomenti non validi
+  expect_error(
+    prepare_rapporti(dt, perimetro = "completo", chiavi_non_classificate = 1),
+    "chiavi_non_classificate"
+  )
+  expect_error(
+    prepare_rapporti(
+      dt,
+      perimetro = "completo",
+      chiavi_non_classificate = c("CPUB", NA)
+    ),
+    "chiavi_non_classificate"
+  )
 })
 
 test_that("prepare_rapporti() risolve le sentinelle su fine e le conteggia", {
@@ -124,8 +194,8 @@ test_that("prepare_rapporti() risolve le sentinelle su fine e le conteggia", {
   expect_true(all(out[id %in% c(id_9999, id_1900), fine] == meta$as_of))
   expect_true(all(out[id %in% c(id_9999, id_1900), troncata] == 1L))
   id_neg <- dt[fine < inizio & fine > .sent_min, id]
-  expect_identical(out[id %in% id_neg, fine], out[id %in% id_neg, inizio])
-  expect_identical(out[id %in% id_neg, giornate], rep(1L, length(id_neg)))
+  expect_equal(out[id %in% id_neg, fine], out[id %in% id_neg, inizio])
+  expect_equal(out[id %in% id_neg, giornate], rep(1L, length(id_neg)))
 })
 
 test_that("prepare_rapporti() combina in OR un flag troncata preesistente", {
@@ -171,7 +241,7 @@ test_that("prepare_rapporti() risolve le sentinelle su inizio", {
 test_that("giornate coincide con fine - inizio + 1 nella finestra di default", {
   out <- prepare_rapporti(data.table::copy(fixture))
   attese <- as.integer(out$fine - out$inizio) + 1L
-  expect_identical(out$giornate, attese)
+  expect_equal(out$giornate, attese)
   expect_true(all(out$giornate >= 1L))
 })
 
@@ -192,7 +262,7 @@ test_that("prepare_rapporti() taglia le giornate ai bordi della finestra e rimuo
   expect_gt(meta$n_dropped_window, 0L)
 
   attese <- as.integer(pmin(out$fine, w[2L]) - pmax(out$inizio, w[1L])) + 1L
-  expect_identical(out$giornate, attese)
+  expect_equal(out$giornate, attese)
   expect_true(all(out$giornate >= 1L))
   expect_true(all(out$giornate <= 365L))
 
@@ -203,7 +273,7 @@ test_that("prepare_rapporti() taglia le giornate ai bordi della finestra e rimuo
     window = c("2022-01-01", "2022-12-31"),
     perimetro = "completo"
   )
-  expect_identical(out2$giornate, out$giornate)
+  expect_equal(out2$giornate, out$giornate)
   expect_identical(attr(out2, "ccnlcob_meta")$as_of, as.Date("2024-12-31"))
 })
 
@@ -235,7 +305,7 @@ test_that("prepare_rapporti() conserva la classe IDate delle date", {
   expect_s3_class(out$fine, "IDate")
   expect_type(out$giornate, "integer")
   riferimento <- prepare_rapporti(data.table::copy(fixture))
-  expect_identical(out$giornate, riferimento$giornate)
+  expect_equal(out$giornate, riferimento$giornate)
   expect_identical(as.integer(out$fine), as.integer(riferimento$fine))
   expect_identical(as.integer(out$inizio), as.integer(riferimento$inizio))
 })
@@ -252,10 +322,13 @@ test_that("avviato e attivo seguono la finestra e as_of sulla tabella a mano", {
   meta <- attr(out, "ccnlcob_meta")
   expect_identical(out$id, 1:3)
   expect_identical(meta$n_dropped_window, 2L)
-  expect_identical(meta$n_sentinel_fine, 1L) # fine 2024-06-30 > as_of
-  expect_identical(out$avviato, c(FALSE, TRUE, TRUE))
-  expect_identical(out$attivo, c(FALSE, FALSE, TRUE))
-  expect_identical(out$giornate, c(46L, 122L, 92L))
+  # fine 9999-12-31 (riga 3) e 2024-06-30 > as_of (riga 5)
+  expect_equal(meta$n_sentinel_fine, 2L)
+  expect_equal(out$avviato, c(FALSE, TRUE, TRUE))
+  # attivo: aperto ad as_of (fine originale sentinella), non chiuso prima
+  expect_equal(out$attivo, c(FALSE, FALSE, TRUE))
+  expect_identical(out$fine[3L], as.Date("2023-12-31"))
+  expect_equal(out$giornate, c(46L, 122L, 92L))
   expect_identical(out$anno, c(2022L, 2023L, 2023L))
   expect_identical(out$trimestre, c("2022-Q2", "2023-Q1", "2023-Q4"))
   expect_identical(
@@ -272,10 +345,59 @@ test_that("senza filtro di perimetro la tabella a mano non perde righe e as_of Ã
   expect_identical(meta$window, as.Date(c("2022-01-01", "2024-06-30")))
   expect_identical(nrow(out), 5L)
   expect_identical(meta$n_dropped_window, 0L)
-  expect_identical(meta$n_sentinel_fine, 0L)
+  expect_identical(meta$n_sentinel_fine, 1L) # solo la sentinella 9999-12-31
   expect_true(all(out$avviato))
-  expect_identical(out$attivo, c(FALSE, FALSE, FALSE, FALSE, TRUE))
+  # attivo: la riga 3 e' aperta (sentinella); la riga 5, cessata nel giorno
+  # as_of (fine == as_of osservata), non e' attiva come in cnelR
+  expect_identical(out$attivo, c(FALSE, FALSE, TRUE, FALSE, FALSE))
   expect_identical(out$macro_tipologia[5L], NA_character_)
+})
+
+test_that("attivo segue la definizione di cnelR: fine osservata uguale ad as_of chiude, troncata a monte apre", {
+  as_of <- as.Date("2024-12-31")
+  dt <- data.table::data.table(
+    id = 1:7,
+    cf = c("A", "B", "C", "D", "E", "F", "G"),
+    inizio = as.Date(c(
+      "2024-01-01", # fine == as_of osservata: chiuso
+      "2024-01-01", # fine > as_of: aperto
+      "2024-01-01", # fine NA: aperto
+      "2024-01-01", # fine 1900-01-01: aperto
+      "2024-01-01", # fine 9999-12-31: aperto
+      "2024-01-01", # fine == as_of ma troncata a monte: aperto
+      "2024-01-01" # fine < inizio: rapporto di un giorno, chiuso
+    )),
+    fine = as.Date(c(
+      "2024-12-31",
+      "2025-03-31",
+      NA,
+      "1900-01-01",
+      "9999-12-31",
+      "2024-12-31",
+      "2023-12-01"
+    )),
+    codice_cnel = "A011",
+    cod_tipologia_contrattuale = "A.01.00",
+    prior = 1L,
+    troncata = c(0L, 0L, 0L, 0L, 0L, 1L, 0L)
+  )
+  out <- prepare_rapporti(dt, as_of = as_of, perimetro = "completo")
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(out$attivo, c(FALSE, TRUE, TRUE, TRUE, TRUE, TRUE, FALSE))
+  expect_identical(meta$n_sentinel_fine, 4L)
+  expect_identical(meta$n_fine_lt_inizio, 1L)
+  expect_true(all(out$fine <= as_of))
+  # stock di rank_ccnl() = n_attivi di cnelR sulle stesse righe
+  expect_equal(rank_ccnl(out, measures = "stock")$stock, 5)
+  # avviamento dopo as_of: mai attivo anche con una finestra che lo include
+  dt2 <- dt[1:2][, inizio := as.Date("2025-01-15")]
+  out2 <- prepare_rapporti(
+    dt2,
+    as_of = as_of,
+    window = as.Date(c("2024-01-01", "2025-12-31")),
+    perimetro = "completo"
+  )
+  expect_identical(out2$attivo, c(FALSE, FALSE))
 })
 
 test_that("prior non 0/1 produce orario NA", {
@@ -351,7 +473,7 @@ test_that("prepare_rapporti() normalizza le varianti maiuscole della pipeline", 
     c("INIZIO", "FINE", "ORE_SETTIM_MEDIE", "SESSO_LAV") %in% names(out)
   ))
   riferimento <- prepare_rapporti(data.table::copy(fixture))
-  expect_identical(out$giornate, riferimento$giornate)
+  expect_equal(out$giornate, riferimento$giornate)
   expect_identical(out$ore, riferimento$ore)
 })
 
@@ -396,10 +518,12 @@ test_that("l'attributo ccnlcob_meta ha i campi attesi", {
       "as_of",
       "window",
       "ccnl_key",
+      "chiavi_non_classificate",
       "perimetro",
       "n_input",
       "n_dropped_perimetro",
       "n_tipologia_ignota",
+      "n_chiavi_non_classificate",
       "n_dropped_window",
       "n_sentinel_fine",
       "n_sentinel_inizio",
@@ -540,8 +664,8 @@ test_that("perimetro = 'completo' riproduce il comportamento precedente e aggiun
   # il risultato di default coincide con il completo ristretto al perimetro
   rif <- suppressMessages(prepare_rapporti(dt))
   sotto <- out[perimetro_ccnl == TRUE]
-  expect_identical(sotto$id, rif$id)
-  expect_identical(sotto$giornate, rif$giornate)
+  expect_equal(sotto$id, rif$id)
+  expect_equal(sotto$giornate, rif$giornate)
   expect_identical(sotto$fine, rif$fine)
   expect_identical(sotto$troncata, rif$troncata)
 })
@@ -615,4 +739,25 @@ test_that("prepare_rapporti() rifiuta un lookup tipologie privo delle colonne ri
 test_that("prepare_rapporti() richiede as_of esplicito se non esistono date valide", {
   dt <- .mini()[, `:=`(inizio = as.Date(NA), fine = as.Date(NA))]
   expect_error(prepare_rapporti(dt), "as_of")
+})
+
+# 9. Default di as_of e date di fine future -----
+
+test_that("as_of di default ignora le date di fine future e le tratta come rapporti aperti", {
+  dt <- data.table::data.table(
+    id = 1:4,
+    cf = c("A", "B", "C", "D"),
+    inizio = as.Date(c("2024-01-01", "2024-02-01", "2024-03-01", "2024-04-01")),
+    fine = as.Date(c("2024-06-30", "2999-12-31", "3036-06-30", "2024-05-15")),
+    codice_cnel = "A011",
+    cod_tipologia_contrattuale = "A.01.00",
+    prior = 1L
+  )
+  out <- suppressMessages(prepare_rapporti(dt, perimetro = "completo"))
+  meta <- attr(out, "ccnlcob_meta")
+  expect_identical(as.Date(meta$as_of), as.Date("2024-06-30"))
+  expect_true(all(out$fine <= as.Date("2024-06-30")))
+  expect_equal(out[id %in% 2:3, troncata], c(1L, 1L))
+  expect_equal(meta$n_sentinel_fine, 2L)
+  expect_true(all(out$giornate <= 182L))
 })

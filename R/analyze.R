@@ -50,7 +50,8 @@ utils::globalVariables(c("quota_troncata", "copertura_ore", "copertura_cpi"))
 #' @details
 #' Componenti del risultato:
 #' - `meta`: lista con `versione`, `as_of`, `window`, `perimetro`,
-#'   `ccnl_key`, `measure`, `n_input`, `n_finestra`, `n_rapporti`,
+#'   `ccnl_key`, `chiavi_non_classificate`, `measure`, `n_input`,
+#'   `n_finestra`, `n_rapporti`,
 #'   `n_lavoratori`, `copertura_ccnl`, `copertura_retribuzione`, `passi`
 #'   (passi eseguiti), `passi_saltati` (vettore nominato passo -> motivo),
 #'   `preparazione` (attributo `ccnlcob_meta` di [prepare_rapporti()]) e
@@ -95,6 +96,7 @@ analyze_ccnl <- function(
   window = NULL,
   perimetro = c("ccnl", "standard", "completo"),
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   measure = "giornate",
   top_n = 20,
   cum_share = 0.8,
@@ -118,6 +120,10 @@ analyze_ccnl <- function(
   }
   perimetro <- match.arg(perimetro)
   ccnl_key <- match.arg(ccnl_key, several.ok = TRUE)
+  chiavi_non_classificate <- .check_chiavi_non_classificate(
+    chiavi_non_classificate,
+    caller = "analyze_ccnl"
+  )
   geo <- match.arg(geo)
   periodo <- match.arg(periodo)
   measure <- .check_measure(measure)
@@ -171,6 +177,7 @@ analyze_ccnl <- function(
       as_of = as_of,
       window = window,
       ccnl_key = ccnl_key,
+      chiavi_non_classificate = chiavi_non_classificate,
       perimetro = perimetro,
       tipologie = tipologie
     )
@@ -309,6 +316,7 @@ analyze_ccnl <- function(
     window = window,
     perimetro = perimetro,
     ccnl_key = meta_prep$ccnl_key,
+    chiavi_non_classificate = chiavi_non_classificate,
     measure = measure,
     top_n = top_n,
     cum_share = cum_share,

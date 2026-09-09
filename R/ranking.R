@@ -29,8 +29,8 @@ utils::globalVariables(c("avviato", "classe", "selezionato", ".row_id", ".ord"))
   n_rapporti = quote(sum(avviato)),
   n_lavoratori = quote(data.table::uniqueN(cf[avviato])),
   n_datori = quote(data.table::uniqueN(datore[avviato])),
-  giornate = quote(sum(giornate, na.rm = TRUE)),
-  giornate_effettive = quote(sum(giornate_effettive, na.rm = TRUE)),
+  giornate = quote(sum(as.numeric(giornate), na.rm = TRUE)),
+  giornate_effettive = quote(sum(as.numeric(giornate_effettive), na.rm = TRUE)),
   stock = quote(sum(attivo))
 )
 
@@ -75,8 +75,10 @@ utils::globalVariables(c("avviato", "classe", "selezionato", ".row_id", ".ord"))
 #' - `giornate`: somma di `giornate` (giorni-contratto nella finestra);
 #' - `giornate_effettive`: somma di `giornate_effettive` (giorni-persona
 #'   allocati pro quota, vedi [compute_giornate_effettive()]);
-#' - `stock`: numero di rapporti con `attivo == TRUE` alla data `as_of`
-#'   fissata in [prepare_rapporti()].
+#' - `stock`: numero di rapporti con `attivo == TRUE`, cioè aperti alla
+#'   data `as_of` fissata in [prepare_rapporti()] (fine originale mancante,
+#'   sentinella o successiva ad `as_of`); coincide con `n_attivi` di
+#'   `cnelR`.
 #'
 #' Se `avviato` o `attivo` mancano vengono considerati `TRUE` per tutte le
 #' righe, con un messaggio; un valore `NA` equivale a `FALSE`. Le colonne
@@ -109,11 +111,14 @@ utils::globalVariables(c("avviato", "classe", "selezionato", ".row_id", ".ord"))
 #' dt <- data.table::copy(cob_esempio)[
 #'   fine >= inizio & fine <= as.Date("2024-12-31")
 #' ]
+#' # attivo: rapporto aperto ad as_of; nel dataset di esempio la fine non
+#' # osservata e' stata chiusa a monte alla data di stabilizzazione
+#' # (troncata = 1)
 #' dt[, `:=`(
 #'   ccnl_key = codice_cnel,
 #'   giornate = as.integer(fine - inizio + 1L),
 #'   avviato = TRUE,
-#'   attivo = fine >= as.Date("2024-12-31"),
+#'   attivo = troncata == 1L,
 #'   anno = data.table::year(inizio)
 #' )]
 #'

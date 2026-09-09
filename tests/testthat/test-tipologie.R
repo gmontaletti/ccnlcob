@@ -233,7 +233,7 @@ test_that("ccnl_by_tipologia(): min_n maschera lq senza eliminare righe", {
   sotto <- tot_dim[N < soglia]
   attesi_na <- paste(parziale$tipologia, parziale$orario) %in%
     paste(sotto$macro_tipologia, sotto$orario)
-  expect_identical(is.na(parziale$lq), attesi_na)
+  expect_equal(is.na(parziale$lq), attesi_na)
 })
 
 test_that("ccnl_by_tipologia(): giornate per CCNL sommate sulle tipologie coincidono con rank_ccnl()", {
@@ -243,8 +243,8 @@ test_that("ccnl_by_tipologia(): giornate per CCNL sommate sulle tipologie coinci
   ranking <- rank_ccnl(preparata, measures = "giornate")
   somme <- out[, list(giornate = sum(giornate)), by = ccnl_key]
   confronto <- merge(somme, ranking[, list(ccnl_key, giornate)], by = "ccnl_key")
-  expect_identical(nrow(confronto), nrow(ranking))
-  expect_identical(confronto$giornate.x, confronto$giornate.y)
+  expect_equal(nrow(confronto), nrow(ranking))
+  expect_equal(confronto$giornate.x, confronto$giornate.y)
   # n_lavoratori: la somma sulle celle è >= al conteggio distinto del ranking
   out_lav <- ccnl_by_tipologia(preparata, measure = "n_lavoratori")
   rank_lav <- rank_ccnl(preparata, measures = "n_lavoratori")

@@ -7,15 +7,20 @@
 #' Sociali) con la macro-classe usata da [classify_tipologia()] e
 #' [ccnl_by_tipologia()], il flag di appartenenza al perimetro CCNL usato da
 #' [filter_perimetro()] e il flag di esclusione dal perimetro "standard"
-#' adottato da `cnelR`.
+#' adottato da `cnelR`. Oltre alle tipologie del foglio MLPS contiene due
+#' codici usati dal solo warehouse CO (`AP-ULAV`, apprendistato, e
+#' `AP-USOM`, apprendistato in somministrazione), distinti dalla colonna
+#' `fonte_mlps`.
 #'
 #' @format Un `data.table` con una riga per codice di tipologia contrattuale
 #'   e le colonne:
 #' \describe{
 #'   \item{cod_tipologia_contrattuale}{character. Codice MLPS della tipologia
-#'     (es. `A.01.00`).}
+#'     (es. `A.01.00`) oppure codice del warehouse CO (`AP-ULAV`,
+#'     `AP-USOM`).}
 #'   \item{des_tipologia_contrattuale}{character. Descrizione ufficiale MLPS
-#'     della tipologia.}
+#'     della tipologia; per i codici warehouse una descrizione assegnata nel
+#'     pacchetto.}
 #'   \item{macro_tipologia}{character. Macro-classe di analisi, una fra:
 #'     `Tempo indeterminato`, `Tempo determinato`, `Apprendistato`,
 #'     `Somministrazione`, `Intermittente`, `Collaborazioni`, `Tirocinio`,
@@ -33,10 +38,15 @@
 #'   \item{esclusa_standard}{logical. `TRUE` per le tipologie escluse dal
 #'     perimetro "standard" di `cnelR` (`C.01.00`, `B.04.00`, `B.03.00`,
 #'     `A.04.00`, `A.04.01`).}
+#'   \item{fonte_mlps}{logical. `TRUE` per le righe del foglio MLPS, `FALSE`
+#'     per i codici del solo warehouse CO (`AP-ULAV` con macro-classe
+#'     `Apprendistato`, `AP-USOM` con macro-classe `Somministrazione`;
+#'     entrambi con `perimetro_ccnl = TRUE` e `esclusa_standard = FALSE`).}
 #' }
 #' @source Ministero del Lavoro e delle Politiche Sociali, "Classificazioni
 #'   Standard" delle Comunicazioni Obbligatorie, foglio ST-TIPO CONTRATTI,
-#'   Rev.093 del 2026-04-26.
+#'   Rev.093 del 2026-04-26; codici warehouse aggiunti in
+#'   `data-raw/tipologie_contrattuali.R`.
 #' @seealso [classify_tipologia()], [filter_perimetro()],
 #'   [ccnl_by_tipologia()]
 #' @docType data

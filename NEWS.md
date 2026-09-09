@@ -1,3 +1,42 @@
+# ccnlcob 0.6.0
+
+## Nuove funzionalità
+
+- `read_rapporti()` legge i rapporti da file FST o RDS, da un file DuckDB o
+  da una connessione DBI (per esempio la slice `sl2_rapporti_36m_classificati`
+  prodotta da `cnelR`), mappa i nomi del warehouse al contratto dati
+  (`id_rapporto`, `codice_fiscale_lavoratore`, `ore_settim_medie`, ...),
+  deriva `prior` da `cod_tipo_orario`, normalizza i tipi (factor, integer64,
+  testo numerico) e, con sorgenti DB, spinge selezione di colonne e filtro
+  `where` nella query.
+- Prima esecuzione su dati reali: analisi della slice cnelR di 36 mesi
+  (8 milioni di rapporti, 37 secondi per l'intera catena) documentata in
+  `reference/ccnlcob/analisi_slice_reale.md`; i conteggi di rapporti,
+  lavoratori e datori per `codice_cnel` coincidono con quelli pubblicati da
+  `cnelR` per tutti i 274 codici.
+
+## Modifiche al comportamento
+
+- `attivo` (e quindi `stock`) indica ora il rapporto aperto alla data
+  `as_of` (fine mancante, sentinella, successiva ad `as_of` o troncata a
+  monte dalla pipeline), come `n_attivi` di `cnelR`; un rapporto la cui fine osservata coincide con
+  `as_of` non è più conteggiato attivo.
+- `prepare_rapporti()` e `analyze_ccnl()` hanno l'argomento
+  `chiavi_non_classificate` (default `"CPUB"`): il codice di comodo del
+  pubblico impiego non è un CCNL e viene trattato come non classificato,
+  come in `cnelR`.
+- `read_rapporti()` riconosce i codici orario `V` (part-time verticale) e
+  `M` (part-time misto) come part-time nella derivazione di `prior`.
+- Il lookup `tipologie_contrattuali` include i codici warehouse `AP-ULAV` e
+  `AP-USOM` (apprendistato, anche in somministrazione) con la colonna
+  `fonte_mlps`.
+- Le misure `giornate` e `giornate_effettive` sono sommate in doppia
+  precisione: sulle slice reali i totali superano il limite degli interi.
+- Il default di `as_of` ignora le date di fine successive a oggi (fini
+  presunte o valori errati come `2999-12-31`).
+
+---
+
 # ccnlcob 0.5.0
 
 ## Nuove funzionalità

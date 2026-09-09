@@ -93,7 +93,7 @@ La vignetta `analisi-ccnl` (`vignette("analisi-ccnl", package = "ccnlcob")`) ese
 
 ## Stato di sviluppo
 
-Versione 0.5.0: le Fasi 1, 2, 3 e 4 del piano di sviluppo sono completate e il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto fornisce il contratto dati (`validate_rapporti()`), il perimetro contrattuale (flag `perimetro_ccnl` in `tipologie_contrattuali`, `filter_perimetro()`, argomento `perimetro` di `prepare_rapporti()` con default `"ccnl"`), la preparazione dei rapporti (`prepare_rapporti()`, `classify_tipologia()`), le giornate di contratto (`compute_giornate()`), il ranking con selezione dei CCNL (`rank_ccnl()`, `select_ccnl_rilevanti()`), la distribuzione territoriale per CPI (`add_cpi()`, `ccnl_by_cpi()`, lookup di esempio `cpi_esempio`) la distribuzione per tipologia contrattuale (`ccnl_by_tipologia()`) e le retribuzioni dichiarate (`clean_retribuzione()`, `normalize_fte()`, `median_retribuzione()`, `deflate_retribuzione()`, con default derivati da una diagnostica su dati reali), le giornate effettive pro quota (`compute_giornate_effettive()`), l'analisi completa (`analyze_ccnl()`) e la serializzazione (`write_results()`). Le funzioni delle Fasi 5-6 sono esportate e documentate con la firma definitiva ma restituiscono un errore esplicito con la fase di implementazione prevista.
+Versione 0.6.0: le Fasi da 1 a 5 del piano di sviluppo sono completate e il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto fornisce il contratto dati (`validate_rapporti()`), il perimetro contrattuale (flag `perimetro_ccnl` in `tipologie_contrattuali`, `filter_perimetro()`, argomento `perimetro` di `prepare_rapporti()` con default `"ccnl"`), la preparazione dei rapporti (`prepare_rapporti()`, `classify_tipologia()`), le giornate di contratto (`compute_giornate()`), il ranking con selezione dei CCNL (`rank_ccnl()`, `select_ccnl_rilevanti()`), la distribuzione territoriale per CPI (`add_cpi()`, `ccnl_by_cpi()`, lookup di esempio `cpi_esempio`) la distribuzione per tipologia contrattuale (`ccnl_by_tipologia()`) e le retribuzioni dichiarate (`clean_retribuzione()`, `normalize_fte()`, `median_retribuzione()`, `deflate_retribuzione()`, con default derivati da una diagnostica su dati reali), le giornate effettive pro quota (`compute_giornate_effettive()`), l'analisi completa (`analyze_ccnl()`), la serializzazione (`write_results()`) e la lettura da FST, RDS, DuckDB o connessioni DBI (`read_rapporti()`, con la mappatura dei nomi della slice `cnelR`). Restano previsti i grafici opzionali (Fase 6).
 
 | Fase | Versione | Contenuto | Stato |
 |---|---|---|---|
@@ -103,21 +103,21 @@ Versione 0.5.0: le Fasi 1, 2, 3 e 4 del piano di sviluppo sono completate e il p
 | 2 bis | 0.3.0 | perimetro CCNL: flag `perimetro_ccnl`, `filter_perimetro()`, argomento `perimetro` di `prepare_rapporti()` | completata |
 | 3 | 0.4.0 | `clean_retribuzione()`, `normalize_fte()`, `median_retribuzione()`, `deflate_retribuzione()` | completata |
 | 4 | 0.5.0 | `compute_giornate_effettive()`, `analyze_ccnl()`, `write_results()` | completata |
-| 5 | 0.6.0 | `read_rapporti()` da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | prevista |
+| 5 | 0.6.0 | `read_rapporti()` da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | completata (workflow targets separato ancora da creare) |
 | 6 | 0.7.0 | grafici opzionali e report Quarto | prevista |
 
 ## Citazione
 
 Per citare ccnlcob nelle pubblicazioni:
 
-Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)* (Version 0.5.0) [R package]. https://github.com/gmontaletti/ccnlcob
+Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)* (Version 0.6.0) [R package]. https://github.com/gmontaletti/ccnlcob
 
 Voce BibTeX:
 ```bibtex
 @software{montaletti2026ccnlcob,
   author = {Montaletti, Giampaolo},
   title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},
-  version = {0.5.0},
+  version = {0.6.0},
   year = {2026},
   url = {https://github.com/gmontaletti/ccnlcob}
 }

@@ -17,7 +17,10 @@
 #' @param as_of Data di riferimento (`Date` o stringa convertibile) per lo
 #'   stato dei rapporti (`attivo`) e per la chiusura dei rapporti aperti;
 #'   `NULL` (default) usa la data massima non sentinella osservata fra
-#'   `inizio` e `fine`, cioè la data di riferimento dei dati.
+#'   `inizio` e `fine` e non successiva alla data odierna, cioè la data di
+#'   riferimento dei dati; le date di fine future (fini presunte o valori
+#'   errati come `2999-12-31`) non concorrono al default e vengono trattate
+#'   come rapporti aperti (`fine > as_of`).
 #' @param window Vettore di due `Date` (o stringhe convertibili),
 #'   `c(inizio, fine)`, che delimita l'analisi; `NULL` (default) usa
 #'   `c(min(inizio), as_of)`, dove il minimo è calcolato sugli avviamenti
@@ -27,6 +30,11 @@
 #'   `"ccnl_warehouse"` (codice warehouse CO). Con il default (entrambe)
 #'   viene usata la prima colonna presente in `dt`; se una colonna richiesta
 #'   esplicitamente è assente la funzione produce un errore.
+#' @param chiavi_non_classificate Vettore character di valori di `ccnl_key`
+#'   da trattare come non classificati (`NA` in `ccnl_key`), oppure `NULL`
+#'   per non escludere nulla. Default `"CPUB"`: codice di comodo del bridge
+#'   di `cnelR` per il pubblico impiego, non un CCNL misurabile. Vedi
+#'   Dettagli.
 #' @param perimetro Perimetro contrattuale applicato da [filter_perimetro()]
 #'   prima di ogni altro trattamento: `"ccnl"` (default) conserva solo le
 #'   tipologie di lavoro subordinato alle quali si applica un CCNL;
@@ -79,6 +87,18 @@
 #' da non dipendere dal perimetro; la finestra di default parte invece dal
 #' primo avviamento interno al perimetro.
 #'
+#' ## Chiavi non classificate
+#' Dopo la scelta della colonna chiave, i valori elencati in
+#' `chiavi_non_classificate` diventano `NA` in `ccnl_key` e confluiscono nel
+#' gruppo "Non classificati" di [rank_ccnl()]; la colonna sorgente
+#' (`codice_cnel` o `ccnl_warehouse`) conserva il codice originale e il
+#' numero di righe interessate è riportato nel metadato
+#' `n_chiavi_non_classificate`. Il default `"CPUB"` è il codice di comodo
+#' assegnato dal bridge di `cnelR` ai rapporti del pubblico impiego: non
+#' corrisponde a un contratto dell'archivio CNEL e `cnelR` lo conta fra i
+#' non classificati. Con `chiavi_non_classificate = NULL` il codice resta
+#' una chiave ordinaria.
+#'
 #' ## Sentinelle sulle date
 #' Questa è l'unica funzione del pacchetto che interviene sulle sentinelle,
 #' con le regole di `cnelR` 0.6.0:
@@ -100,7 +120,8 @@
 #' interni alla finestra, estremi inclusi, ed è quindi sempre `>= 1`.
 #'
 #' ## Colonne aggiunte
-#' - `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA`;
+#' - `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA` e i
+#'   valori in `chiavi_non_classificate` diventano `NA`;
 #' - `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo
 #'   `tipologie`, `FALSE` per i codici ignoti; con `perimetro = "ccnl"` è
 #'   sempre `TRUE`;
@@ -109,11 +130,18 @@
 #'   [compute_giornate()];
 #' - `avviato` (logical): `inizio >= window[1]`, cioè avviamento interno
 #'   alla finestra;
-#' - `attivo` (logical): rapporto in essere alla data `as_of`
-#'   (`inizio <= as_of & fine >= as_of`). Con una finestra esplicita che
-#'   termina prima di `as_of`, lo stock misurato da [rank_ccnl()] si
-#'   riferisce comunque ad `as_of`: per uno stock alla fine della finestra
-#'   passare `as_of = window[2]`;
+#' - `attivo` (logical): rapporto aperto alla data `as_of`, con la
+#'   definizione di `cnelR` (`n_attivi`): `inizio <= as_of` e `fine`
+#'   originale, cioè prima della chiusura delle sentinelle, mancante,
+#'   `<= 1900-01-01` o `> as_of` (incluso `9999-12-31`). Una cessazione
+#'   osservata nel giorno `as_of` (`fine == as_of`) chiude il rapporto, che
+#'   non è attivo; un flag `troncata` preesistente in `dt` (fine non
+#'   osservata, già chiusa a monte alla data di stabilizzazione) conta come
+#'   rapporto aperto. Su una slice senza `troncata` lo `stock` di
+#'   [rank_ccnl()] coincide quindi con `n_attivi` di `cnelR`. Con una
+#'   finestra esplicita che termina prima di `as_of`, lo stock si riferisce
+#'   comunque ad `as_of`: per uno stock alla fine della finestra passare
+#'   `as_of = window[2]`;
 #' - `anno` (integer) e `trimestre` (character `"YYYY-Qn"`): coorte di
 #'   avviamento da `inizio`;
 #' - `macro_tipologia` (character): macro-classe da `tipologie`, vedi
@@ -123,11 +151,13 @@
 #'
 #' ## Metadati
 #' L'attributo `ccnlcob_meta` del risultato è una lista con `as_of`,
-#' `window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
-#' (righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
-#' `n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
-#' `n_fine_lt_inizio`, `n_retribuzione_non_numerica`, `n_ore_non_numeriche`
-#' e `esclusi_perimetro` (la tabella `esclusi` di [filter_perimetro()]).
+#' `window`, `ccnl_key` (nome della colonna usata),
+#' `chiavi_non_classificate`, `perimetro`, `n_input` (righe di `dt`),
+#' `n_dropped_perimetro`, `n_tipologia_ignota`, `n_chiavi_non_classificate`
+#' (righe con `ccnl_key` portata a `NA`), `n_dropped_window`,
+#' `n_sentinel_fine`, `n_sentinel_inizio`, `n_fine_lt_inizio`,
+#' `n_retribuzione_non_numerica`, `n_ore_non_numeriche` e
+#' `esclusi_perimetro` (la tabella `esclusi` di [filter_perimetro()]).
 #'
 #' @return Un nuovo `data.table` con le colonne di `dt` (rinominate come
 #'   descritto) e le colonne derivate elencate nei Dettagli, limitato ai
@@ -139,16 +169,20 @@
 #' @examples
 #' library(data.table)
 #' dt <- prepare_rapporti(cob_esempio)
-#' attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
+#' attr(dt, "ccnlcob_meta")[c(
+#'   "as_of", "n_sentinel_fine", "n_fine_lt_inizio", "n_chiavi_non_classificate"
+#' )]
 #' attr(dt, "ccnlcob_meta")$esclusi_perimetro
 #' dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 #'
-#' # finestra esplicita, chiave warehouse e nessun filtro di perimetro
+#' # finestra esplicita, chiave warehouse e nessun filtro di perimetro;
+#' # con chiavi_non_classificate = NULL il codice CPUB resta una chiave
 #' dt24 <- prepare_rapporti(
 #'   cob_esempio,
 #'   as_of = as.Date("2024-12-31"),
 #'   window = as.Date(c("2024-01-01", "2024-12-31")),
 #'   ccnl_key = "ccnl_warehouse",
+#'   chiavi_non_classificate = NULL,
 #'   perimetro = "completo"
 #' )
 #' dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]
@@ -157,6 +191,7 @@ prepare_rapporti <- function(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 ) {
@@ -165,6 +200,10 @@ prepare_rapporti <- function(
     .assert_rapporti(dt, require = "base", caller = "prepare_rapporti")
   }
   ccnl_key <- match.arg(ccnl_key, several.ok = TRUE)
+  chiavi_non_classificate <- .check_chiavi_non_classificate(
+    chiavi_non_classificate,
+    caller = "prepare_rapporti"
+  )
   perimetro <- match.arg(perimetro)
   as_of <- .as_as_of(as_of, caller = "prepare_rapporti")
   window <- .as_window(window, caller = "prepare_rapporti")
@@ -186,10 +225,16 @@ prepare_rapporti <- function(
 
   # 1.3 Chiave CCNL -----
   key_col <- .select_ccnl_key(out, ccnl_key)
-  data.table::set(out, j = "ccnl_key", value = as.character(out[[key_col]]))
+  chiave <- as.character(out[[key_col]])
+  non_classificata <- chiave %in% chiavi_non_classificate
+  chiave[non_classificata] <- NA_character_
+  data.table::set(out, j = "ccnl_key", value = chiave)
 
   # 1.4 Sentinelle sulle date e finestra -----
+  # `aperto` (fine non osservata) viene fissato prima della chiusura delle
+  # sentinelle e segue le righe conservate dalla finestra.
   conteggi <- .clamp_dates(out, as_of = as_of)
+  aperto <- conteggi$aperto
   if (is.null(window)) {
     window <- .default_window(out, as_of = as_of)
   }
@@ -197,6 +242,7 @@ prepare_rapporti <- function(
   n_dropped_window <- sum(fuori)
   if (n_dropped_window > 0L) {
     out <- out[!fuori]
+    aperto <- aperto[!fuori]
   }
 
   # 1.5 Colonne derivate -----
@@ -205,7 +251,7 @@ prepare_rapporti <- function(
   data.table::set(
     out,
     j = "attivo",
-    value = out[["inizio"]] <= as_of & out[["fine"]] >= as_of
+    value = out[["inizio"]] <= as_of & aperto
   )
   .add_periodo(out)
   data.table::set(
@@ -229,10 +275,12 @@ prepare_rapporti <- function(
     as_of = as_of,
     window = window,
     ccnl_key = key_col,
+    chiavi_non_classificate = chiavi_non_classificate,
     perimetro = perimetro,
     n_input = as.integer(n_input),
     n_dropped_perimetro = info_perimetro$n_dropped,
     n_tipologia_ignota = info_perimetro$n_tipologia_ignota,
+    n_chiavi_non_classificate = as.integer(sum(non_classificata)),
     n_dropped_window = as.integer(n_dropped_window),
     n_sentinel_fine = conteggi$n_sentinel_fine,
     n_sentinel_inizio = conteggi$n_sentinel_inizio,
@@ -275,26 +323,32 @@ prepare_rapporti <- function(
 
 #' Normalizza i nomi delle colonne per riferimento
 #'
-#' Rinomina le varianti maiuscole della pipeline e `ccnl` in
-#' `ccnl_warehouse`, solo quando la colonna di destinazione è assente.
+#' Rinomina le colonne secondo `mapping` (nome sorgente = nome di
+#' destinazione), solo quando la colonna di destinazione è assente. Con il
+#' default rinomina le varianti maiuscole della pipeline e `ccnl` in
+#' `ccnl_warehouse`.
 #'
 #' @param dt Un `data.table`, modificato per riferimento.
-#' @return `dt`, invisibilmente.
+#' @param mapping Vettore character nominato: nomi = colonne sorgente,
+#'   valori = nomi di destinazione.
+#' @return Il sottoinsieme di `mapping` effettivamente applicato (vettore
+#'   character nominato, eventualmente vuoto), invisibilmente.
 #' @keywords internal
 #' @noRd
-.normalize_names <- function(dt) {
+.normalize_names <- function(dt, mapping = .nomi_pipeline) {
   presenti <- names(dt)
-  da_rinominare <- names(.nomi_pipeline)[
-    names(.nomi_pipeline) %in% presenti & !(.nomi_pipeline %in% presenti)
+  da_rinominare <- names(mapping)[
+    names(mapping) %in% presenti & !(mapping %in% presenti)
   ]
+  applicato <- mapping[da_rinominare]
   if (length(da_rinominare) > 0L) {
     data.table::setnames(
       dt,
       old = da_rinominare,
-      new = unname(.nomi_pipeline[da_rinominare])
+      new = unname(applicato)
     )
   }
-  invisible(dt)
+  invisible(applicato)
 }
 
 #' Sceglie la colonna da usare come chiave CCNL
@@ -406,6 +460,9 @@ prepare_rapporti <- function(
     fine > .data_sentinella_min &
     fine < .data_sentinella_max
   candidate <- c(inizio[ok_inizio], fine[ok_fine])
+  # Le date di fine future rispetto a oggi non sono osservate (fini presunte
+  # o errori come 2999-12-31): non possono fissare la data di riferimento.
+  candidate <- candidate[candidate <= Sys.Date()]
   if (length(candidate) == 0L) {
     stop(
       "Impossibile determinare `as_of`: nessuna data valida in `inizio` o ",
@@ -462,10 +519,17 @@ prepare_rapporti <- function(
 #' riportata a `inizio`. Un flag `troncata` preesistente viene combinato in
 #' OR con quello calcolato.
 #'
+#' Restituisce anche il vettore logico `aperto`, calcolato prima delle
+#' sostituzioni: `TRUE` se la fine non è osservata, cioè `fine` mancante,
+#' `<= 1900-01-01` o `> as_of`, oppure `troncata` preesistente uguale a 1.
+#' È la componente sulla fine della definizione di `attivo` allineata a
+#' `cnelR` (`fine IS NULL OR fine > as_of`).
+#'
 #' @param dt Un `data.table` con `inizio` e `fine` di classe `Date`.
 #' @param as_of Data di riferimento (`Date` di lunghezza 1).
 #' @return Lista con i conteggi integer `n_sentinel_fine`,
-#'   `n_sentinel_inizio` e `n_fine_lt_inizio`.
+#'   `n_sentinel_inizio` e `n_fine_lt_inizio` e il vettore logico `aperto`
+#'   (una posizione per riga di `dt`).
 #' @keywords internal
 #' @noRd
 .clamp_dates <- function(dt, as_of) {
@@ -480,6 +544,7 @@ prepare_rapporti <- function(
   } else {
     troncata_old <- rep(FALSE, nrow(dt))
   }
+  aperto <- sent_fine | troncata_old
   data.table::set(
     dt,
     j = "troncata",
@@ -523,8 +588,37 @@ prepare_rapporti <- function(
   list(
     n_sentinel_fine = as.integer(sum(sent_fine)),
     n_sentinel_inizio = as.integer(sum(sent_inizio)),
-    n_fine_lt_inizio = as.integer(sum(invertiti))
+    n_fine_lt_inizio = as.integer(sum(invertiti)),
+    aperto = aperto
   )
+}
+
+#' Verifica l'argomento `chiavi_non_classificate`
+#'
+#' @param x `NULL` oppure un vettore character senza `NA`.
+#' @param caller Nome della funzione chiamante per i messaggi di errore.
+#' @return `NULL` oppure il vettore character (valori vuoti e duplicati
+#'   rimossi; `character(0)` diventa `NULL`).
+#' @keywords internal
+#' @noRd
+.check_chiavi_non_classificate <- function(x, caller = "prepare_rapporti") {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (!is.character(x) || anyNA(x)) {
+    stop(
+      "`chiavi_non_classificate` deve essere NULL o un vettore character ",
+      "senza NA in ",
+      caller,
+      "().",
+      call. = FALSE
+    )
+  }
+  x <- unique(x[nzchar(x)])
+  if (length(x) == 0L) {
+    return(NULL)
+  }
+  x
 }
 
 #' Converte in numeric le colonne indicate, se presenti, per riferimento

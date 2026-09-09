@@ -9,9 +9,11 @@ Un \code{data.table} con una riga per codice di tipologia contrattuale
 e le colonne:
 \describe{
 \item{cod_tipologia_contrattuale}{character. Codice MLPS della tipologia
-(es. \code{A.01.00}).}
+(es. \code{A.01.00}) oppure codice del warehouse CO (\code{AP-ULAV},
+\code{AP-USOM}).}
 \item{des_tipologia_contrattuale}{character. Descrizione ufficiale MLPS
-della tipologia.}
+della tipologia; per i codici warehouse una descrizione assegnata nel
+pacchetto.}
 \item{macro_tipologia}{character. Macro-classe di analisi, una fra:
 \verb{Tempo indeterminato}, \verb{Tempo determinato}, \code{Apprendistato},
 \code{Somministrazione}, \code{Intermittente}, \code{Collaborazioni}, \code{Tirocinio},
@@ -29,12 +31,17 @@ Le regole complete sono in \code{data-raw/tipologie_contrattuali.R}.}
 \item{esclusa_standard}{logical. \code{TRUE} per le tipologie escluse dal
 perimetro "standard" di \code{cnelR} (\code{C.01.00}, \code{B.04.00}, \code{B.03.00},
 \code{A.04.00}, \code{A.04.01}).}
+\item{fonte_mlps}{logical. \code{TRUE} per le righe del foglio MLPS, \code{FALSE}
+per i codici del solo warehouse CO (\code{AP-ULAV} con macro-classe
+\code{Apprendistato}, \code{AP-USOM} con macro-classe \code{Somministrazione};
+entrambi con \code{perimetro_ccnl = TRUE} e \code{esclusa_standard = FALSE}).}
 }
 }
 \source{
 Ministero del Lavoro e delle Politiche Sociali, "Classificazioni
 Standard" delle Comunicazioni Obbligatorie, foglio ST-TIPO CONTRATTI,
-Rev.093 del 2026-04-26.
+Rev.093 del 2026-04-26; codici warehouse aggiunti in
+\code{data-raw/tipologie_contrattuali.R}.
 }
 \usage{
 tipologie_contrattuali
@@ -45,7 +52,10 @@ Lookup delle tipologie contrattuali delle Comunicazioni Obbligatorie
 Sociali) con la macro-classe usata da \code{\link[=classify_tipologia]{classify_tipologia()}} e
 \code{\link[=ccnl_by_tipologia]{ccnl_by_tipologia()}}, il flag di appartenenza al perimetro CCNL usato da
 \code{\link[=filter_perimetro]{filter_perimetro()}} e il flag di esclusione dal perimetro "standard"
-adottato da \code{cnelR}.
+adottato da \code{cnelR}. Oltre alle tipologie del foglio MLPS contiene due
+codici usati dal solo warehouse CO (\code{AP-ULAV}, apprendistato, e
+\code{AP-USOM}, apprendistato in somministrazione), distinti dalla colonna
+\code{fonte_mlps}.
 }
 \examples{
 head(tipologie_contrattuali)

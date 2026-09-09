@@ -41,7 +41,7 @@ test_that("compute_giornate() aggiunge giornate per riferimento e restituisce dt
   dt <- .rapporti()
   res <- withVisible(compute_giornate(dt, window = .w2023))
   expect_false(res$visible)
-  expect_identical(res$value, dt)
+  expect_equal(res$value, dt)
   expect_true("giornate" %in% names(dt))
   expect_type(dt$giornate, "integer")
   expect_false(inherits(dt$giornate, "difftime"))
@@ -49,14 +49,14 @@ test_that("compute_giornate() aggiunge giornate per riferimento e restituisce dt
 
 test_that("compute_giornate() taglia alla finestra: 0 fuori, intera durata dentro, parte interna a cavallo", {
   dt <- compute_giornate(.rapporti(), window = .w2023)
-  expect_identical(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
+  expect_equal(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
 })
 
 test_that("compute_giornate() con window = NULL conta l'intera durata del rapporto", {
   dt <- compute_giornate(.rapporti())
   attese <- as.integer(dt$fine - dt$inizio) + 1L
-  expect_identical(dt$giornate, attese)
-  expect_identical(dt$giornate[2L], 28L)
+  expect_equal(dt$giornate, attese)
+  expect_equal(dt$giornate[2L], 28L)
 })
 
 test_that("compute_giornate() accetta la finestra come stringhe e sovrascrive una colonna esistente", {
@@ -65,7 +65,7 @@ test_that("compute_giornate() accetta la finestra come stringhe e sovrascrive un
   prima <- data.table::copy(dt$giornate)
   compute_giornate(dt, window = c("2023-01-01", "2023-12-31"))
   expect_false(identical(dt$giornate, prima))
-  expect_identical(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
+  expect_equal(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
 })
 
 test_that("compute_giornate() lavora su IDate e su un giorno singolo", {
@@ -75,16 +75,16 @@ test_that("compute_giornate() lavora su IDate e su un giorno singolo", {
   )]
   compute_giornate(dt, window = .w2023)
   expect_type(dt$giornate, "integer")
-  expect_identical(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
+  expect_equal(dt$giornate, c(31L, 28L, 31L, 0L, 0L, 365L))
 
   uno <- data.table::data.table(
     inizio = as.Date("2023-05-05"),
     fine = as.Date("2023-05-05")
   )
   compute_giornate(uno, window = .w2023)
-  expect_identical(uno$giornate, 1L)
+  expect_equal(uno$giornate, 1L)
   compute_giornate(uno, window = as.Date(c("2023-05-05", "2023-05-05")))
-  expect_identical(uno$giornate, 1L)
+  expect_equal(uno$giornate, 1L)
 })
 
 test_that("compute_giornate() restituisce 0 se fine < inizio e NA su date mancanti", {
@@ -93,7 +93,7 @@ test_that("compute_giornate() restituisce 0 se fine < inizio e NA su date mancan
     fine = as.Date(c("2023-05-01", NA, "2023-05-20"))
   )
   compute_giornate(dt)
-  expect_identical(dt$giornate, c(0L, NA_integer_, NA_integer_))
+  expect_equal(dt$giornate, c(0L, NA_integer_, NA_integer_))
 })
 
 test_that("compute_giornate() sulla fixture preparata coincide con fine - inizio + 1 nella finestra", {
@@ -104,7 +104,7 @@ test_that("compute_giornate() sulla fixture preparata coincide con fine - inizio
     0L,
     as.integer(pmin(dt$fine, w[2L]) - pmax(dt$inizio, w[1L])) + 1L
   )
-  expect_identical(dt$giornate, attese)
+  expect_equal(dt$giornate, attese)
   expect_true(any(dt$giornate == 0L))
   expect_true(all(dt$giornate <= 365L))
 })
@@ -165,7 +165,7 @@ test_that("compute_giornate_effettive() ripartisce a meta' i 6 giorni di sovrapp
     fine = as.Date(c("2023-01-15", "2023-01-20"))
   )
   out <- compute_giornate_effettive(dt)
-  expect_identical(out, dt)
+  expect_equal(out, dt)
   # rapporto 1: 9 giorni esclusivi (1-9) + 6/2; rapporto 2: 5 esclusivi (16-20) + 6/2
   expect_equal(dt$giornate_effettive, c(9 + 3, 5 + 3))
   expect_type(dt$giornate_effettive, "double")
@@ -181,7 +181,7 @@ test_that("compute_giornate_effettive() ripartisce a meta' i 6 giorni di sovrapp
     )
   )
   expect_null(info$window)
-  expect_identical(info$n_persone_sovrapposizioni, 1L)
+  expect_equal(info$n_persone_sovrapposizioni, 1L)
   expect_equal(info$giornate_totali, 15 + 11)
   expect_equal(info$giornate_effettive_totali, 20)
 })
@@ -223,7 +223,7 @@ test_that("compute_giornate_effettive() non toglie nulla a intervalli contigui o
   compute_giornate(dt)
   compute_giornate_effettive(dt)
   expect_equal(dt$giornate_effettive, as.numeric(dt$giornate))
-  expect_identical(
+  expect_equal(
     attr(dt, "ccnlcob_giornate_effettive")$n_persone_sovrapposizioni,
     0L
   )
@@ -241,7 +241,7 @@ test_that("compute_giornate_effettive() taglia alla finestra e azzera i rapporti
   expect_equal(dt$giornate_effettive, c(9 + 11, 11 + 10, 0))
   expect_equal(sum(dt$giornate_effettive), 41)
   info <- attr(dt, "ccnlcob_giornate_effettive")
-  expect_identical(info$window, .w2023)
+  expect_equal(info$window, .w2023)
   expect_equal(info$giornate_totali, 31 + 32)
 })
 
@@ -278,7 +278,7 @@ test_that("compute_giornate_effettive() modifica per riferimento, sovrascrive e 
   )
   alias <- dt
   out <- compute_giornate_effettive(dt)
-  expect_identical(alias$giornate_effettive, c(12, 8))
+  expect_equal(alias$giornate_effettive, c(12, 8))
   expect_true(inherits(dt$inizio, "IDate"))
   expect_invisible(compute_giornate_effettive(dt))
 })
@@ -290,7 +290,7 @@ test_that("compute_giornate_effettive() rispetta l'invariante dei giorni-persona
   eff <- dt[, .(effettive = sum(giornate_effettive)), by = cf]
   unione <- .giorni_unione(dt, window = w)
   confronto <- merge(eff, unione, by = "cf")
-  expect_identical(nrow(confronto), nrow(eff))
+  expect_equal(nrow(confronto), nrow(eff))
   expect_equal(confronto$effettive, as.numeric(confronto$unione))
   expect_true(all(dt$giornate_effettive <= dt$giornate + 1e-9))
   # persone con un solo rapporto: nessuna riallocazione

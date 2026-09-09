@@ -9,6 +9,7 @@ prepare_rapporti(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 )
@@ -22,7 +23,10 @@ classe viene conservata in uscita).}
 \item{as_of}{Data di riferimento (\code{Date} o stringa convertibile) per lo
 stato dei rapporti (\code{attivo}) e per la chiusura dei rapporti aperti;
 \code{NULL} (default) usa la data massima non sentinella osservata fra
-\code{inizio} e \code{fine}, cioè la data di riferimento dei dati.}
+\code{inizio} e \code{fine} e non successiva alla data odierna, cioè la data di
+riferimento dei dati; le date di fine future (fini presunte o valori
+errati come \code{2999-12-31}) non concorrono al default e vengono trattate
+come rapporti aperti (\code{fine > as_of}).}
 
 \item{window}{Vettore di due \code{Date} (o stringhe convertibili),
 \code{c(inizio, fine)}, che delimita l'analisi; \code{NULL} (default) usa
@@ -34,6 +38,12 @@ non sentinella.}
 \code{"ccnl_warehouse"} (codice warehouse CO). Con il default (entrambe)
 viene usata la prima colonna presente in \code{dt}; se una colonna richiesta
 esplicitamente è assente la funzione produce un errore.}
+
+\item{chiavi_non_classificate}{Vettore character di valori di \code{ccnl_key}
+da trattare come non classificati (\code{NA} in \code{ccnl_key}), oppure \code{NULL}
+per non escludere nulla. Default \code{"CPUB"}: codice di comodo del bridge
+di \code{cnelR} per il pubblico impiego, non un CCNL misurabile. Vedi
+Dettagli.}
 
 \item{perimetro}{Perimetro contrattuale applicato da \code{\link[=filter_perimetro]{filter_perimetro()}}
 prima di ogni altro trattamento: \code{"ccnl"} (default) conserva solo le
@@ -112,6 +122,20 @@ da non dipendere dal perimetro; la finestra di default parte invece dal
 primo avviamento interno al perimetro.
 }
 
+\subsection{Chiavi non classificate}{
+
+Dopo la scelta della colonna chiave, i valori elencati in
+\code{chiavi_non_classificate} diventano \code{NA} in \code{ccnl_key} e confluiscono nel
+gruppo "Non classificati" di \code{\link[=rank_ccnl]{rank_ccnl()}}; la colonna sorgente
+(\code{codice_cnel} o \code{ccnl_warehouse}) conserva il codice originale e il
+numero di righe interessate è riportato nel metadato
+\code{n_chiavi_non_classificate}. Il default \code{"CPUB"} è il codice di comodo
+assegnato dal bridge di \code{cnelR} ai rapporti del pubblico impiego: non
+corrisponde a un contratto dell'archivio CNEL e \code{cnelR} lo conta fra i
+non classificati. Con \code{chiavi_non_classificate = NULL} il codice resta
+una chiave ordinaria.
+}
+
 \subsection{Sentinelle sulle date}{
 
 Questa è l'unica funzione del pacchetto che interviene sulle sentinelle,
@@ -140,7 +164,8 @@ interni alla finestra, estremi inclusi, ed è quindi sempre \verb{>= 1}.
 
 \subsection{Colonne aggiunte}{
 \itemize{
-\item \code{ccnl_key} (character): chiave di analisi scelta; \code{NA} resta \code{NA};
+\item \code{ccnl_key} (character): chiave di analisi scelta; \code{NA} resta \code{NA} e i
+valori in \code{chiavi_non_classificate} diventano \code{NA};
 \item \code{perimetro_ccnl} (logical): appartenenza al perimetro CCNL secondo
 \code{tipologie}, \code{FALSE} per i codici ignoti; con \code{perimetro = "ccnl"} è
 sempre \code{TRUE};
@@ -149,11 +174,18 @@ sempre \code{TRUE};
 \code{\link[=compute_giornate]{compute_giornate()}};
 \item \code{avviato} (logical): \code{inizio >= window[1]}, cioè avviamento interno
 alla finestra;
-\item \code{attivo} (logical): rapporto in essere alla data \code{as_of}
-(\code{inizio <= as_of & fine >= as_of}). Con una finestra esplicita che
-termina prima di \code{as_of}, lo stock misurato da \code{\link[=rank_ccnl]{rank_ccnl()}} si
-riferisce comunque ad \code{as_of}: per uno stock alla fine della finestra
-passare \code{as_of = window[2]};
+\item \code{attivo} (logical): rapporto aperto alla data \code{as_of}, con la
+definizione di \code{cnelR} (\code{n_attivi}): \code{inizio <= as_of} e \code{fine}
+originale, cioè prima della chiusura delle sentinelle, mancante,
+\verb{<= 1900-01-01} o \verb{> as_of} (incluso \code{9999-12-31}). Una cessazione
+osservata nel giorno \code{as_of} (\code{fine == as_of}) chiude il rapporto, che
+non è attivo; un flag \code{troncata} preesistente in \code{dt} (fine non
+osservata, già chiusa a monte alla data di stabilizzazione) conta come
+rapporto aperto. Su una slice senza \code{troncata} lo \code{stock} di
+\code{\link[=rank_ccnl]{rank_ccnl()}} coincide quindi con \code{n_attivi} di \code{cnelR}. Con una
+finestra esplicita che termina prima di \code{as_of}, lo stock si riferisce
+comunque ad \code{as_of}: per uno stock alla fine della finestra passare
+\code{as_of = window[2]};
 \item \code{anno} (integer) e \code{trimestre} (character \code{"YYYY-Qn"}): coorte di
 avviamento da \code{inizio};
 \item \code{macro_tipologia} (character): macro-classe da \code{tipologie}, vedi
@@ -166,26 +198,32 @@ avviamento da \code{inizio};
 \subsection{Metadati}{
 
 L'attributo \code{ccnlcob_meta} del risultato è una lista con \code{as_of},
-\code{window}, \code{ccnl_key} (nome della colonna usata), \code{perimetro}, \code{n_input}
-(righe di \code{dt}), \code{n_dropped_perimetro}, \code{n_tipologia_ignota},
-\code{n_dropped_window}, \code{n_sentinel_fine}, \code{n_sentinel_inizio},
-\code{n_fine_lt_inizio}, \code{n_retribuzione_non_numerica}, \code{n_ore_non_numeriche}
-e \code{esclusi_perimetro} (la tabella \code{esclusi} di \code{\link[=filter_perimetro]{filter_perimetro()}}).
+\code{window}, \code{ccnl_key} (nome della colonna usata),
+\code{chiavi_non_classificate}, \code{perimetro}, \code{n_input} (righe di \code{dt}),
+\code{n_dropped_perimetro}, \code{n_tipologia_ignota}, \code{n_chiavi_non_classificate}
+(righe con \code{ccnl_key} portata a \code{NA}), \code{n_dropped_window},
+\code{n_sentinel_fine}, \code{n_sentinel_inizio}, \code{n_fine_lt_inizio},
+\code{n_retribuzione_non_numerica}, \code{n_ore_non_numeriche} e
+\code{esclusi_perimetro} (la tabella \code{esclusi} di \code{\link[=filter_perimetro]{filter_perimetro()}}).
 }
 }
 \examples{
 library(data.table)
 dt <- prepare_rapporti(cob_esempio)
-attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
+attr(dt, "ccnlcob_meta")[c(
+  "as_of", "n_sentinel_fine", "n_fine_lt_inizio", "n_chiavi_non_classificate"
+)]
 attr(dt, "ccnlcob_meta")$esclusi_perimetro
 dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 
-# finestra esplicita, chiave warehouse e nessun filtro di perimetro
+# finestra esplicita, chiave warehouse e nessun filtro di perimetro;
+# con chiavi_non_classificate = NULL il codice CPUB resta una chiave
 dt24 <- prepare_rapporti(
   cob_esempio,
   as_of = as.Date("2024-12-31"),
   window = as.Date(c("2024-01-01", "2024-12-31")),
   ccnl_key = "ccnl_warehouse",
+  chiavi_non_classificate = NULL,
   perimetro = "completo"
 )
 dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]

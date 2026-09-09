@@ -312,6 +312,28 @@ tipologie_riserva <- data.table(
   )
 )
 
+# 4b. Codici del solo warehouse COB -----
+
+# Codici di tipologia presenti nel warehouse CO (slice di cnelR) ma assenti
+# dal foglio MLPS "ST-TIPO CONTRATTI": codici interni di apprendistato, non
+# nel formato `X.NN.NN`. Vengono accodati alle righe MLPS con
+# `fonte_mlps = FALSE` e con la classificazione assegnata a mano:
+#   AP-ULAV  apprendistato (lavoro)            -> Apprendistato,
+#            lavoro subordinato con CCNL, nel perimetro standard
+#   AP-USOM  apprendistato in somministrazione -> Somministrazione,
+#            lavoro subordinato con CCNL, nel perimetro standard
+tipologie_warehouse <- data.table(
+  cod_tipologia_contrattuale = c("AP-ULAV", "AP-USOM"),
+  des_tipologia_contrattuale = c(
+    "APPRENDISTATO (CODICE WAREHOUSE AP-ULAV)",
+    "APPRENDISTATO IN SOMMINISTRAZIONE (CODICE WAREHOUSE AP-USOM)"
+  ),
+  macro_tipologia = c("Apprendistato", "Somministrazione"),
+  perimetro_ccnl = c(TRUE, TRUE),
+  esclusa_standard = c(FALSE, FALSE),
+  fonte_mlps = c(FALSE, FALSE)
+)
+
 # 5. Costruzione -----
 
 usa_riserva <- FALSE
@@ -375,13 +397,28 @@ tab[,
   esclusa_standard := cod_tipologia_contrattuale %in% codici_esclusi_standard
 ]
 tab[, perimetro_ccnl := classifica_perimetro_ccnl(cod_tipologia_contrattuale)]
-setcolorder(tab, c(
-  "cod_tipologia_contrattuale",
-  "des_tipologia_contrattuale",
-  "macro_tipologia",
-  "perimetro_ccnl",
-  "esclusa_standard"
-))
+tab[, fonte_mlps := TRUE]
+
+# Codici del solo warehouse (§4b), accodati alle righe MLPS; l'ordinamento
+# per codice (locale C, come data.table) li colloca dopo i codici `A.`.
+stopifnot(
+  !any(
+    tipologie_warehouse$cod_tipologia_contrattuale %in%
+      tab$cod_tipologia_contrattuale
+  )
+)
+tab <- rbindlist(list(tab, tipologie_warehouse), use.names = TRUE)
+setcolorder(
+  tab,
+  c(
+    "cod_tipologia_contrattuale",
+    "des_tipologia_contrattuale",
+    "macro_tipologia",
+    "perimetro_ccnl",
+    "esclusa_standard",
+    "fonte_mlps"
+  )
+)
 setorder(tab, cod_tipologia_contrattuale)
 
 stopifnot(
@@ -390,6 +427,16 @@ stopifnot(
   all(codici_esclusi_standard %in% tab$cod_tipologia_contrattuale),
   is.logical(tab$perimetro_ccnl),
   !anyNA(tab$perimetro_ccnl),
+  is.logical(tab$fonte_mlps),
+  !anyNA(tab$fonte_mlps),
+  all(grepl(
+    "^[A-Z]\\.[0-9]{2}\\.[0-9]{2}$",
+    tab[fonte_mlps == TRUE, cod_tipologia_contrattuale]
+  )),
+  identical(
+    tab[fonte_mlps == FALSE, cod_tipologia_contrattuale],
+    sort(tipologie_warehouse$cod_tipologia_contrattuale)
+  ),
   all(tab[startsWith(cod_tipologia_contrattuale, "A."), perimetro_ccnl]),
   !any(tab[grepl("^[BCLM]\\.", cod_tipologia_contrattuale), perimetro_ccnl])
 )

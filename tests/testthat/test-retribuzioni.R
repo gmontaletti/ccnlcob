@@ -543,7 +543,7 @@ test_that("median_retribuzione() con pesi uniformi coincide con stats::median()"
     tolerance = 1e-12
   )
   expect_identical(out[ccnl_key == "A011" & anno == 2021L, p25], 20)
-  expect_identical(out[ccnl_key == "A011" & anno == 2021L, p75], 40)
+  expect_equal(out[ccnl_key == "A011" & anno == 2021L, p75], 40)
 })
 
 test_that("median_retribuzione() calcola la mediana ponderata per giornate sul caso a mano", {

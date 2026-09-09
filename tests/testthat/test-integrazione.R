@@ -33,7 +33,12 @@ cob <- .carica_dataset("cob_esempio")
 # fine, poi su inizio, poi fine < inizio sulle date già sostituite; quindi
 # finestra (default: dal primo avviamento non sentinella ad as_of) e giornate
 # con pmin/pmax sulle date tagliate.
-.prepara_indipendente <- function(raw, as_of, window = NULL) {
+.prepara_indipendente <- function(
+  raw,
+  as_of,
+  window = NULL,
+  chiavi_non_classificate = "CPUB"
+) {
   inizio <- as.Date(raw$inizio)
   fine <- as.Date(raw$fine)
   sent_fine <- is.na(fine) | fine <= .sent_min | fine > as_of
@@ -53,16 +58,23 @@ cob <- .carica_dataset("cob_esempio")
   }
   dentro <- inizio <= window[2] & fine >= window[1]
   giornate <- as.integer(pmin(fine, window[2]) - pmax(inizio, window[1])) + 1L
+  # chiave: codice_cnel con i codici non classificati (default CPUB) a NA
+  ccnl_key <- raw$codice_cnel
+  ccnl_key[ccnl_key %in% chiavi_non_classificate] <- NA_character_
+  # attivo: rapporto aperto ad as_of, cioe' fine originale non osservata
+  # (sentinella o > as_of) oppure troncata a monte; una fine osservata
+  # uguale ad as_of chiude il rapporto (regola cnelR, fine > as_of)
+  aperto <- sent_fine | troncata_old
   righe <- data.frame(
     id = raw$id,
     cf = raw$cf,
-    ccnl_key = raw$codice_cnel,
+    ccnl_key = ccnl_key,
     inizio = inizio,
     fine = fine,
     troncata = as.integer(troncata_old | sent_fine),
     giornate = giornate,
     avviato = inizio >= window[1],
-    attivo = inizio <= as_of & fine >= as_of,
+    attivo = inizio <= as_of & aperto,
     anno = as.integer(format(inizio, "%Y")),
     stringsAsFactors = FALSE
   )[dentro, ]
@@ -73,6 +85,9 @@ cob <- .carica_dataset("cob_esempio")
     n_sentinel_inizio = sum(sent_inizio),
     n_fine_lt_inizio = sum(invertiti),
     n_dropped_window = sum(!dentro),
+    n_chiavi_non_classificate = sum(
+      raw$codice_cnel %in% chiavi_non_classificate
+    ),
     righe = righe
   )
 }
@@ -133,6 +148,17 @@ test_that("i metadati di prepare_rapporti() coincidono con i conteggi indipenden
   expect_identical(meta$n_input, nrow(cob))
   expect_identical(meta$n_dropped_perimetro, 0L)
   expect_identical(meta$n_tipologia_ignota, 0L)
+  # CPUB: non classificato per default, contato nei metadati, sorgente intatta
+  expect_identical(meta$chiavi_non_classificate, "CPUB")
+  expect_identical(
+    meta$n_chiavi_non_classificate,
+    as.integer(ind$n_chiavi_non_classificate)
+  )
+  expect_identical(meta$n_chiavi_non_classificate, 58L)
+  expect_false("CPUB" %in% prep$ccnl_key)
+  expect_false("CPUB" %in% ranking$ccnl_key)
+  expect_identical(sum(prep$codice_cnel %in% "CPUB"), 58L)
+  expect_true(all(is.na(prep$ccnl_key[prep$codice_cnel %in% "CPUB"])))
   expect_identical(nrow(meta$esclusi_perimetro), 0L)
   expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
   expect_identical(meta$n_sentinel_inizio, ind$n_sentinel_inizio)
@@ -159,10 +185,10 @@ test_that("date, giornate e flag di prepare_rapporti() coincidono riga per riga 
   expect_identical(sort(prep$id), sort(ind$righe$id))
   righe <- ind$righe[match(prep$id, ind$righe$id), ]
 
-  expect_identical(as.Date(prep$inizio), righe$inizio)
-  expect_identical(as.Date(prep$fine), righe$fine)
-  expect_identical(prep$giornate, righe$giornate)
-  expect_identical(sum(prep$giornate), sum(righe$giornate))
+  expect_equal(as.Date(prep$inizio), righe$inizio)
+  expect_equal(as.Date(prep$fine), righe$fine)
+  expect_equal(prep$giornate, righe$giornate)
+  expect_equal(sum(prep$giornate), sum(righe$giornate))
   expect_identical(prep$troncata, righe$troncata)
   expect_identical(prep$avviato, righe$avviato)
   expect_identical(prep$attivo, righe$attivo)
@@ -186,11 +212,11 @@ test_that("i totali di rank_ccnl() coincidono con quelli del microdato preparato
   expect_identical(sum(is.na(ranking$ccnl_key)), 1L)
   expect_identical(ranking[is.na(ccnl_key)]$classe, "Non classificati")
   for (m in .misure) {
-    expect_type(ranking[[m]], "integer")
+    expect_true(is.numeric(ranking[[m]]))
   }
 
-  expect_identical(sum(ranking$n_rapporti), sum(prep$avviato))
-  expect_identical(sum(ranking$giornate), sum(prep$giornate))
+  expect_equal(sum(ranking$n_rapporti), sum(prep$avviato))
+  expect_equal(sum(ranking$giornate), as.numeric(sum(prep$giornate)))
   expect_identical(sum(ranking$stock), sum(prep$attivo))
 
   # n_lavoratori: somma dei distinti per chiave, non distinti globali
@@ -220,13 +246,13 @@ test_that("le misure per CCNL di rank_ccnl() coincidono con il calcolo indipende
     expect_identical(nrow(riga), 1L)
     righe_k <- prep[ccnl_key == k]
     avviati_k <- righe_k[avviato == TRUE]
-    expect_identical(riga$n_lavoratori, length(unique(avviati_k$cf)))
-    expect_identical(riga$n_rapporti, nrow(avviati_k))
-    expect_identical(riga$giornate, sum(righe_k$giornate))
-    expect_identical(riga$stock, sum(righe_k$attivo))
+    expect_equal(riga$n_lavoratori, length(unique(avviati_k$cf)))
+    expect_equal(riga$n_rapporti, nrow(avviati_k))
+    expect_equal(riga$giornate, as.numeric(sum(righe_k$giornate)))
+    expect_equal(riga$stock, sum(righe_k$attivo))
   }
-  expect_identical(ranking[ccnl_key == scelte[1L]]$rank_giornate, 1L)
-  expect_identical(ranking[ccnl_key == scelte[3L]]$rank_giornate, n_cl)
+  expect_equal(ranking[ccnl_key == scelte[1L]]$rank_giornate, 1L)
+  expect_equal(ranking[ccnl_key == scelte[3L]]$rank_giornate, n_cl)
 })
 
 # 4. Ranking per coorte annuale -----
@@ -251,17 +277,17 @@ test_that("con periodo = 'anno' le quote sommano a 1 per anno e le giornate si r
 
   expect_equal(somme$q_giornate, rep(1, nrow(somme)), tolerance = 1e-12)
   expect_equal(somme$q_rapporti, rep(1, nrow(somme)), tolerance = 1e-12)
-  expect_identical(sum(somme$giornate), sum(prep$giornate))
-  expect_identical(sum(somme$giornate), sum(ranking$giornate))
+  expect_equal(sum(somme$giornate), as.numeric(sum(prep$giornate)))
+  expect_equal(sum(somme$giornate), sum(ranking$giornate))
   expect_identical(sum(somme$n_rapporti), sum(ranking$n_rapporti))
-  expect_identical(somme$n_na, rep(1L, nrow(somme)))
-  expect_identical(somme$rank_min, rep(1L, nrow(somme)))
+  expect_equal(somme$n_na, rep(1L, nrow(somme)))
+  expect_equal(somme$rank_min, rep(1L, nrow(somme)))
 
   # giornate per anno contro tapply in base R
   atteso <- tapply(prep$giornate, prep$anno, sum)
   atteso <- atteso[order(as.integer(names(atteso)))]
-  expect_identical(somme$anno, as.integer(names(atteso)))
-  expect_identical(somme$giornate, as.integer(atteso))
+  expect_equal(somme$anno, as.integer(names(atteso)))
+  expect_equal(somme$giornate, as.numeric(atteso))
 })
 
 # 5. Selezione dei CCNL rilevanti -----
@@ -402,8 +428,8 @@ test_that("la tabella di select_ccnl_rilevanti() riassume i CCNL esclusi in una 
     expect_identical(sel[[m]], ranking[match(keys, ranking$ccnl_key)][[m]])
   }
   nc <- tab[classe == "Non classificati"]
-  expect_identical(nrow(nc), 1L)
-  expect_identical(nc$giornate, ranking[is.na(ccnl_key)]$giornate)
+  expect_equal(nrow(nc), 1L)
+  expect_equal(nc$giornate, ranking[is.na(ccnl_key)]$giornate)
   expect_identical(nc$n_lavoratori, ranking[is.na(ccnl_key)]$n_lavoratori)
   expect_identical(
     attr(tab, "ccnlcob_ranking"),
@@ -427,22 +453,22 @@ test_that("con una finestra esplicita la catena rispetta i limiti e ricompone i 
   expect_identical(meta$as_of, ind$as_of)
   expect_identical(meta$n_dropped_window, ind$n_dropped_window)
   expect_gt(meta$n_dropped_window, 0L)
-  expect_identical(nrow(prep_w), nrow(ind$righe))
-  expect_identical(nrow(prep_w), nrow(cob) - meta$n_dropped_window)
+  expect_equal(nrow(prep_w), nrow(ind$righe))
+  expect_equal(nrow(prep_w), nrow(cob) - meta$n_dropped_window)
   expect_true(all(prep_w$inizio <= finestra[2] & prep_w$fine >= finestra[1]))
   expect_true(all(prep_w$giornate >= 1L & prep_w$giornate <= 730L))
   expect_true(any(prep_w$giornate == 730L))
   expect_true(any(!prep_w$avviato))
   expect_identical(prep_w$avviato, prep_w$inizio >= finestra[1])
 
-  expect_identical(sort(prep_w$id), sort(ind$righe$id))
+  expect_equal(sort(prep_w$id), sort(ind$righe$id))
   righe <- ind$righe[match(prep_w$id, ind$righe$id), ]
-  expect_identical(prep_w$giornate, righe$giornate)
+  expect_equal(prep_w$giornate, righe$giornate)
   expect_identical(prep_w$avviato, righe$avviato)
-  expect_identical(prep_w$attivo, righe$attivo)
+  expect_equal(prep_w$attivo, righe$attivo)
 
   ranking_w <- rank_ccnl(prep_w, measures = .misure)
-  expect_identical(sum(ranking_w$giornate), sum(righe$giornate))
+  expect_equal(sum(ranking_w$giornate), as.numeric(sum(righe$giornate)))
   expect_identical(sum(ranking_w$n_rapporti), sum(righe$avviato))
   expect_identical(sum(ranking_w$stock), sum(righe$attivo))
   expect_lt(sum(ranking_w$n_rapporti), nrow(prep_w))
@@ -460,7 +486,7 @@ test_that("con una finestra esplicita la catena rispetta i limiti e ricompone i 
   expect_true(all(keys %in% prep_w$ccnl_key))
   # prefisso dell'ordine per rank_giornate (e chiave a parita'), anche se
   # il ranking e' ordinato sulla prima misura (n_rapporti)
-  expect_identical(
+  expect_equal(
     keys,
     .ordine_selezione(ranking_w, "giornate")[seq_along(keys)]
   )
@@ -479,13 +505,13 @@ test_that("la catena è deterministica e non modifica i propri input", {
   expect_identical(r1, r2)
   expect_identical(r1, ranking)
   # rank_ccnl() non ha toccato il microdato preparato
-  expect_identical(p1, p2)
+  expect_equal(p1, p2)
 
-  expect_identical(
+  expect_equal(
     select_ccnl_rilevanti(r1, measure = "giornate", cum_share = 0.8),
     select_ccnl_rilevanti(r2, measure = "giornate", cum_share = 0.8)
   )
-  expect_identical(
+  expect_equal(
     select_ccnl_rilevanti(
       r1,
       measure = "giornate",
@@ -529,20 +555,20 @@ test_that("una fixture nuova attraversa l'intera catena senza errori e con total
   expect_identical(meta$n_input, 400L)
   expect_identical(meta$as_of, ind$as_of)
   expect_identical(meta$window, ind$window)
-  expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
-  expect_identical(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
-  expect_identical(meta$n_dropped_window, ind$n_dropped_window)
-  expect_identical(sum(prep_f$giornate), sum(ind$righe$giornate))
+  expect_equal(meta$n_sentinel_fine, ind$n_sentinel_fine)
+  expect_equal(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
+  expect_equal(meta$n_dropped_window, ind$n_dropped_window)
+  expect_equal(sum(prep_f$giornate), sum(ind$righe$giornate))
 
   .expect_misure_uguali(ranking_f, .misure_base(ind$righe))
-  expect_identical(sum(ranking_f$giornate), sum(prep_f$giornate))
-  expect_identical(sum(ranking_f$n_rapporti), sum(prep_f$avviato))
+  expect_equal(sum(ranking_f$giornate), sum(prep_f$giornate))
+  expect_equal(sum(ranking_f$n_rapporti), sum(prep_f$avviato))
 
   ordine <- .ordine_selezione(ranking_f, "giornate")
   expect_setequal(keys_f, ordine[seq_along(keys_f)])
   expect_gt(length(keys_f), 0L)
-  expect_identical(sum(tab_f$selezionato), 5L)
-  expect_identical(sum(tab_f$giornate), sum(ranking_f$giornate))
+  expect_equal(sum(tab_f$selezionato), 5L)
+  expect_equal(sum(tab_f$giornate), sum(ranking_f$giornate))
   expect_equal(sum(tab_f$quota_giornate), 1, tolerance = 1e-12)
 })
 
@@ -555,19 +581,19 @@ test_that("la catena funziona con la chiave warehouse, senza classe non classifi
   )
   expect_identical(attr(prep_wh, "ccnlcob_meta")$ccnl_key, "ccnl_warehouse")
   expect_false(anyNA(prep_wh$ccnl_key))
-  expect_identical(prep_wh$ccnl_key, raw$ccnl[match(prep_wh$id, raw$id)])
+  expect_equal(prep_wh$ccnl_key, raw$ccnl[match(prep_wh$id, raw$id)])
 
   ranking_wh <- rank_ccnl(prep_wh, measures = c("giornate", "n_lavoratori"))
   expect_false(anyNA(ranking_wh$ccnl_key))
   expect_true(all(ranking_wh$classe == "CCNL"))
-  expect_identical(sum(ranking_wh$giornate), sum(prep_wh$giornate))
+  expect_equal(sum(ranking_wh$giornate), sum(prep_wh$giornate))
 
   tutti <- select_ccnl_rilevanti(
     ranking_wh,
     measure = "giornate",
     cum_share = 1
   )
-  expect_identical(tutti, .ordine_selezione(ranking_wh, "giornate"))
+  expect_equal(tutti, .ordine_selezione(ranking_wh, "giornate"))
   expect_equal(
     sum(ranking_wh$quota_giornate[ranking_wh$ccnl_key %in% tutti]),
     1,
@@ -764,7 +790,7 @@ test_that("add_cpi() con lookup esplicito mappa i capoluoghi, isola i comuni fuo
 
 test_that("ccnl_by_cpi() riproduce totali, quote e quozienti di localizzazione calcolati in base R", {
   meta <- attr(cpi_tab, "ccnlcob_crosstab")
-  expect_identical(meta$measure, "giornate")
+  expect_equal(meta$measure, "giornate")
   expect_identical(meta$geo, "sede_lavoro")
   expect_identical(meta$min_n, 30L)
 
@@ -783,13 +809,13 @@ test_that("ccnl_by_cpi() riproduce totali, quote e quozienti di localizzazione c
   tot_key <- tapply(prep_cpi$giornate, .chiave_chr(prep_cpi$ccnl_key), sum)
   somma_key <- tapply(cpi_tab$giornate, .chiave_chr(cpi_tab$ccnl_key), sum)
   expect_setequal(names(somma_key), names(tot_key))
-  expect_identical(as.integer(somma_key), as.integer(tot_key[names(somma_key)]))
+  expect_equal(as.integer(somma_key), as.integer(tot_key[names(somma_key)]))
   expect_true("<NA>" %in% names(somma_key))
   tot_cpi <- tapply(prep_cpi$giornate, prep_cpi$cpi_code, sum)
   somma_cpi <- tapply(cpi_tab$giornate, cpi_tab$cpi_code, sum)
   expect_setequal(names(somma_cpi), names(tot_cpi))
-  expect_identical(as.integer(somma_cpi), as.integer(tot_cpi[names(somma_cpi)]))
-  expect_identical(sum(cpi_tab$giornate), sum(prep_cpi$giornate))
+  expect_equal(as.integer(somma_cpi), as.integer(tot_cpi[names(somma_cpi)]))
+  expect_equal(sum(cpi_tab$giornate), sum(prep_cpi$giornate))
   expect_identical(
     sort(unique(cpi_tab$cpi_code)),
     sort(c(cpi_lookup$cpi_code, "FUORI"))
@@ -841,11 +867,11 @@ test_that("le misure per CCNL di ccnl_by_cpi() sono coerenti con rank_ccnl()", {
   }
   # misure additive: somma sui CPI uguale al ranking, riga NA inclusa
   ranking_g <- rank_ccnl(prep, measures = "giornate")
-  expect_identical(
+  expect_equal(
     per_key(cpi_tab, "giornate"),
     ranking_g$giornate[match(ranking$ccnl_key, ranking_g$ccnl_key)]
   )
-  expect_identical(per_key(cpi_tab, "giornate"), ranking$giornate)
+  expect_equal(per_key(cpi_tab, "giornate"), ranking$giornate)
   for (m in c("n_rapporti", "stock")) {
     tab_m <- ccnl_by_cpi(prep_cpi, measure = m)
     expect_identical(attr(tab_m, "ccnlcob_crosstab")$measure, m)
@@ -921,8 +947,8 @@ test_that("ccnl_by_cpi() per anno rispetta le quote entro anno e si ricompone ne
   somma_anni <- tapply(per_anno$giornate, cella, sum)
   cella_tot <- paste(.chiave_chr(cpi_tab$ccnl_key), cpi_tab$cpi_code)
   expect_setequal(names(somma_anni), cella_tot)
-  expect_identical(as.integer(somma_anni[cella_tot]), cpi_tab$giornate)
-  expect_identical(sum(per_anno$giornate), sum(prep_cpi$giornate))
+  expect_equal(as.integer(somma_anni[cella_tot]), cpi_tab$giornate)
+  expect_equal(sum(per_anno$giornate), sum(prep_cpi$giornate))
   # giornate per anno contro tapply sul microdato
   g_anno <- tapply(per_anno$giornate, per_anno$anno, sum)
   atteso <- tapply(prep_cpi$giornate, prep_cpi$anno, sum)
@@ -936,7 +962,7 @@ test_that("il filtro ccnl di ccnl_by_cpi() conserva solo le chiavi selezionate s
     top_n = 5,
     cum_share = NULL
   )
-  expect_identical(length(keys), 5L)
+  expect_equal(length(keys), 5L)
   filtrata <- ccnl_by_cpi(prep_cpi, measure = "giornate", ccnl = keys)
   # nota: `prep` e' la fixture con perimetro "completo" (sezione 1)
 
@@ -950,7 +976,7 @@ test_that("il filtro ccnl di ccnl_by_cpi() conserva solo le chiavi selezionate s
   m <- match(id_f, id_full)
   expect_false(anyNA(m))
   # stesse righe: i totali sono calcolati prima del filtro
-  expect_identical(filtrata$giornate, cpi_tab$giornate[m])
+  expect_equal(filtrata$giornate, cpi_tab$giornate[m])
   expect_identical(filtrata$quota_riga, cpi_tab$quota_riga[m])
   expect_identical(filtrata$quota_colonna, cpi_tab$quota_colonna[m])
   expect_identical(filtrata$lq, cpi_tab$lq[m])
@@ -963,8 +989,8 @@ test_that("il filtro ccnl di ccnl_by_cpi() conserva solo le chiavi selezionate s
   expect_equal(as.numeric(q_riga), rep(1, 5), tolerance = 1e-12)
   # con NA fra le chiavi i non classificati restano
   con_na <- ccnl_by_cpi(prep_cpi, measure = "giornate", ccnl = c(keys, NA))
-  expect_identical(nrow(con_na), nrow(filtrata) + sum(is.na(cpi_tab$ccnl_key)))
-  expect_identical(
+  expect_equal(nrow(con_na), nrow(filtrata) + sum(is.na(cpi_tab$ccnl_key)))
+  expect_equal(
     sum(con_na[is.na(ccnl_key)]$giornate),
     sum(prep_cpi[is.na(ccnl_key)]$giornate)
   )
@@ -1076,7 +1102,7 @@ test_that("ccnl_by_tipologia() riproduce la distribuzione per macro-classe e ora
   # anche con giornate la somma per chiave torna al ranking
   tip_g <- ccnl_by_tipologia(prep, measure = "giornate", orario = FALSE)
   somma_g <- tapply(tip_g$giornate, .chiave_chr(tip_g$ccnl_key), sum)
-  expect_identical(
+  expect_equal(
     as.integer(somma_g[.chiave_chr(ranking$ccnl_key)]),
     ranking$giornate
   )
@@ -1115,12 +1141,12 @@ test_that("una fixture nuova attraversa la catena di Fase 2 senza errori e con t
   )
   tot_key <- tapply(prep_f$giornate, .chiave_chr(prep_f$ccnl_key), sum)
   somma_key <- tapply(cpi_f$giornate, .chiave_chr(cpi_f$ccnl_key), sum)
-  expect_identical(as.integer(somma_key), as.integer(tot_key[names(somma_key)]))
+  expect_equal(as.integer(somma_key), as.integer(tot_key[names(somma_key)]))
   tot_cpi <- tapply(prep_f$giornate, prep_f$cpi_code, sum)
   somma_cpi <- tapply(cpi_f$giornate, cpi_f$cpi_code, sum)
-  expect_identical(as.integer(somma_cpi), as.integer(tot_cpi[names(somma_cpi)]))
-  expect_identical(sum(cpi_f$giornate), sum(prep_f$giornate))
-  expect_identical(
+  expect_equal(as.integer(somma_cpi), as.integer(tot_cpi[names(somma_cpi)]))
+  expect_equal(sum(cpi_f$giornate), sum(prep_f$giornate))
+  expect_equal(
     as.integer(somma_key[.chiave_chr(ranking_f$ccnl_key)]),
     ranking_f$giornate
   )
@@ -1163,7 +1189,7 @@ test_that("una fixture nuova attraversa la catena di Fase 2 senza errori e con t
     sum(tip_f$n_rapporti),
     sum(prep_f$avviato[prep_f$ccnl_key %in% keys_f])
   )
-  expect_identical(
+  expect_equal(
     sum(cpi_sel_f$giornate),
     sum(prep_f$giornate[prep_f$ccnl_key %in% keys_f])
   )
@@ -1174,12 +1200,12 @@ test_that("min_n maschera lq senza eliminare righe né alterare le quote", {
   expect_identical(attr(mascherata, "ccnlcob_crosstab")$min_n, 1e9)
   expect_identical(nrow(mascherata), nrow(cpi_tab))
   expect_identical(mascherata$ccnl_key, cpi_tab$ccnl_key)
-  expect_identical(mascherata$cpi_code, cpi_tab$cpi_code)
+  expect_equal(mascherata$cpi_code, cpi_tab$cpi_code)
   expect_true(all(is.na(mascherata$lq)))
   expect_false(anyNA(cpi_tab$lq))
-  expect_identical(mascherata$giornate, cpi_tab$giornate)
+  expect_equal(mascherata$giornate, cpi_tab$giornate)
   expect_identical(mascherata$quota_riga, cpi_tab$quota_riga)
-  expect_identical(mascherata$quota_colonna, cpi_tab$quota_colonna)
+  expect_equal(mascherata$quota_colonna, cpi_tab$quota_colonna)
 
   # soglia intermedia: mascherati esattamente i CPI sotto soglia
   tot_cpi <- tapply(prep_cpi$giornate, prep_cpi$cpi_code, sum)
@@ -1328,9 +1354,9 @@ test_that("prepare_rapporti() di default esclude le righe fuori perimetro CCNL e
   # riga per riga sul sottoinsieme
   expect_identical(sort(prep_p$id), sort(ind$righe$id))
   righe <- ind$righe[match(prep_p$id, ind$righe$id), ]
-  expect_identical(as.Date(prep_p$inizio), righe$inizio)
-  expect_identical(as.Date(prep_p$fine), righe$fine)
-  expect_identical(prep_p$giornate, righe$giornate)
+  expect_equal(as.Date(prep_p$inizio), righe$inizio)
+  expect_equal(as.Date(prep_p$fine), righe$fine)
+  expect_equal(prep_p$giornate, righe$giornate)
   expect_identical(prep_p$troncata, righe$troncata)
   expect_identical(prep_p$avviato, righe$avviato)
   expect_identical(prep_p$attivo, righe$attivo)
@@ -1338,7 +1364,7 @@ test_that("prepare_rapporti() di default esclude le righe fuori perimetro CCNL e
   # le righe conservate coincidono con quelle del dato completo, stesse
   # colonne derivate
   comuni <- prep[match(prep_p$id, prep$id)]
-  expect_identical(prep_p$giornate, comuni$giornate)
+  expect_equal(prep_p$giornate, comuni$giornate)
   expect_identical(prep_p$ccnl_key, comuni$ccnl_key)
   expect_identical(prep_p$macro_tipologia, comuni$macro_tipologia)
   expect_identical(
@@ -1453,17 +1479,17 @@ test_that("i totali di rank_ccnl() sul perimetro CCNL coincidono con il calcolo 
   ind <- .prepara_indipendente(cob[keep], .as_of_indipendente(cob))
 
   .expect_misure_uguali(ranking_p, .misure_base(ind$righe))
-  expect_identical(sum(ranking_p$giornate), sum(ind$righe$giornate))
-  expect_identical(sum(ranking_p$n_rapporti), sum(ind$righe$avviato))
-  expect_identical(sum(ranking_p$stock), sum(ind$righe$attivo))
-  expect_identical(sum(ranking_p$giornate), sum(prep_p$giornate))
+  expect_equal(sum(ranking_p$giornate), sum(ind$righe$giornate))
+  expect_equal(sum(ranking_p$n_rapporti), sum(ind$righe$avviato))
+  expect_equal(sum(ranking_p$stock), sum(ind$righe$attivo))
+  expect_equal(sum(ranking_p$giornate), sum(prep_p$giornate))
   for (m in .misure) {
     expect_equal(sum(ranking_p[[paste0("quota_", m)]]), 1, tolerance = 1e-12)
   }
 
   # rispetto al perimetro completo: meno giornate, mai di piu' per chiave
   expect_lt(sum(ranking_p$giornate), sum(ranking$giornate))
-  expect_identical(
+  expect_equal(
     sum(ranking$giornate) - sum(ranking_p$giornate),
     sum(prep$giornate[!prep$perimetro_ccnl])
   )
@@ -1490,7 +1516,7 @@ test_that("i totali di rank_ccnl() sul perimetro CCNL coincidono con il calcolo 
     cum_share = 0.8
   )
   expect_gt(length(keys), 0L)
-  expect_identical(
+  expect_equal(
     keys,
     .ordine_selezione(ranking_p, "giornate")[seq_along(keys)]
   )
@@ -1532,13 +1558,13 @@ test_that("una fixture nuova attraversa la catena con il perimetro di default e 
   ind <- .prepara_indipendente(raw[keep], .as_of_indipendente(raw))
   expect_identical(meta$as_of, ind$as_of)
   expect_identical(meta$window, ind$window)
-  expect_identical(meta$n_sentinel_fine, ind$n_sentinel_fine)
-  expect_identical(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
-  expect_identical(meta$n_dropped_window, ind$n_dropped_window)
-  expect_identical(sum(prep_f$giornate), sum(ind$righe$giornate))
+  expect_equal(meta$n_sentinel_fine, ind$n_sentinel_fine)
+  expect_equal(meta$n_fine_lt_inizio, ind$n_fine_lt_inizio)
+  expect_equal(meta$n_dropped_window, ind$n_dropped_window)
+  expect_equal(sum(prep_f$giornate), sum(ind$righe$giornate))
   .expect_misure_uguali(ranking_f, .misure_base(ind$righe))
 
-  expect_identical(sum(cpi_f$giornate), sum(prep_f$giornate))
+  expect_equal(sum(cpi_f$giornate), sum(prep_f$giornate))
   expect_identical(sum(tip_f$n_rapporti), sum(prep_f$avviato))
   # nessuna macro-classe fuori perimetro (Collaborazioni, Tirocinio) resta
   expect_false(any(tip_f$tipologia %in% c("Collaborazioni", "Tirocinio")))

@@ -599,19 +599,34 @@ manifesto <- write_results(res, cartella, overwrite = TRUE)
 knitr::kable(manifesto[, .(oggetto, formato, righe)])
 ```
 
-## Fasi successive
+## 11. Lettura dei rapporti da file e da database
 
-La funzione seguente è esportata e documentata ma non ancora implementata:
-nella versione corrente restituisce un errore che indica la fase prevista.
-Il blocco non viene eseguito e mostra l'uso previsto.
+`read_rapporti()` legge i rapporti da un file FST o RDS, da un file DuckDB o
+da una connessione DBI, mappa i nomi del warehouse al contratto dati
+(`id_rapporto`, `codice_fiscale_lavoratore`, `codice_fiscale_datore`,
+`ore_settim_medie`, `cod_qualifica_prof_istat_3dgt`, `sesso_lav`,
+`eta_lav_inizio`), deriva `prior` da `cod_tipo_orario` e normalizza i tipi
+(factor, `integer64`, testo numerico con eventuale virgola decimale). Con
+una sorgente DB la selezione delle colonne e il filtro `where` vengono
+spinti nella query.
 
-`read_rapporti()` (Fase 5) caricherà i rapporti da un file FST/RDS o da una
-connessione DBI, per esempio la slice DuckDB `sl2_rapporti_36m_classificati`
-prodotta da `cnelR`.
+```{r lettura-rds}
+percorso <- file.path(tempdir(), "rapporti_esempio.rds")
+saveRDS(cob_esempio, percorso)
+letti <- read_rapporti(percorso)
+attr(letti, "ccnlcob_source")[c("source", "n", "colonne_mappate")]
+```
 
-```{r lettura, eval = FALSE}
-dt <- read_rapporti("output/rapporti_classificati.fst")
-validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
+La slice classificata da `cnelR` (`sl2_rapporti_36m_classificati`) si legge
+così; il blocco non viene eseguito nella vignetta.
+
+```{r lettura-duckdb, eval = FALSE}
+dt <- read_rapporti(
+  "~/data/cnel/rapporti_azure.duckdb",
+  table = "sl2_rapporti_36m_classificati",
+  where = "inizio >= DATE '2025-01-01'"
+)
+res <- analyze_ccnl(dt, as_of = "2026-04-30", top_n = 25)
 ```
 
 ## Riferimenti
@@ -620,6 +635,7 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
 - Regole sulle sentinelle e colonne derivate: `?prepare_rapporti`.
 - Retribuzioni: `?clean_retribuzione`, `?normalize_fte`, `?median_retribuzione`, `?deflate_retribuzione`.
 - Giornate effettive, analisi completa e serializzazione: `?compute_giornate_effettive`, `?analyze_ccnl`, `?write_results`.
+- Lettura da file e database: `?read_rapporti`.
 - Perimetro contrattuale: `?filter_perimetro`.
 - Misure e quote del ranking: `?rank_ccnl`, `?select_ccnl_rilevanti`.
 - Mapping comune -> CPI e distribuzione territoriale: `?add_cpi`,

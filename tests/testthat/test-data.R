@@ -29,7 +29,8 @@ test_that("tipologie_contrattuali ha la struttura documentata", {
       "des_tipologia_contrattuale",
       "macro_tipologia",
       "perimetro_ccnl",
-      "esclusa_standard"
+      "esclusa_standard",
+      "fonte_mlps"
     )
   )
   expect_type(tipologie$cod_tipologia_contrattuale, "character")
@@ -37,16 +38,44 @@ test_that("tipologie_contrattuali ha la struttura documentata", {
   expect_type(tipologie$macro_tipologia, "character")
   expect_type(tipologie$perimetro_ccnl, "logical")
   expect_type(tipologie$esclusa_standard, "logical")
-  expect_gte(nrow(tipologie), 20L)
+  expect_type(tipologie$fonte_mlps, "logical")
+  expect_false(anyNA(tipologie$fonte_mlps))
+  expect_identical(nrow(tipologie), 60L)
+  expect_identical(sum(tipologie$fonte_mlps), 58L)
 })
 
 test_that("i codici tipologia sono univoci, nel formato MLPS e ordinati", {
   codici <- tipologie$cod_tipologia_contrattuale
   expect_identical(anyDuplicated(codici), 0L)
-  expect_true(all(grepl("^[A-Z]\\.[0-9]{2}\\.[0-9]{2}$", codici)))
+  # formato MLPS `X.NN.NN` per le righe del foglio; i codici warehouse sono
+  # gli unici fuori formato
+  mlps <- tipologie$fonte_mlps
+  expect_true(all(grepl("^[A-Z]\\.[0-9]{2}\\.[0-9]{2}$", codici[mlps])))
+  expect_identical(codici[!mlps], c("AP-ULAV", "AP-USOM"))
   expect_identical(codici, sort(codici))
+  expect_identical(codici, sort(codici, method = "radix"))
   expect_false(anyNA(tipologie$des_tipologia_contrattuale))
   expect_true(all(nzchar(tipologie$des_tipologia_contrattuale)))
+})
+
+test_that("i codici del solo warehouse hanno la classificazione documentata", {
+  wh <- tipologie[fonte_mlps == FALSE]
+  expect_identical(wh$cod_tipologia_contrattuale, c("AP-ULAV", "AP-USOM"))
+  expect_identical(
+    wh$des_tipologia_contrattuale,
+    c(
+      "APPRENDISTATO (CODICE WAREHOUSE AP-ULAV)",
+      "APPRENDISTATO IN SOMMINISTRAZIONE (CODICE WAREHOUSE AP-USOM)"
+    )
+  )
+  expect_identical(wh$macro_tipologia, c("Apprendistato", "Somministrazione"))
+  expect_true(all(wh$perimetro_ccnl))
+  expect_false(any(wh$esclusa_standard))
+  # entrano nel perimetro CCNL e in quello standard con la macro-classe
+  expect_identical(
+    classify_tipologia(c("AP-ULAV", "AP-USOM"), tipologie = tipologie),
+    c("Apprendistato", "Somministrazione")
+  )
 })
 
 test_that("macro_tipologia è sempre nell'insieme ammesso", {
@@ -177,6 +206,8 @@ test_that("cob_esempio contiene tipologie fuori dal perimetro CCNL", {
     by = cod_tipologia_contrattuale
   ]
   expect_gt(nrow(fuori), 0L)
-  expect_true(all(c("B.03.00", "C.01.00") %in% fuori$cod_tipologia_contrattuale))
+  expect_true(all(
+    c("B.03.00", "C.01.00") %in% fuori$cod_tipologia_contrattuale
+  ))
   expect_false(any(grepl("^[GHLM]\\.", cob$cod_tipologia_contrattuale)))
 })

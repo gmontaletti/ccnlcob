@@ -2,44 +2,142 @@
 % Please edit documentation in R/io.R
 \name{read_rapporti}
 \alias{read_rapporti}
-\title{Legge i rapporti di lavoro da file o da connessione DBI}
+\title{Legge i rapporti di lavoro da file, da DuckDB o da connessione DBI}
 \usage{
-read_rapporti(source, table = NULL, columns = NULL)
+read_rapporti(
+  source,
+  table = NULL,
+  columns = NULL,
+  where = NULL,
+  validate = TRUE
+)
 }
 \arguments{
-\item{source}{Percorso di un file \code{.fst} o \code{.rds}, oppure una connessione
-\code{DBI::DBIConnection} (in tal caso è richiesto \code{table}).}
+\item{source}{Una fra: il percorso di un file \code{.fst}, \code{.rds} o \code{.duckdb}
+(aperto in sola lettura con \code{duckdb::duckdb()}); una connessione
+\code{DBI::DBIConnection} (DuckDB o PostgreSQL); un \code{data.frame} o
+\code{data.table} (convertito con \code{\link[data.table:as.data.table]{data.table::as.data.table()}}, l'input non
+viene modificato).}
 
-\item{table}{Nome della tabella o vista da leggere quando \code{source} è una
-connessione DBI; ignorato per i file. Per la slice prodotta da \code{cnelR}
-il valore tipico è \code{"sl2_rapporti_36m_classificati"}.}
+\item{table}{Nome della tabella o vista da leggere quando \code{source} è un
+file \code{.duckdb} o una connessione DBI; obbligatorio in quei casi, ignorato
+altrimenti. Per la slice prodotta da \code{cnelR} il nome è
+\code{"sl2_rapporti_36m_classificati"}. Sono ammessi nomi qualificati con lo
+schema (\code{"schema.tabella"}).}
 
-\item{columns}{Vettore character con le colonne da leggere; \code{NULL} legge
-tutte le colonne disponibili.}
+\item{columns}{Vettore character con le colonne da leggere, con i nomi
+della sorgente oppure quelli del contratto dati (per esempio \code{"id"} e
+\code{"id_rapporto"} sono equivalenti). \code{NULL} (default) legge tutte le
+colonne del contratto dati presenti nella sorgente; vedi Dettagli.}
+
+\item{where}{Predicato SQL (character di lunghezza 1, senza la parola
+chiave \code{WHERE}) applicato alla lettura da DuckDB o DBI, per esempio
+\code{"inizio >= DATE '2023-02-01'"}. Deve essere \code{NULL} per i file e per i
+\code{data.frame}.}
+
+\item{validate}{Se \code{TRUE} (default) il risultato viene verificato con
+\code{\link[=validate_rapporti]{validate_rapporti()}} (blocco \code{"base"}) e la funzione si ferma con un
+errore che elenca le colonne mancanti. Con \code{FALSE} la tabella viene
+restituita anche se incompleta, per esempio per leggere un sottoinsieme
+di colonne.}
 }
 \value{
-Un \code{data.table} con una riga per rapporto di lavoro.
+Un \code{data.table} con una riga per rapporto di lavoro e le colonne
+richieste con i nomi del contratto dati; attributo \code{ccnlcob_source}
+come descritto nei Dettagli.
 }
 \description{
-Carica un dataset di rapporti di lavoro da un file \code{.fst}/\code{.rds} oppure da
-una tabella raggiungibile tramite una connessione DBI (DuckDB o
-PostgreSQL), normalizza i tipi delle colonne e restituisce un \code{data.table}
-conforme al contratto dati atteso da \code{\link[=validate_rapporti]{validate_rapporti()}}.
+Carica un dataset di rapporti di lavoro da un file \code{.fst}, \code{.rds} o
+\code{.duckdb}, da una connessione \code{DBI} aperta oppure da un \code{data.frame} già
+in memoria; porta i nomi delle colonne al contratto dati, normalizza i
+tipi e restituisce un \code{data.table} pronto per \code{\link[=validate_rapporti]{validate_rapporti()}} e
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}.
 }
 \details{
-La normalizzazione dei tipi converte i \code{factor} in character, gli interi a
-64 bit in integer e le date in \code{IDate}; i nomi delle colonne vengono
-portati in minuscolo. La funzione chiama \code{data.table::setDT()} sul
-risultato e non applica alcuna trasformazione analitica: le sentinelle
-sulle date e la rinomina di \code{ccnl} in \code{ccnl_warehouse} restano di
-competenza di \code{\link[=prepare_rapporti]{prepare_rapporti()}}.
+\subsection{Colonne lette}{
+
+Le colonne del contratto dati sono \code{id}, \code{cf}, \code{inizio}, \code{fine},
+\code{codice_cnel}, \code{ccnl}, \code{ccnl_warehouse}, \code{rappres},
+\code{cod_tipologia_contrattuale}, \code{cod_tipo_orario}, \code{prior},
+\code{comune_sede_lavoro}, \code{comune_lavoratore}, \code{datore}, \code{retribuzione},
+\code{ore}, \code{troncata}, \code{qualifica}, \code{ateco_gruppo}, \code{eta}, \code{sesso} e
+\code{liv_istruzione_lav}. Con \code{columns = NULL} vengono lette quelle presenti
+nella sorgente; le altre colonne (per esempio \verb{ini_*} della slice
+\code{cnelR}) vengono ignorate. Per le sorgenti DuckDB e DBI la selezione
+delle colonne e il predicato \code{where} sono inseriti nella \code{SELECT}, così
+che in R arrivino solo i dati richiesti; per i file \code{.fst} la selezione
+avviene in lettura, per \code{.rds} e \code{data.frame} dopo il caricamento.
+}
+
+\subsection{Rinomina}{
+
+I nomi della sorgente vengono portati al contratto dati solo quando la
+colonna di destinazione è assente. Nomi della slice \code{cnelR} (warehouse
+CO): \code{id_rapporto} in \code{id}, \code{codice_fiscale_lavoratore} in \code{cf},
+\code{codice_fiscale_datore} in \code{datore}, \code{ore_settim_medie} in \code{ore},
+\code{cod_qualifica_prof_istat_3dgt} in \code{qualifica}, \code{sesso_lav} in \code{sesso},
+\code{eta_lav_inizio} in \code{eta}. Varianti maiuscole della pipeline COB:
+\code{INIZIO}, \code{FINE}, \code{COD_TIPOLOGIA_CONTRATTUALE}, \code{COMUNE_SEDE_LAVORO},
+\code{COMUNE_LAVORATORE}, \code{RETRIBUZIONE}, \code{ORE_SETTIM_MEDIE}, \code{ETA_LAV_INIZIO},
+\code{SESSO_LAV}. La colonna \code{ccnl} (codice warehouse) non viene rinominata:
+la rinomina in \code{ccnl_warehouse} resta di competenza di
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}.
+
+Se \code{prior} è assente e \code{cod_tipo_orario} è presente, \code{prior} viene
+derivata dai codici MLPS della tabella "ST-TIPO ORARIO": \code{"F"} (tempo
+pieno) vale \code{1}; \code{"P"} (part-time orizzontale), \code{"V"} (part-time
+verticale) e \code{"M"} (part-time misto) valgono \code{0}; \code{"N"} (non definito),
+i valori mancanti e ogni altro codice danno \code{NA}. Il confronto ignora
+spazi e maiuscole; \code{cod_tipo_orario} viene conservata e il metadato
+\code{prior_derivato} registra l'avvenuta derivazione.
+}
+
+\subsection{Tipi}{
+
+I \code{factor} diventano character; gli interi a 64 bit (\code{integer64}, per
+esempio \code{id} nel file \code{rap.fst} della pipeline) diventano character per
+\code{id} e integer per le altre colonne (richiede il pacchetto \code{bit64}).
+\code{retribuzione}, \code{ore} ed \code{eta}, se character o factor, vengono convertite
+in numeric accettando solo valori che rappresentano un numero (virgola
+ammessa come separatore decimale, zero-padding ammesso): gli altri valori
+non mancanti e non vuoti diventano \code{NA} e sono conteggiati in
+\code{n_non_numerici}. \code{inizio} e \code{fine} diventano \code{Date} da character o
+\code{POSIXct} (\code{IDate} viene conservata); \code{prior} e \code{troncata} diventano
+integer 0/1; \code{rappres} diventa logical. Le sentinelle sulle date non
+vengono toccate.
+}
+
+\subsection{Metadati}{
+
+L'attributo \code{ccnlcob_source} del risultato è una lista con \code{source}
+(percorso, \code{"DBI"} o \code{"data.frame"}), \code{table}, \code{n} (righe lette),
+\code{colonne_mappate} (character nominato: nome sorgente = nome di
+contratto, per le sole colonne rinominate), \code{prior_derivato} (logical),
+\code{n_non_numerici} (integer nominato per \code{retribuzione}, \code{ore}, \code{eta}) e
+\code{where}. La funzione emette un \code{message()} con il numero di righe lette.
+}
 }
 \examples{
-\dontrun{
-# da file FST
-dt <- read_rapporti("output/rapporti_classificati.fst")
+# da data.frame in memoria (nomi del contratto dati)
+dt <- read_rapporti(cob_esempio)
+attr(dt, "ccnlcob_source")$n
 
-# da DuckDB (slice classificata da cnelR)
+# da file RDS o FST
+f <- tempfile(fileext = ".rds")
+saveRDS(cob_esempio, f)
+dt <- read_rapporti(f, columns = c("id", "cf", "inizio", "fine"),
+                    validate = FALSE)
+unlink(f)
+
+\dontrun{
+# slice classificata da cnelR, con selezione spinta in SQL
+dt <- read_rapporti(
+  "~/data/cnel/rapporti_azure.duckdb",
+  table = "sl2_rapporti_36m_classificati",
+  where = "inizio >= DATE '2023-02-01'"
+)
+
+# connessione DBI già aperta
 con <- DBI::dbConnect(duckdb::duckdb(), "cob.duckdb", read_only = TRUE)
 dt <- read_rapporti(con, table = "sl2_rapporti_36m_classificati")
 DBI::dbDisconnect(con, shutdown = TRUE)

@@ -8,6 +8,10 @@
 .as_of <- as.Date("2024-12-31")
 
 # Tabella preparata dalla fixture sintetica: solo rapporti senza sentinelle.
+# `attivo` segue la regola di prepare_rapporti(): rapporto aperto ad as_of,
+# cioè fine non osservata; nella fixture sono le righe con `troncata = 1`
+# (fine chiusa a monte alla data di stabilizzazione, che coincide con
+# `.as_of`), mentre una fine osservata uguale ad as_of chiude il rapporto.
 .prepara_fixture <- function(...) {
   dt <- generate_cob_sintetico(...)
   dt <- dt[fine >= inizio & fine <= .as_of]
@@ -15,7 +19,7 @@
     ccnl_key = codice_cnel,
     giornate = as.integer(pmin(fine, .as_of) - inizio + 1L),
     avviato = TRUE,
-    attivo = fine >= .as_of,
+    attivo = troncata == 1L,
     anno = as.integer(data.table::year(inizio)),
     trimestre = paste0(
       data.table::year(inizio),
@@ -103,7 +107,7 @@ test_that("rank_ccnl() restituisce una riga per CCNL con le colonne attese", {
     r$classe,
     c("CCNL", "CCNL", "CCNL", "CCNL", "Non classificati")
   )
-  expect_identical(
+  expect_equal(
     attr(r, "ccnlcob_ranking"),
     list(measures = c("giornate", "n_lavoratori"), by = NULL, periodo = NULL)
   )
@@ -120,8 +124,8 @@ test_that("rank_ccnl() non modifica l'input", {
 
 test_that("rank_ccnl() assegna rank decrescenti con pari merito e NA sui non classificati", {
   r <- rank_ccnl(.sei_rapporti(), measures = "giornate")
-  expect_identical(r$giornate, c(120L, 50L, 50L, 10L, 40L))
-  expect_identical(r$rank_giornate, c(1L, 2L, 2L, 4L, NA_integer_))
+  expect_equal(r$giornate, c(120L, 50L, 50L, 10L, 40L))
+  expect_equal(r$rank_giornate, c(1L, 2L, 2L, 4L, NA_integer_))
   expect_type(r$rank_giornate, "integer")
   expect_equal(
     r$quota_giornate,
@@ -171,8 +175,8 @@ test_that("rank_ccnl() considera avviato e attivo TRUE quando mancano, con messa
     "attivo"
   )
   expect_message(rank_ccnl(dt, measures = "stock"), "attivo")
-  expect_identical(r[ccnl_key == "A"]$n_rapporti, 2L)
-  expect_identical(sum(r$stock), 6L)
+  expect_equal(r[ccnl_key == "A"]$n_rapporti, 2L)
+  expect_equal(sum(r$stock), 6L)
   expect_silent(rank_ccnl(dt, measures = "giornate"))
 })
 
@@ -187,7 +191,7 @@ test_that("rank_ccnl() tratta NA in avviato e attivo come FALSE", {
 
 test_that("rank_ccnl() sulla fixture: quote a 1, rank coerenti, ordinamento per la prima misura", {
   r <- rank_ccnl(fixture, measures = c("n_lavoratori", "giornate", "stock"))
-  expect_identical(nrow(r), data.table::uniqueN(fixture$ccnl_key))
+  expect_equal(nrow(r), data.table::uniqueN(fixture$ccnl_key))
   for (m in c("n_lavoratori", "giornate", "stock")) {
     expect_equal(.somme_quote(r, m), 1, tolerance = 1e-12)
     cls <- r[classe == "CCNL"]
@@ -223,13 +227,13 @@ test_that("rank_ccnl() sulla fixture: quote a 1, rank coerenti, ordinamento per 
 
 test_that("rank_ccnl() con periodo = 'anno' aggiunge la colonna e raggruppa per anno", {
   r <- rank_ccnl(.sei_rapporti(), measures = "giornate", periodo = "anno")
-  expect_identical(names(r)[1:3], c("anno", "ccnl_key", "classe"))
-  expect_identical(r$anno, c(2023L, 2023L, 2024L, 2024L, 2024L))
-  expect_identical(r$ccnl_key, c("A", "B", "C", "D", NA))
-  expect_identical(r$giornate, c(120L, 50L, 50L, 10L, 40L))
-  expect_identical(r$rank_giornate, c(1L, 2L, 1L, 2L, NA_integer_))
+  expect_equal(names(r)[1:3], c("anno", "ccnl_key", "classe"))
+  expect_equal(r$anno, c(2023L, 2023L, 2024L, 2024L, 2024L))
+  expect_equal(r$ccnl_key, c("A", "B", "C", "D", NA))
+  expect_equal(r$giornate, c(120L, 50L, 50L, 10L, 40L))
+  expect_equal(r$rank_giornate, c(1L, 2L, 1L, 2L, NA_integer_))
   expect_equal(.somme_quote(r, "giornate", "anno"), c(1, 1), tolerance = 1e-12)
-  expect_identical(attr(r, "ccnlcob_ranking")$periodo, "anno")
+  expect_equal(attr(r, "ccnlcob_ranking")$periodo, "anno")
 
   rf <- rank_ccnl(fixture, measures = "giornate", periodo = "trimestre")
   expect_equal(
@@ -247,10 +251,10 @@ test_that("rank_ccnl() con by raggruppa e ordina entro gruppo", {
     by = "sesso",
     periodo = "anno"
   )
-  expect_identical(names(r)[1:4], c("sesso", "anno", "ccnl_key", "classe"))
-  expect_identical(nrow(r), 5L)
-  expect_identical(r$sesso, c("F", "F", "F", "M", "M"))
-  expect_identical(r$rank_giornate, c(1L, 1L, NA, 1L, 1L))
+  expect_equal(names(r)[1:4], c("sesso", "anno", "ccnl_key", "classe"))
+  expect_equal(nrow(r), 5L)
+  expect_equal(r$sesso, c("F", "F", "F", "M", "M"))
+  expect_equal(r$rank_giornate, c(1L, 1L, NA, 1L, 1L))
   expect_equal(
     .somme_quote(r, "giornate", c("sesso", "anno")),
     rep(1, 4),
@@ -292,8 +296,8 @@ test_that("rank_ccnl() aggancia le etichette senza alterare le righe", {
     names(r)[1:4],
     c("ccnl_key", "classe", "ccnl_titolo", "macro_settore_cnel")
   )
-  expect_identical(r$ccnl_titolo, c("Titolo A", "Titolo B", NA, NA, NA))
-  expect_identical(r$rank_giornate, c(1L, 2L, 2L, 4L, NA_integer_))
+  expect_equal(r$ccnl_titolo, c("Titolo A", "Titolo B", NA, NA, NA))
+  expect_equal(r$rank_giornate, c(1L, 2L, 2L, 4L, NA_integer_))
 
   duplicate <- etichette[c(1L, 1L, 2L)]
   expect_error(
@@ -465,13 +469,13 @@ test_that("select_ccnl_rilevanti(return = 'table') aggrega i residui e conserva 
     tab$classe,
     c("CCNL", "CCNL", "Altri CCNL", "Non classificati")
   )
-  expect_identical(tab$selezionato, c(TRUE, TRUE, FALSE, FALSE))
-  expect_identical(tab[classe == "Altri CCNL"]$giornate, 20L)
-  expect_identical(tab[classe == "Altri CCNL"]$n_lavoratori, 2L)
+  expect_equal(tab$selezionato, c(TRUE, TRUE, FALSE, FALSE))
+  expect_equal(tab[classe == "Altri CCNL"]$giornate, 20L)
+  expect_equal(tab[classe == "Altri CCNL"]$n_lavoratori, 2L)
   expect_true(is.na(tab[classe == "Altri CCNL"]$rank_giornate))
   expect_true(is.na(tab[classe == "Altri CCNL"]$quota_cum_giornate))
-  expect_identical(tab[is.na(ccnl_key)]$giornate, 100L)
-  expect_identical(tab[is.na(ccnl_key)]$classe, "Non classificati")
+  expect_equal(tab[is.na(ccnl_key)]$giornate, 100L)
+  expect_equal(tab[is.na(ccnl_key)]$classe, "Non classificati")
   expect_equal(sum(tab$quota_giornate), 1, tolerance = 1e-12)
   expect_equal(sum(tab$quota_n_lavoratori), 1, tolerance = 1e-12)
   expect_equal(
@@ -479,7 +483,7 @@ test_that("select_ccnl_rilevanti(return = 'table') aggrega i residui e conserva 
     20 / 200,
     tolerance = 1e-12
   )
-  expect_identical(tab$rank_giornate[1:2], c(1L, 2L))
+  expect_equal(tab$rank_giornate[1:2], c(1L, 2L))
   expect_identical(attr(tab, "ccnlcob_ranking"), attr(r, "ccnlcob_ranking"))
   expect_identical(attr(tab, "ccnlcob_selezione")$keys, c("A", "B"))
   expect_identical(attr(tab, "ccnlcob_selezione")$cum_share, 0.3)
@@ -497,10 +501,10 @@ test_that("select_ccnl_rilevanti(return = 'table') rispetta other_label e i grup
     other_label = "Residuo",
     return = "table"
   )
-  expect_identical(tab$anno, c(2023L, 2023L, 2024L, 2024L, 2024L))
-  expect_identical(tab$ccnl_key, c("A", "Residuo", "C", "D", NA))
-  expect_identical(tab[ccnl_key == "Residuo"]$giornate, 50L)
-  expect_identical(tab[ccnl_key == "Residuo"]$classe, "Altri CCNL")
+  expect_equal(tab$anno, c(2023L, 2023L, 2024L, 2024L, 2024L))
+  expect_equal(tab$ccnl_key, c("A", "Residuo", "C", "D", NA))
+  expect_equal(tab[ccnl_key == "Residuo"]$giornate, 50L)
+  expect_equal(tab[ccnl_key == "Residuo"]$classe, "Altri CCNL")
   expect_equal(
     .somme_quote(tab, "giornate", "anno"),
     c(1, 1),

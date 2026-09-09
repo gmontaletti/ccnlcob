@@ -61,8 +61,10 @@ nella finestra di analisi);
 \item \code{giornate}: somma di \code{giornate} (giorni-contratto nella finestra);
 \item \code{giornate_effettive}: somma di \code{giornate_effettive} (giorni-persona
 allocati pro quota, vedi \code{\link[=compute_giornate_effettive]{compute_giornate_effettive()}});
-\item \code{stock}: numero di rapporti con \code{attivo == TRUE} alla data \code{as_of}
-fissata in \code{\link[=prepare_rapporti]{prepare_rapporti()}}.
+\item \code{stock}: numero di rapporti con \code{attivo == TRUE}, cioè aperti alla
+data \code{as_of} fissata in \code{\link[=prepare_rapporti]{prepare_rapporti()}} (fine originale mancante,
+sentinella o successiva ad \code{as_of}); coincide con \code{n_attivi} di
+\code{cnelR}.
 }
 
 Se \code{avviato} o \code{attivo} mancano vengono considerati \code{TRUE} per tutte le
@@ -85,11 +87,14 @@ classificata. Se il totale del gruppo è zero le quote sono \code{NA}.
 dt <- data.table::copy(cob_esempio)[
   fine >= inizio & fine <= as.Date("2024-12-31")
 ]
+# attivo: rapporto aperto ad as_of; nel dataset di esempio la fine non
+# osservata e' stata chiusa a monte alla data di stabilizzazione
+# (troncata = 1)
 dt[, `:=`(
   ccnl_key = codice_cnel,
   giornate = as.integer(fine - inizio + 1L),
   avviato = TRUE,
-  attivo = fine >= as.Date("2024-12-31"),
+  attivo = troncata == 1L,
   anno = data.table::year(inizio)
 )]
 

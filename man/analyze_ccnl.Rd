@@ -10,6 +10,7 @@ analyze_ccnl(
   window = NULL,
   perimetro = c("ccnl", "standard", "completo"),
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  chiavi_non_classificate = "CPUB",
   measure = "giornate",
   top_n = 20,
   cum_share = 0.8,
@@ -31,7 +32,10 @@ Non viene modificato.}
 \item{as_of}{Data di riferimento (\code{Date} o stringa convertibile) per lo
 stato dei rapporti (\code{attivo}) e per la chiusura dei rapporti aperti;
 \code{NULL} (default) usa la data massima non sentinella osservata fra
-\code{inizio} e \code{fine}, cioè la data di riferimento dei dati.}
+\code{inizio} e \code{fine} e non successiva alla data odierna, cioè la data di
+riferimento dei dati; le date di fine future (fini presunte o valori
+errati come \code{2999-12-31}) non concorrono al default e vengono trattate
+come rapporti aperti (\code{fine > as_of}).}
 
 \item{window}{Vettore di due \code{Date} (o stringhe convertibili),
 \code{c(inizio, fine)}, che delimita l'analisi; \code{NULL} (default) usa
@@ -49,6 +53,12 @@ tipologie di lavoro subordinato alle quali si applica un CCNL;
 \code{"ccnl_warehouse"} (codice warehouse CO). Con il default (entrambe)
 viene usata la prima colonna presente in \code{dt}; se una colonna richiesta
 esplicitamente è assente la funzione produce un errore.}
+
+\item{chiavi_non_classificate}{Vettore character di valori di \code{ccnl_key}
+da trattare come non classificati (\code{NA} in \code{ccnl_key}), oppure \code{NULL}
+per non escludere nulla. Default \code{"CPUB"}: codice di comodo del bridge
+di \code{cnelR} per il pubblico impiego, non un CCNL misurabile. Vedi
+Dettagli.}
 
 \item{measure}{Misura di rilevanza usata per selezionare i CCNL e per la
 distribuzione per CPI: una fra \code{"n_rapporti"}, \code{"n_lavoratori"},
@@ -113,7 +123,8 @@ produce invece un errore.
 Componenti del risultato:
 \itemize{
 \item \code{meta}: lista con \code{versione}, \code{as_of}, \code{window}, \code{perimetro},
-\code{ccnl_key}, \code{measure}, \code{n_input}, \code{n_finestra}, \code{n_rapporti},
+\code{ccnl_key}, \code{chiavi_non_classificate}, \code{measure}, \code{n_input},
+\code{n_finestra}, \code{n_rapporti},
 \code{n_lavoratori}, \code{copertura_ccnl}, \code{copertura_retribuzione}, \code{passi}
 (passi eseguiti), \code{passi_saltati} (vettore nominato passo -> motivo),
 \code{preparazione} (attributo \code{ccnlcob_meta} di \code{\link[=prepare_rapporti]{prepare_rapporti()}}) e

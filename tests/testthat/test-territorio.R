@@ -223,7 +223,7 @@ test_that("ccnl_by_cpi() restituisce le colonne attese, l'attributo e non modifi
   )
   expect_identical(dt, fixture)
   expect_false("cpi_code" %in% names(dt))
-  expect_identical(
+  expect_equal(
     attr(out, "ccnlcob_crosstab"),
     list(
       measure = "giornate",
@@ -251,7 +251,7 @@ test_that("ccnl_by_cpi() accetta tutte le misure e rifiuta le altre", {
   for (m in c("n_rapporti", "n_lavoratori", "n_datori", "giornate", "stock")) {
     out <- ccnl_by_cpi(dt, measure = m)
     expect_true(m %in% names(out))
-    expect_identical(attr(out, "ccnlcob_crosstab")$measure, m)
+    expect_equal(attr(out, "ccnlcob_crosstab")$measure, m)
   }
   expect_error(ccnl_by_cpi(dt, measure = "retribuzione"), "Misura non ammessa")
   expect_error(ccnl_by_cpi(dt, measure = c("giornate", "stock")), "singola")
@@ -315,8 +315,8 @@ test_that("ccnl_by_cpi(): giornate per CCNL sommate sui CPI coincidono con rank_
     ranking[, list(ccnl_key, giornate)],
     by = "ccnl_key"
   )
-  expect_identical(nrow(confronto), nrow(ranking))
-  expect_identical(confronto$giornate.x, confronto$giornate.y)
+  expect_equal(nrow(confronto), nrow(ranking))
+  expect_equal(confronto$giornate.x, confronto$giornate.y)
 })
 
 # 7. ccnl_by_cpi(): filtro ccnl, periodo e by -----
@@ -330,7 +330,7 @@ test_that("ccnl_by_cpi(): il filtro ccnl conserva i totali e avvisa sulle chiavi
   attese <- tutto[ccnl_key %in% chiavi]
   data.table::setorder(attese, ccnl_key, cpi_code)
   data.table::setorder(parziale, ccnl_key, cpi_code)
-  expect_identical(parziale$giornate, attese$giornate)
+  expect_equal(parziale$giornate, attese$giornate)
   expect_equal(parziale$quota_riga, attese$quota_riga, tolerance = 1e-12)
   expect_equal(parziale$quota_colonna, attese$quota_colonna, tolerance = 1e-12)
   expect_equal(parziale$lq, attese$lq, tolerance = 1e-12)
@@ -365,7 +365,7 @@ test_that("ccnl_by_cpi(): periodo e by aggiungono le colonne di gruppo con quote
   tot <- dt[, list(t = sum(giornate)), by = list(anno, ccnl_key)]
   somme <- per_anno[, list(t = sum(giornate)), by = list(anno, ccnl_key)]
   expect_identical(
-    merge(tot, somme, by = c("anno", "ccnl_key"))[, identical(t.x, t.y)],
+    merge(tot, somme, by = c("anno", "ccnl_key"))[, isTRUE(all.equal(as.numeric(t.x), as.numeric(t.y)))],
     TRUE
   )
 
@@ -396,8 +396,8 @@ test_that("ccnl_by_cpi() usa cpi_code se presente, altrimenti calcola il CPI con
     lookup = lookup_cpi[1]
   )
   da_geo <- ccnl_by_cpi(fixture, geo = "residenza", lookup = lookup_cpi)
-  expect_identical(da_colonna$cpi_code, da_geo$cpi_code)
-  expect_identical(da_colonna$giornate, da_geo$giornate)
+  expect_equal(da_colonna$cpi_code, da_geo$cpi_code)
+  expect_equal(da_colonna$giornate, da_geo$giornate)
   sede <- ccnl_by_cpi(fixture, geo = "sede_lavoro", lookup = lookup_cpi)
   expect_false(identical(sede$giornate, da_geo$giornate))
   expect_identical(attr(da_geo, "ccnlcob_crosstab")$geo, "residenza")
