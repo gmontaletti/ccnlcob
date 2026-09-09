@@ -1,6 +1,6 @@
 Package: ccnlcob
 Title: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)
-Version: 0.6.0
+Version: 0.7.0
 Date: 2026-09-09
 Authors@R:
     person("Giampaolo", "Montaletti", , "giampaolo.montaletti@gmail.com", role = c("aut", "cre"),
@@ -36,6 +36,7 @@ Suggests:
     duckdb,
     ggplot2,
     knitr,
+    quarto,
     longworkR,
     rmarkdown,
     testthat (>= 3.0.0),

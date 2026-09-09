@@ -1,3 +1,19 @@
+# ccnlcob 0.7.0
+
+## Nuove funzionalità
+
+- Livello grafico opzionale su `ggplot2` (in Suggests) con palette
+  accessibili (Okabe-Ito, scale divergenti centrate su 1 per il quoziente di
+  localizzazione) e codifiche ridondanti: `plot_ranking()`,
+  `plot_ranking_periodo()`, `plot_cpi()`, `plot_tipologie()`,
+  `plot_retribuzioni()`, con `theme_ccnlcob()`, `scale_colour_ccnlcob()`,
+  `scale_fill_ccnlcob()` e `palette_ccnlcob()`.
+- Report Quarto parametrico `inst/quarto/report_ccnl.qmd`, che legge la
+  cartella prodotta da `write_results()`, e funzione `render_report()` che lo
+  compila in HTML autonomo (richiede Quarto CLI e il pacchetto `quarto`).
+
+---
+
 # ccnlcob 0.6.0
 
 ## Nuove funzionalità

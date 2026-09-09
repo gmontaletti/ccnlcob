@@ -74,13 +74,17 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.6.0: Fasi 1-5 completate, nessuno stub. Validato sulla slice reale
+Versione 0.7.0: Fasi 1-6 completate, nessuno stub. Validato sulla slice reale
 `cnelR` (8 M rapporti, `~/data/cnel/rapporti_azure.duckdb`): conteggi identici a
 cnelR per 274 codici, catena completa in 37 s (`../reference/ccnlcob/analisi_slice_reale.md`,
 script `../test/ccnlcob/02_analisi_slice_reale.R`). Convenzioni fissate dal run:
 `attivo` = rapporto aperto ad `as_of` come `n_attivi` di cnelR; `CPUB` non
 classificato per default; codici orario `V`/`M` part-time; `giornate` sommate in
-doppia precisione. Manca il repository di workflow `targets` (Fase 5) e i grafici (Fase 6). I default delle funzioni sulle retribuzioni derivano dalla
+doppia precisione. Fase 6 (0.7.0): livello grafico opzionale in `R/plot.R` (ggplot2 in Suggests,
+palette Okabe-Ito, codifiche ridondanti, cap interno a 20 CPI e 8 chiavi per le
+linee) e report Quarto `inst/quarto/report_ccnl.qmd` con `render_report()`
+(richiede Quarto CLI; il template ricarica il pacchetto da sorgente via
+`pkg_dev` quando non installato). Manca solo il repository di workflow `targets`. I default delle funzioni sulle retribuzioni derivano dalla
 diagnostica su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`):
 non cambiarli senza nuova evidenza.
 `prepare_rapporti()` esclude per default gli avviamenti fuori dal perimetro CCNL

@@ -71,6 +71,24 @@ reference:
       - print.ccnlcob_result
       - write_results
 
+  - title: Grafici
+    desc: Funzioni grafiche opzionali su ggplot2 con palette accessibili.
+    contents:
+      - plot_ranking
+      - plot_ranking_periodo
+      - plot_cpi
+      - plot_tipologie
+      - plot_retribuzioni
+      - theme_ccnlcob
+      - scale_colour_ccnlcob
+      - scale_fill_ccnlcob
+      - palette_ccnlcob
+
+  - title: Report
+    desc: Report Quarto parametrico sui risultati serializzati.
+    contents:
+      - render_report
+
   - title: Dati
     desc: Lookup delle tipologie contrattuali, dataset sintetico di esempio e lookup CPI di esempio.
     contents:

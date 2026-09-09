@@ -599,7 +599,33 @@ manifesto <- write_results(res, cartella, overwrite = TRUE)
 knitr::kable(manifesto[, .(oggetto, formato, righe)])
 ```
 
-## 11. Lettura dei rapporti da file e da database
+## 11. Grafici
+
+Le funzioni grafiche sono opzionali (richiedono `ggplot2`, in Suggests) e
+restituiscono oggetti `ggplot` senza stamparli. Usano la palette Okabe-Ito
+e codifiche ridondanti (ordine, etichette dirette, tipo di linea e forma dei
+punti), così che l'informazione non dipenda dal solo colore; il quoziente di
+localizzazione usa una scala divergente centrata su 1 e le celle mascherate
+sotto `min_n` restano grigie.
+
+```{r grafici-ranking, fig.width = 8, fig.height = 5, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_ranking(res, measure = "n_lavoratori", top_n = 8)
+```
+
+```{r grafici-cpi, fig.width = 8, fig.height = 5, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_cpi(res, value = "lq")
+```
+
+```{r grafici-retribuzioni, fig.width = 8, fig.height = 5, eval = requireNamespace("ggplot2", quietly = TRUE)}
+plot_retribuzioni(res, keys = res$keys[1:4], reale = TRUE)
+```
+
+`plot_ranking_periodo()` e `plot_tipologie()` completano la serie;
+`render_report()` compila il report Quarto parametrico
+(`inst/quarto/report_ccnl.qmd`) sulla cartella prodotta da `write_results()`
+e richiede Quarto CLI.
+
+## 12. Lettura dei rapporti da file e da database
 
 `read_rapporti()` legge i rapporti da un file FST o RDS, da un file DuckDB o
 da una connessione DBI, mappa i nomi del warehouse al contratto dati
@@ -636,6 +662,7 @@ res <- analyze_ccnl(dt, as_of = "2026-04-30", top_n = 25)
 - Retribuzioni: `?clean_retribuzione`, `?normalize_fte`, `?median_retribuzione`, `?deflate_retribuzione`.
 - Giornate effettive, analisi completa e serializzazione: `?compute_giornate_effettive`, `?analyze_ccnl`, `?write_results`.
 - Lettura da file e database: `?read_rapporti`.
+- Grafici e report: `?plot_ranking`, `?plot_cpi`, `?plot_retribuzioni`, `?render_report`.
 - Perimetro contrattuale: `?filter_perimetro`.
 - Misure e quote del ranking: `?rank_ccnl`, `?select_ccnl_rilevanti`.
 - Mapping comune -> CPI e distribuzione territoriale: `?add_cpi`,

@@ -1,0 +1,766 @@
+---
+title: "`r params$titolo`"
+lang: it
+format:
+  html:
+    embed-resources: true
+    toc: true
+    toc-depth: 2
+    theme: flatly
+    fig-width: 8
+    fig-height: 5
+    fig-dpi: 110
+execute:
+  echo: false
+  warning: false
+  message: false
+params:
+  dir: ""
+  titolo: "Analisi dei CCNL sui dati COB"
+  labels: ""
+  top_n: 15
+  note: ""
+  pkg_dev: ""
+---
+
+```{r setup}
+# 1. Pacchetti e lettura dei risultati -----
+library(data.table)
+# `pkg_dev` è valorizzato da render_report() quando ccnlcob è caricato con
+# devtools::load_all() e non installato: Quarto esegue il codice in un
+# processo separato, quindi il pacchetto va ricaricato dalla sorgente.
+if (nzchar(params$pkg_dev)) {
+  pkgload::load_all(params$pkg_dev, quiet = TRUE)
+} else {
+  library(ccnlcob)
+}
+
+dir_out <- params$dir
+if (!nzchar(dir_out) || !dir.exists(dir_out)) {
+  stop("Il parametro `dir` deve indicare la directory prodotta da write_results().")
+}
+top_n <- as.integer(params$top_n)
+if (is.na(top_n) || top_n < 1L) {
+  top_n <- 15L
+}
+
+meta <- readRDS(file.path(dir_out, "meta.rds"))
+
+# Legge una tabella del contratto di uscita da RDS o FST; con FST gli
+# attributi `ccnlcob_*` vengono ripristinati da meta$attributi.
+leggi_tabella <- function(nome) {
+  f_rds <- file.path(dir_out, paste0(nome, ".rds"))
+  f_fst <- file.path(dir_out, paste0(nome, ".fst"))
+  if (file.exists(f_rds)) {
+    x <- readRDS(f_rds)
+    if (is.data.frame(x)) {
+      data.table::setDT(x)
+    }
+    return(x)
+  }
+  if (file.exists(f_fst)) {
+    x <- fst::read_fst(f_fst, as.data.table = TRUE)
+    attrs <- meta$attributi[[nome]]
+    for (nm in names(attrs)) {
+      data.table::setattr(x, nm, attrs[[nm]])
+    }
+    return(x)
+  }
+  NULL
+}
+
+ranking <- leggi_tabella("ranking")
+ranking_periodo <- leggi_tabella("ranking_periodo")
+rilevanti <- leggi_tabella("rilevanti")
+cpi <- leggi_tabella("cpi")
+tipologie <- leggi_tabella("tipologie")
+retribuzioni <- leggi_tabella("retribuzioni")
+qualita <- leggi_tabella("qualita")
+
+keys <- if (file.exists(file.path(dir_out, "keys.rds"))) {
+  readRDS(file.path(dir_out, "keys.rds"))
+} else {
+  meta$keys
+}
+keys <- as.character(keys)
+keys_tab <- utils::head(keys, top_n)
+keys_plot <- utils::head(keys, min(top_n, 8L))
+
+# Etichette leggibili dei CCNL (facoltative).
+labels <- NULL
+if (nzchar(params$labels) && file.exists(params$labels)) {
+  labels <- data.table::as.data.table(readRDS(params$labels))
+  if (!"ccnl_key" %in% names(labels) && "codice_cnel" %in% names(labels)) {
+    data.table::setnames(labels, "codice_cnel", "ccnl_key")
+  }
+  labels <- unique(labels[, c("ccnl_key", "ccnl_titolo"), with = FALSE], by = "ccnl_key")
+}
+
+ha_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+
+# 2. Formattazione italiana -----
+fmt_n <- function(x, digits = 0L) {
+  ifelse(
+    is.na(x),
+    "n.d.",
+    format(
+      round(x, digits),
+      big.mark = ".",
+      decimal.mark = ",",
+      nsmall = digits,
+      scientific = FALSE,
+      trim = TRUE
+    )
+  )
+}
+fmt_pct <- function(x, digits = 1L) {
+  ifelse(
+    is.na(x),
+    "n.d.",
+    paste0(
+      format(round(100 * x, digits), decimal.mark = ",", nsmall = digits, trim = TRUE),
+      "%"
+    )
+  )
+}
+fmt_euro <- function(x) ifelse(is.na(x), "n.d.", paste0(fmt_n(x), " €"))
+fmt_data <- function(x) format(as.Date(x), "%d/%m/%Y")
+fmt_lq <- function(x) ifelse(is.na(x), "n.d.", format(round(x, 2), decimal.mark = ",", nsmall = 2))
+
+# Titolo del CCNL per le tabelle: titolo (troncato a `max_char`) se
+# disponibile, altrimenti la sola chiave.
+tronca <- function(s, max_char) {
+  ifelse(nchar(s) > max_char, paste0(substr(s, 1L, max_char - 1L), "…"), s)
+}
+titolo_ccnl <- function(k, max_char = 70L) {
+  k <- as.character(k)
+  out <- k
+  if (!is.null(labels)) {
+    pos <- match(k, labels$ccnl_key)
+    trovati <- !is.na(pos)
+    out[trovati] <- tronca(labels$ccnl_titolo[pos[trovati]], max_char)
+  }
+  out[is.na(k)] <- "Non classificati"
+  out
+}
+
+# Etichette brevi per i grafici a linee, dove l'etichetta diretta a fine
+# linea deve restare dentro il pannello (le funzioni di plottaggio
+# troncano a 45 caratteri, troppi per 4-8 periodi su 8 pollici).
+labels_brevi <- NULL
+if (!is.null(labels)) {
+  labels_brevi <- data.table::copy(labels)
+  labels_brevi[, ccnl_titolo := tronca(ccnl_titolo, 28L)]
+}
+
+# Misura di rilevanza e colonne derivate.
+measure <- meta$measure
+if (is.null(measure) || !measure %in% names(ranking)) {
+  measure <- "giornate"
+}
+qcol <- paste0("quota_", measure)
+measure_giornate <- if ("giornate_effettive" %in% names(ranking)) {
+  "giornate_effettive"
+} else {
+  "giornate"
+}
+etichetta_misura <- function(m) {
+  switch(
+    m,
+    n_rapporti = "rapporti avviati",
+    n_lavoratori = "lavoratori avviati",
+    n_datori = "datori",
+    giornate = "giornate",
+    giornate_effettive = "giornate effettive",
+    stock = "stock di rapporti attivi",
+    gsub("_", " ", m)
+  )
+}
+periodo_col <- if (!is.null(meta$periodo)) meta$periodo else "anno"
+min_n_cpi <- attr(cpi, "ccnlcob_crosstab")[["min_n"]]
+min_n_retr <- attr(retribuzioni, "ccnlcob_retribuzione_mediana")[["params"]][["min_n"]]
+min_n <- if (!is.null(min_n_cpi)) min_n_cpi else min_n_retr
+n_ccnl_classificati <- if (!is.null(ranking)) {
+  sum(ranking$classe == "CCNL")
+} else {
+  NA_integer_
+}
+```
+
+```{r nota-libera, results="asis"}
+if (nzchar(params$note)) {
+  cat("::: {.callout-note}\n", params$note, "\n:::\n", sep = "")
+}
+```
+
+## Dati e parametri
+
+Il report riassume i risultati di `analyze_ccnl()` (pacchetto `ccnlcob`
+versione `r meta$versione`) salvati con `write_results()` nella directory
+`` `r basename(dir_out)` ``. La finestra di osservazione va dal
+`r fmt_data(meta$window[1])` al `r fmt_data(meta$window[2])`, con data di
+riferimento `r fmt_data(meta$as_of)`; il perimetro contrattuale è
+`` `r meta$perimetro` `` e la chiave di analisi è `` `r meta$ccnl_key` ``.
+La misura di rilevanza usata per selezionare i CCNL è
+`` `r measure` ```r if (!identical(etichetta_misura(measure), measure)) paste0(" (", etichetta_misura(measure), ")")`;
+`analyze_ccnl()` ha selezionato al più `r meta$top_n` CCNL fino a una quota
+cumulata del `r fmt_pct(meta$cum_share, 0)`, e il report ne mostra i primi
+`r length(keys_tab)` nelle tabelle e i primi `r length(keys_plot)` nei
+grafici a linee.
+
+```{r tab-parametri}
+prep <- meta$preparazione
+righe <- list(
+  c("Rapporti in ingresso", fmt_n(meta$n_input)),
+  c("Rapporti nella finestra", fmt_n(meta$n_finestra)),
+  c("Rapporti avviati nella finestra", fmt_n(meta$n_rapporti)),
+  c("Lavoratori avviati (codici fiscali distinti)", fmt_n(meta$n_lavoratori)),
+  c("CCNL distinti classificati", fmt_n(n_ccnl_classificati)),
+  c("CCNL rilevanti selezionati", fmt_n(length(keys))),
+  c("Copertura del codice CCNL", fmt_pct(meta$copertura_ccnl)),
+  c("Copertura della retribuzione valida", fmt_pct(meta$copertura_retribuzione)),
+  c("Geografia del CPI", if (is.null(meta$geo)) "n.d." else meta$geo),
+  c("Periodo delle serie", periodo_col)
+)
+if (!is.null(prep)) {
+  righe <- c(
+    righe,
+    list(
+      c("Rapporti esclusi dal perimetro", fmt_n(prep$n_dropped_perimetro)),
+      c("Rapporti fuori finestra", fmt_n(prep$n_dropped_window)),
+      c("Sentinelle su `fine` normalizzate", fmt_n(prep$n_sentinel_fine)),
+      c("Rapporti con tipologia ignota", fmt_n(prep$n_tipologia_ignota))
+    )
+  )
+}
+tab_par <- data.table::rbindlist(lapply(righe, function(r) {
+  data.table::data.table(Voce = r[1], Valore = r[2])
+}))
+knitr::kable(tab_par, align = c("l", "r"))
+```
+
+```{r passi-saltati, results="asis"}
+saltati <- meta$passi_saltati
+if (length(saltati) > 0L) {
+  cat("Passi non eseguiti da `analyze_ccnl()`:\n\n")
+  for (nm in names(saltati)) {
+    cat("- `", nm, "`: ", saltati[[nm]], "\n", sep = "")
+  }
+  cat("\n")
+} else {
+  cat("Tutti i passi di `analyze_ccnl()` sono stati eseguiti.\n\n")
+}
+```
+
+```{r tempi, results="asis"}
+tempi <- meta$tempi
+if (length(tempi) > 0L) {
+  cat(
+    "Tempo di calcolo complessivo: ",
+    fmt_n(sum(tempi), 1L),
+    " secondi su ",
+    length(tempi),
+    " passi; il passo più oneroso è `",
+    names(tempi)[which.max(tempi)],
+    "` (",
+    fmt_n(max(tempi), 1L),
+    " secondi).\n\n",
+    sep = ""
+  )
+}
+```
+
+## Classifica dei CCNL
+
+```{r intro-classifica, results="asis"}
+top1 <- rilevanti[classe == "CCNL"][order(-get(qcol))][1L]
+quota_sel <- sum(rilevanti[selezionato %in% TRUE][[qcol]], na.rm = TRUE)
+quota_nc <- sum(rilevanti[classe == "Non classificati"][[qcol]], na.rm = TRUE)
+cat(
+  "I ", length(keys), " CCNL selezionati coprono il ", fmt_pct(quota_sel),
+  " di ", etichetta_misura(measure), "; i rapporti senza codice CCNL ",
+  "(non classificati) pesano per il ", fmt_pct(quota_nc), ". ",
+  "Il primo CCNL per ", etichetta_misura(measure), " è ",
+  titolo_ccnl(top1$ccnl_key), " (", top1$ccnl_key, "), con il ",
+  fmt_pct(top1[[qcol]]), " del totale.\n\n",
+  sep = ""
+)
+```
+
+### Persone avviate
+
+```{r fig-ranking-lavoratori, fig.cap="Primi CCNL per lavoratori avviati nella finestra; l'etichetta riporta la quota sul totale."}
+#| fig-alt: "Grafico a barre orizzontali dei CCNL ordinati per lavoratori avviati, con la quota percentuale sul totale a fine barra."
+if (ha_ggplot2 && "n_lavoratori" %in% names(ranking)) {
+  plot_ranking(ranking, measure = "n_lavoratori", top_n = top_n, labels = labels)
+}
+```
+
+### Giornate di lavoro
+
+```{r fig-ranking-giornate, fig.cap=paste0("Primi CCNL per ", etichetta_misura(measure_giornate), " nella finestra; l'etichetta riporta la quota sul totale.")}
+#| fig-alt: "Grafico a barre orizzontali dei CCNL ordinati per giornate di lavoro, con la quota percentuale sul totale a fine barra."
+if (ha_ggplot2) {
+  plot_ranking(ranking, measure = measure_giornate, top_n = top_n, labels = labels)
+}
+```
+
+### CCNL rilevanti
+
+```{r tab-rilevanti}
+cols_val <- intersect(
+  c("n_rapporti", "n_lavoratori", "n_datori", "giornate", "giornate_effettive", "stock"),
+  names(rilevanti)
+)
+qcum <- paste0("quota_cum_", measure)
+cols_somma <- c(cols_val, grep("^quota_(?!cum_)", names(rilevanti), value = TRUE, perl = TRUE))
+sel <- rilevanti[selezionato %in% TRUE][order(-get(qcol))]
+mostrati <- sel[seq_len(min(nrow(sel), length(keys_tab)))]
+nascosti <- sel[!ccnl_key %in% mostrati$ccnl_key]
+altri <- rilevanti[classe == "Altri CCNL"]
+# I CCNL selezionati oltre `top_n` del report confluiscono nel residuo.
+if (nrow(nascosti) > 0L) {
+  residuo <- data.table::rbindlist(list(altri, nascosti), fill = TRUE)
+  altri <- residuo[1L]
+  for (cs in intersect(cols_somma, names(residuo))) {
+    data.table::set(altri, j = cs, value = sum(residuo[[cs]], na.rm = TRUE))
+  }
+  altri[, ccnl_key := "Altri CCNL"]
+  altri[, classe := "Altri CCNL"]
+  altri[, selezionato := FALSE]
+}
+tab_ril <- data.table::rbindlist(
+  list(mostrati, altri, rilevanti[classe == "Non classificati"]),
+  fill = TRUE
+)
+tab_ril[, Titolo := titolo_ccnl(ccnl_key)]
+tab_ril[classe == "Altri CCNL", Titolo := "Altri CCNL"]
+tab_ril[classe != "CCNL", ccnl_key := "-"]
+out <- data.table::data.table(
+  Codice = tab_ril$ccnl_key,
+  CCNL = tab_ril$Titolo
+)
+for (cv in cols_val) {
+  out[, (etichetta_misura(cv)) := fmt_n(tab_ril[[cv]])]
+}
+out[, (paste0("Quota ", etichetta_misura(measure))) := fmt_pct(tab_ril[[qcol]])]
+if (qcum %in% names(tab_ril)) {
+  out[, `Quota cumulata` := ifelse(
+    tab_ril$classe == "CCNL",
+    fmt_pct(tab_ril[[qcum]]),
+    ""
+  )]
+}
+knitr::kable(
+  out,
+  align = c("l", "l", rep("r", ncol(out) - 2L)),
+  caption = paste0(
+    "Primi ", nrow(mostrati), " CCNL per ", etichetta_misura(measure),
+    ", con il residuo degli altri CCNL classificati e i rapporti non classificati."
+  )
+)
+```
+
+## Andamento per periodo
+
+```{r intro-periodo, results="asis"}
+periodi <- sort(unique(ranking_periodo[[periodo_col]]))
+cat(
+  "Le serie per ", periodo_col, " di avviamento coprono ", length(periodi),
+  " periodi (da ", periodi[1L], " a ", periodi[length(periodi)], ") e sono ",
+  "tracciate per i primi ", length(keys_plot), " CCNL per ",
+  etichetta_misura(measure), ". La quota è calcolata sul totale del ",
+  "periodo, inclusi i rapporti non classificati.\n\n",
+  sep = ""
+)
+```
+
+```{r fig-periodo, fig.cap=paste0("Quota di ", etichetta_misura(measure), " per ", periodo_col, " di avviamento dei primi ", length(keys_plot), " CCNL.")}
+#| fig-alt: "Grafico a linee della quota per periodo dei principali CCNL, con etichetta diretta a fine linea."
+if (ha_ggplot2) {
+  plot_ranking_periodo(
+    ranking_periodo,
+    measure = measure,
+    keys = keys_plot,
+    labels = labels_brevi,
+    quota = TRUE
+  )
+}
+```
+
+```{r tab-periodo}
+tab_p <- ranking_periodo[classe == "CCNL" & ccnl_key %in% keys_plot]
+periodi_tab <- sort(unique(tab_p[[periodo_col]]))
+wide <- data.table::dcast(
+  tab_p[, c("ccnl_key", periodo_col, qcol), with = FALSE],
+  stats::as.formula(paste("ccnl_key ~", periodo_col)),
+  value.var = qcol
+)
+wide <- wide[match(keys_plot, ccnl_key)][!is.na(ccnl_key)]
+out_p <- data.table::data.table(
+  Codice = wide$ccnl_key,
+  CCNL = titolo_ccnl(wide$ccnl_key, 60L)
+)
+for (p in as.character(periodi_tab)) {
+  out_p[, (p) := fmt_pct(wide[[p]])]
+}
+knitr::kable(
+  out_p,
+  align = c("l", "l", rep("r", length(periodi_tab))),
+  caption = paste0("Quota di ", etichetta_misura(measure), " per ", periodo_col, " di avviamento.")
+)
+```
+
+## Distribuzione territoriale per CPI
+
+```{r intro-cpi, results="asis"}
+if (is.null(cpi)) {
+  cat(
+    "La distribuzione per CPI non è stata calcolata: ",
+    if (!is.null(meta$passi_saltati[["ccnl_by_cpi"]])) {
+      meta$passi_saltati[["ccnl_by_cpi"]]
+    } else if (!is.null(meta$passi_saltati[["add_cpi"]])) {
+      meta$passi_saltati[["add_cpi"]]
+    } else {
+      "tabella `cpi` assente dai risultati"
+    },
+    ".\n\n",
+    sep = ""
+  )
+} else {
+  misura_cpi <- attr(cpi, "ccnlcob_crosstab")[["measure"]]
+  if (is.null(misura_cpi)) misura_cpi <- measure
+  cpi_lomb <- cpi[classe == "CCNL" & !cpi_code %in% c("FUORI", "ND")]
+  n_cpi <- data.table::uniqueN(cpi_lomb$cpi_code)
+  quota_fuori <- cpi[classe == "CCNL" & cpi_code == "FUORI", sum(get(misura_cpi), na.rm = TRUE)] /
+    cpi[classe == "CCNL", sum(get(misura_cpi), na.rm = TRUE)]
+  cat(
+    "La tabella incrociata CCNL per CPI (geografia: ",
+    if (is.null(meta$geo)) "n.d." else meta$geo,
+    ") copre ", n_cpi, " Centri per l'Impiego lombardi; la quota di ",
+    etichetta_misura(misura_cpi), " dei CCNL rilevanti con sede fuori Lombardia è ",
+    fmt_pct(quota_fuori), ". Il quoziente di localizzazione (lq) rapporta la ",
+    "quota di un CCNL nel CPI alla sua quota complessiva: valori sopra 1 ",
+    "indicano una concentrazione superiore alla media regionale. Le celle ",
+    "con meno di ", fmt_n(min_n_cpi), " rapporti sono mascherate.\n\n",
+    sep = ""
+  )
+}
+```
+
+```{r fig-cpi, fig.width=9, fig.height=6, fig.cap="Quoziente di localizzazione dei CCNL rilevanti nei principali CPI (colonne ordinate per totale decrescente)."}
+#| fig-alt: "Mappa di calore CCNL per CPI colorata sul quoziente di localizzazione, con scala divergente centrata su 1."
+if (!is.null(cpi) && ha_ggplot2) {
+  plot_cpi(cpi, keys = keys_tab, value = "lq", labels = labels)
+}
+```
+
+```{r tab-cpi}
+if (!is.null(cpi)) {
+  misura_cpi <- attr(cpi, "ccnlcob_crosstab")[["measure"]]
+  if (is.null(misura_cpi)) misura_cpi <- measure
+  top_lq <- cpi[
+    classe == "CCNL" & ccnl_key %in% keys_tab & !cpi_code %in% c("FUORI", "ND") & !is.na(lq)
+  ][order(-lq)][seq_len(min(10L, .N))]
+  if (nrow(top_lq) > 0L) {
+    out_lq <- data.table::data.table(
+      Codice = top_lq$ccnl_key,
+      CCNL = titolo_ccnl(top_lq$ccnl_key),
+      CPI = top_lq$cpi_name,
+      Valore = fmt_n(top_lq[[misura_cpi]]),
+      `Quota di riga` = fmt_pct(top_lq$quota_riga),
+      lq = fmt_lq(top_lq$lq)
+    )
+    data.table::setnames(out_lq, "Valore", etichetta_misura(misura_cpi))
+    knitr::kable(
+      out_lq,
+      align = c("l", "l", "l", "r", "r", "r"),
+      caption = "Combinazioni CCNL per CPI con il quoziente di localizzazione più alto (CPI lombardi, celle non mascherate)."
+    )
+  }
+}
+```
+
+## Tipologie contrattuali
+
+```{r intro-tipologie, results="asis"}
+if (is.null(tipologie)) {
+  cat("La distribuzione per tipologia contrattuale non è disponibile nei risultati.\n\n")
+} else {
+  misura_tip <- attr(tipologie, "ccnlcob_crosstab")[["measure"]]
+  if (is.null(misura_tip)) misura_tip <- "n_rapporti"
+  tot_tip <- tipologie[classe == "CCNL" & ccnl_key %in% keys_tab,
+    list(v = sum(get(misura_tip), na.rm = TRUE)),
+    by = tipologia
+  ][order(-v)]
+  tot_tip[, q := v / sum(v)]
+  cat(
+    "Fra i ", length(keys_tab), " CCNL rilevanti la macro-tipologia più ",
+    "frequente per ", etichetta_misura(misura_tip), " è \"", tot_tip$tipologia[1L],
+    "\" (", fmt_pct(tot_tip$q[1L]), "), seguita da \"", tot_tip$tipologia[2L],
+    "\" (", fmt_pct(tot_tip$q[2L]), "). Le quote di riga sono calcolate ",
+    "sul totale di ciascun CCNL; le tipologie oltre le sei più rilevanti ",
+    "sono accorpate in \"Altre tipologie\".\n\n",
+    sep = ""
+  )
+}
+```
+
+```{r fig-tipologie, fig.height=6, fig.cap="Distribuzione dei rapporti avviati per macro-tipologia contrattuale nei CCNL rilevanti."}
+#| fig-alt: "Barre orizzontali impilate della quota di ciascuna macro-tipologia contrattuale per CCNL."
+if (!is.null(tipologie) && ha_ggplot2) {
+  plot_tipologie(tipologie, keys = keys_tab, labels = labels, orario = FALSE)
+}
+```
+
+```{r tab-orario}
+if (!is.null(tipologie) && "orario" %in% names(tipologie)) {
+  misura_tip <- attr(tipologie, "ccnlcob_crosstab")[["measure"]]
+  if (is.null(misura_tip)) misura_tip <- "n_rapporti"
+  tab_o <- tipologie[classe == "CCNL" & ccnl_key %in% keys_tab,
+    list(v = sum(get(misura_tip), na.rm = TRUE)),
+    by = list(ccnl_key, orario)
+  ]
+  tab_o[, q := v / sum(v), by = ccnl_key]
+  wide_o <- data.table::dcast(tab_o, ccnl_key ~ orario, value.var = "q", fill = 0)
+  wide_o <- wide_o[match(keys_tab, ccnl_key)][!is.na(ccnl_key)]
+  col_orario <- intersect(c("FT", "PT", "ND"), names(wide_o))
+  out_o <- data.table::data.table(
+    Codice = wide_o$ccnl_key,
+    CCNL = titolo_ccnl(wide_o$ccnl_key, 60L)
+  )
+  nomi_orario <- c(FT = "Tempo pieno", PT = "Part-time", ND = "Orario n.d.")
+  for (co in col_orario) {
+    out_o[, (nomi_orario[[co]]) := fmt_pct(wide_o[[co]])]
+  }
+  knitr::kable(
+    out_o,
+    align = c("l", "l", rep("r", length(col_orario))),
+    caption = paste0("Quota di ", etichetta_misura(misura_tip), " per orario di lavoro in ciascun CCNL.")
+  )
+}
+```
+
+## Retribuzioni
+
+```{r intro-retribuzioni, results="asis"}
+ha_reale <- !is.null(retribuzioni) && "mediana_reale" %in% names(retribuzioni)
+if (is.null(retribuzioni)) {
+  cat(
+    "Le retribuzioni non sono state calcolate: ",
+    if (!is.null(meta$passi_saltati[["retribuzioni"]])) {
+      meta$passi_saltati[["retribuzioni"]]
+    } else {
+      "tabella `retribuzioni` assente dai risultati"
+    },
+    ".\n\n",
+    sep = ""
+  )
+} else {
+  par_retr <- attr(retribuzioni, "ccnlcob_retribuzione_mediana")[["params"]]
+  ultimo <- max(retribuzioni[[periodo_col]])
+  cop_ultimo <- retribuzioni[get(periodo_col) == ultimo & ccnl_key %in% keys_tab]
+  cop_media <- sum(cop_ultimo$n_valide, na.rm = TRUE) / sum(cop_ultimo$n, na.rm = TRUE)
+  cat(
+    "La retribuzione è quella annua lorda dichiarata all'avviamento",
+    if (!is.null(par_retr$value_col) && par_retr$value_col == "retribuzione_fte") {
+      ", normalizzata alle ore di riferimento del CCNL (equivalente a tempo pieno)"
+    } else {
+      ""
+    },
+    "; mediana e quartili sono pesati per ",
+    if (is.null(par_retr$weights)) "rapporto" else etichetta_misura(par_retr$weights),
+    " e mascherati sotto ", fmt_n(min_n_retr), " valori validi. ",
+    "Nell'ultimo periodo (", ultimo, ") la copertura media della retribuzione ",
+    "valida sui CCNL rilevanti è ", fmt_pct(cop_media), ".",
+    if (ha_reale) {
+      " I valori reali sono deflazionati con l'indice fornito ad `analyze_ccnl()`."
+    } else {
+      " Non è stato fornito un indice dei prezzi: i valori sono nominali."
+    },
+    "\n\n",
+    sep = ""
+  )
+}
+```
+
+```{r fig-retribuzioni, fig.cap=paste0("Retribuzione mediana per ", periodo_col, " di avviamento dei primi ", length(keys_plot), " CCNL; punti vuoti dove la copertura è sotto il 50%.")}
+#| fig-alt: "Grafico a linee della retribuzione mediana annua per periodo dei principali CCNL."
+if (!is.null(retribuzioni) && ha_ggplot2) {
+  plot_retribuzioni(
+    retribuzioni,
+    keys = keys_plot,
+    labels = labels_brevi,
+    reale = FALSE,
+    banda = FALSE,
+    copertura_min = 0.5
+  )
+}
+```
+
+```{r fig-retribuzioni-reali, fig.cap=paste0("Retribuzione mediana reale per ", periodo_col, " di avviamento dei primi ", length(keys_plot), " CCNL.")}
+#| fig-alt: "Grafico a linee della retribuzione mediana reale per periodo dei principali CCNL."
+if (ha_reale && ha_ggplot2) {
+  plot_retribuzioni(
+    retribuzioni,
+    keys = keys_plot,
+    labels = labels_brevi,
+    reale = TRUE,
+    banda = FALSE,
+    copertura_min = 0.5
+  )
+}
+```
+
+```{r tab-retribuzioni}
+if (!is.null(retribuzioni)) {
+  tab_r <- retribuzioni[classe == "CCNL" & ccnl_key %in% keys_tab]
+  periodi_r <- sort(unique(tab_r[[periodo_col]]))
+  # al più gli ultimi 6 periodi, per tenere la tabella leggibile
+  periodi_r <- utils::tail(periodi_r, 6L)
+  ultimo <- periodi_r[length(periodi_r)]
+  wide_r <- data.table::dcast(
+    tab_r[get(periodo_col) %in% periodi_r, c("ccnl_key", periodo_col, "mediana"), with = FALSE],
+    stats::as.formula(paste("ccnl_key ~", periodo_col)),
+    value.var = "mediana"
+  )
+  wide_r <- wide_r[match(keys_tab, ccnl_key)][!is.na(ccnl_key)]
+  ult <- tab_r[get(periodo_col) == ultimo][match(wide_r$ccnl_key, ccnl_key)]
+  out_r <- data.table::data.table(
+    Codice = wide_r$ccnl_key,
+    CCNL = titolo_ccnl(wide_r$ccnl_key, 60L)
+  )
+  for (p in as.character(periodi_r)) {
+    out_r[, (paste("Mediana", p)) := fmt_euro(wide_r[[p]])]
+  }
+  if (ha_reale) {
+    out_r[, (paste("Mediana reale", ultimo)) := fmt_euro(ult$mediana_reale)]
+  }
+  out_r[, (paste("n valide", ultimo)) := fmt_n(ult$n_valide)]
+  out_r[, (paste("Copertura", ultimo)) := fmt_pct(ult$copertura)]
+  knitr::kable(
+    out_r,
+    align = c("l", "l", rep("r", ncol(out_r) - 2L)),
+    caption = paste0(
+      "Retribuzione mediana per ", periodo_col, " di avviamento nei CCNL rilevanti ",
+      "(n.d. dove mascherata), con valori validi e copertura dell'ultimo periodo."
+    )
+  )
+}
+```
+
+## Qualità dei dati
+
+```{r intro-qualita, results="asis"}
+if (is.null(qualita)) {
+  cat("La tabella di qualità non è disponibile nei risultati.\n\n")
+} else {
+  q_sel <- qualita[ccnl_key %in% keys_tab]
+  q_nc <- qualita[is.na(ccnl_key)]
+  cat(
+    "Per ciascun CCNL rilevante la tabella riporta il numero di rapporti avviati, ",
+    "la quota di rapporti ancora aperti alla data di riferimento (fine troncata ad ",
+    "`as_of`), la copertura della retribuzione valida, la copertura delle ore fra i ",
+    "part-time e la quota di rapporti con CPI lombardo. ",
+    if (nrow(q_nc) > 0L) {
+      paste0(
+        "I rapporti senza codice CCNL sono ", fmt_n(sum(q_nc$n_rapporti)),
+        ", con copertura della retribuzione pari a ",
+        fmt_pct(q_nc$copertura_retribuzione[1L]), ". "
+      )
+    } else {
+      ""
+    },
+    "\n\n",
+    sep = ""
+  )
+}
+```
+
+```{r tab-qualita}
+if (!is.null(qualita)) {
+  q_sel <- qualita[ccnl_key %in% keys_tab]
+  q_sel[, ord := match(ccnl_key, keys_tab)]
+  data.table::setorderv(q_sel, "ord")
+  out_q <- data.table::data.table(
+    Codice = q_sel$ccnl_key,
+    CCNL = titolo_ccnl(q_sel$ccnl_key, 60L),
+    `Rapporti avviati` = fmt_n(q_sel$n_rapporti),
+    `Rapporti aperti` = fmt_pct(q_sel$quota_troncata),
+    `Copertura retribuzione` = fmt_pct(q_sel$copertura_retribuzione),
+    `Copertura ore (PT)` = fmt_pct(q_sel$copertura_ore),
+    `Copertura CPI` = fmt_pct(q_sel$copertura_cpi)
+  )
+  knitr::kable(
+    out_q,
+    align = c("l", "l", rep("r", 5L)),
+    caption = "Indicatori di qualità per CCNL rilevante."
+  )
+}
+```
+
+## Note metodologiche
+
+```{r note-metodologiche, results="asis"}
+prep <- meta$preparazione
+cat(
+  "- **Perimetro.** L'analisi usa il perimetro `", meta$perimetro, "`",
+  if (!is.null(prep) && !is.null(prep$n_dropped_perimetro)) {
+    paste0(
+      ", che esclude ", fmt_n(prep$n_dropped_perimetro),
+      " rapporti in ingresso (tipologie non riconducibili a un CCNL, per esempio ",
+      "collaborazioni e tirocini)"
+    )
+  } else {
+    ""
+  },
+  ". Le sentinelle sulla data di fine (`1900-01-01`, `9999-12-31`, fine anteriore ",
+  "all'inizio) sono normalizzate in `prepare_rapporti()`",
+  if (!is.null(prep) && !is.null(prep$n_sentinel_fine)) {
+    paste0(" (", fmt_n(prep$n_sentinel_fine), " casi)")
+  } else {
+    ""
+  },
+  ".\n",
+  "- **Finestra.** I conteggi di rapporti e lavoratori riguardano gli avviamenti ",
+  "fra il ", fmt_data(meta$window[1]), " e il ", fmt_data(meta$window[2]),
+  "; le giornate sono i giorni-contratto interni alla finestra.\n",
+  "- **Giornate effettive.** Le `giornate_effettive` sono giorni-persona: ",
+  "quando una persona ha più rapporti contemporanei, ogni giorno è ripartito ",
+  "pro quota fra i rapporti concorrenti, così che la somma per persona non superi ",
+  "i giorni di calendario.",
+  if (!"giornate_effettive" %in% names(ranking)) {
+    " In questo run non sono state calcolate."
+  } else {
+    ""
+  },
+  "\n",
+  "- **Quote.** Le quote di rilevanza sono calcolate sul totale della finestra ",
+  "inclusi i rapporti non classificati (senza codice CCNL, ",
+  fmt_pct(1 - meta$copertura_ccnl), " dei rapporti nella finestra); la classe ",
+  "\"Altri CCNL\" raccoglie i CCNL classificati non selezionati.\n",
+  "- **Mascheramento.** I quozienti di localizzazione e i quantili di ",
+  "retribuzione sono mascherati (valore mancante) nei gruppi con meno di ",
+  fmt_n(min_n), " rapporti; i gruppi restano nelle tabelle con la loro numerosità.\n",
+  "- **Retribuzione.** La retribuzione è l'importo annuo lordo dichiarato dal ",
+  "datore all'avviamento, non un dato amministrativo verificato; è pulita dai ",
+  "segnaposto e normalizzata alle ore di riferimento del CCNL prima del calcolo ",
+  "della mediana pesata. Il campo è compilato in modo sistematico solo dal 2020 ",
+  "(copertura intorno al 60% nel 2014-2019, oltre il 96% dal 2020): le serie che ",
+  "includono periodi anteriori vanno lette insieme alla copertura riportata.\n",
+  "- **CPI.** Il Centro per l'Impiego è attribuito dal comune della ",
+  if (identical(meta$geo, "residenza")) "residenza del lavoratore" else "sede di lavoro",
+  " tramite il codice catastale; i rapporti fuori Lombardia o senza comune ",
+  "valido sono conteggiati nelle colonne `FUORI` e `ND`.\n",
+  sep = ""
+)
+```
+
+```{r firma, results="asis"}
+cat(
+  "\n\nRisultati calcolati con `ccnlcob` ", meta$versione,
+  "; report generato il ", format(Sys.time(), "%d/%m/%Y %H:%M"),
+  " con `ccnlcob` ", as.character(utils::packageVersion("ccnlcob")), ".\n",
+  sep = ""
+)
+```

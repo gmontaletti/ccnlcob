@@ -56,6 +56,7 @@
 # 1. Variabili globali per la NSE di data.table -----
 
 utils::globalVariables(c(
+  "y_label",
   # identificativi e date
   "id",
   "cf",
@@ -145,5 +146,23 @@ utils::globalVariables(c(
   "sesso",
   # simboli data.table
   ".",
-  "..cols"
+  "..cols",
+  # R/plot.R: colonne create dalle funzioni grafiche
+  "ccnl_label",
+  "valore",
+  "valore_cella",
+  "valore_serie",
+  "gruppo",
+  "label",
+  "cpi_f",
+  "periodo_f",
+  "mediana_v",
+  "p25_v",
+  "p75_v",
+  "bassa_copertura",
+  "tipologia_plot",
+  "fill_hex",
+  "txt_col",
+  "testo",
+  "i.valore_cella"
 ))
