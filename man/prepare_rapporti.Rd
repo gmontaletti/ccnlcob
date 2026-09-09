@@ -73,6 +73,19 @@ warehouse) viene rinominata \code{ccnl_warehouse} se quest'ultima è assente.
 Il contratto dati viene verificato dopo la rinomina.
 }
 
+\subsection{Conversione di \code{retribuzione} e \code{ore}}{
+
+Nel file \code{rap.fst} della pipeline COB \code{retribuzione} e \code{ore} sono factor
+con livelli zero-padded (es. \code{"000023671"}, \code{"05"}). Se presenti come
+factor o character, le due colonne vengono convertite in numeric sui
+livelli (\code{as.numeric(levels(f))[f]}) senza avvisi; i valori che non
+rappresentano un numero diventano \code{NA} e sono conteggiati nei metadati
+\code{n_retribuzione_non_numerica} e \code{n_ore_non_numeriche} (0 quando le
+colonne sono già numeriche o assenti). I valori numerici non vengono
+alterati: la pulizia della retribuzione è compito di
+\code{\link[=clean_retribuzione]{clean_retribuzione()}}, quella delle ore di \code{\link[=normalize_fte]{normalize_fte()}}.
+}
+
 \subsection{Perimetro contrattuale}{
 
 Subito dopo la verifica del contratto dati la funzione richiama
@@ -156,8 +169,8 @@ L'attributo \code{ccnlcob_meta} del risultato è una lista con \code{as_of},
 \code{window}, \code{ccnl_key} (nome della colonna usata), \code{perimetro}, \code{n_input}
 (righe di \code{dt}), \code{n_dropped_perimetro}, \code{n_tipologia_ignota},
 \code{n_dropped_window}, \code{n_sentinel_fine}, \code{n_sentinel_inizio},
-\code{n_fine_lt_inizio} e \code{esclusi_perimetro} (la tabella \code{esclusi} di
-\code{\link[=filter_perimetro]{filter_perimetro()}}).
+\code{n_fine_lt_inizio}, \code{n_retribuzione_non_numerica}, \code{n_ore_non_numeriche}
+e \code{esclusi_perimetro} (la tabella \code{esclusi} di \code{\link[=filter_perimetro]{filter_perimetro()}}).
 }
 }
 \examples{

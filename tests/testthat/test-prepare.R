@@ -404,9 +404,13 @@ test_that("l'attributo ccnlcob_meta ha i campi attesi", {
       "n_sentinel_fine",
       "n_sentinel_inizio",
       "n_fine_lt_inizio",
+      "n_retribuzione_non_numerica",
+      "n_ore_non_numeriche",
       "esclusi_perimetro"
     )
   )
+  expect_identical(meta$n_retribuzione_non_numerica, 0L)
+  expect_identical(meta$n_ore_non_numeriche, 0L)
   expect_s3_class(meta$as_of, "Date")
   expect_s3_class(meta$window, "Date")
   expect_identical(length(meta$window), 2L)
@@ -424,6 +428,49 @@ test_that("l'attributo ccnlcob_meta ha i campi attesi", {
       "n"
     )
   )
+})
+
+test_that("prepare_rapporti() converte retribuzione e ore da factor zero-padded e conta i non numerici", {
+  dt <- data.table::copy(fixture)
+  riferimento <- suppressMessages(prepare_rapporti(data.table::copy(fixture)))
+  retribuzione_f <- ifelse(
+    is.na(dt$retribuzione),
+    NA_character_,
+    sprintf("%09.0f", dt$retribuzione)
+  )
+  ore_f <- ifelse(is.na(dt$ore), NA_character_, sprintf("%02.0f", dt$ore))
+  # un livello non numerico per colonna, su righe con valore non mancante
+  i_ret <- which(!is.na(retribuzione_f))[1:2]
+  i_ore <- which(!is.na(ore_f))[1L]
+  retribuzione_f[i_ret] <- "N.D."
+  ore_f[i_ore] <- "??"
+  dt[, `:=`(retribuzione = factor(retribuzione_f), ore = factor(ore_f))]
+  expect_s3_class(dt$retribuzione, "factor")
+
+  expect_no_warning(out <- suppressMessages(prepare_rapporti(dt)))
+  meta <- attr(out, "ccnlcob_meta")
+  expect_type(out$retribuzione, "double")
+  expect_type(out$ore, "double")
+  expect_identical(meta$n_retribuzione_non_numerica, 2L)
+  expect_identical(meta$n_ore_non_numeriche, 1L)
+  expect_true(all(is.na(out[id %in% dt$id[i_ret], retribuzione])))
+  expect_true(is.na(out[id == dt$id[i_ore], ore]))
+  altre <- !out$id %in% dt$id[c(i_ret, i_ore)]
+  expect_identical(out$retribuzione[altre], riferimento$retribuzione[altre])
+  expect_identical(out$ore[altre], riferimento$ore[altre])
+
+  # anche come character, e con la variante maiuscola della pipeline
+  dt2 <- data.table::copy(fixture)
+  dt2[, retribuzione := retribuzione_f]
+  data.table::setnames(dt2, "ore", "ORE_SETTIM_MEDIE")
+  dt2[, ORE_SETTIM_MEDIE := ore_f]
+  out2 <- suppressMessages(prepare_rapporti(dt2))
+  expect_identical(out2$retribuzione, out$retribuzione)
+  expect_identical(out2$ore, out$ore)
+  expect_identical(attr(out2, "ccnlcob_meta")$n_retribuzione_non_numerica, 2L)
+
+  # l'input non viene modificato
+  expect_s3_class(dt$retribuzione, "factor")
 })
 
 # 4b. Perimetro contrattuale -----

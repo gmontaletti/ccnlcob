@@ -6,55 +6,128 @@
 \usage{
 clean_retribuzione(
   dt,
-  min_value = 0,
-  method = c("mad", "quantile", "none"),
-  k = 5,
-  by = c("anno", "macro_tipologia")
+  min_valore = 100,
+  max_valore = 1e+06,
+  sentinelle = c(999, 9999, 99999),
+  method = c("mad", "none"),
+  k = 4,
+  mad_min = 0.15,
+  by = c("anno", "macro_tipologia", "prior"),
+  by_fallback = c("anno", "prior"),
+  min_n = 200L
 )
 }
 \arguments{
-\item{dt}{Un \code{data.table} di rapporti con le colonne \code{retribuzione},
-\code{anno} e \code{macro_tipologia} (vedi \code{\link[=prepare_rapporti]{prepare_rapporti()}}).}
+\item{dt}{Un \code{data.table} di rapporti con la colonna \code{retribuzione} e,
+per \code{method = "mad"}, le colonne di \code{by} e \code{by_fallback} (prodotte da
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}). Viene modificato per riferimento.}
 
-\item{min_value}{Valore minimo (escluso) perché una retribuzione sia
-considerata valida.}
+\item{min_valore}{Soglia assoluta bassa: i valori positivi \verb{<= min_valore}
+sono segnaposto e ricevono il flag \code{"sentinella"}.}
 
-\item{method}{Metodo per la finestra di plausibilità: \code{"mad"} (mediana
-più o meno \code{k} volte la deviazione assoluta mediana sul logaritmo),
-\code{"quantile"} (esclusione delle code oltre i quantili estremi) o
-\code{"none"} (solo \code{min_value} e \code{NA}).}
+\item{max_valore}{Soglia assoluta alta: i valori \verb{>= max_valore} ricevono
+il flag \code{"sentinella"}.}
+
+\item{sentinelle}{Vettore numerico di valori puntuali da trattare come
+sentinella anche se compresi fra \code{min_valore} e \code{max_valore}.}
+
+\item{method}{Metodo per la finestra di plausibilità: \code{"mad"} (default,
+mediana più o meno \code{k} volte la deviazione assoluta mediana di
+\code{log10(retribuzione)} per cella \code{by}) oppure \code{"none"} (solo soglie
+assolute e sentinelle).}
 
 \item{k}{Ampiezza della finestra in unità di MAD (per \code{method = "mad"}).}
 
-\item{by}{Colonne che definiscono i gruppi entro cui calcolare la
-finestra di plausibilità.}
+\item{mad_min}{Pavimento della MAD in unità log10: la MAD della cella
+viene portata a \code{max(mad, mad_min)} prima di applicare la finestra.}
+
+\item{by}{Colonne che definiscono le celle entro cui calcolare mediana e
+MAD.}
+
+\item{by_fallback}{Sottoinsieme di \code{by} che definisce la cella di
+ripiego per le celle di \code{by} con meno di \code{min_n} valori validi; \code{NULL}
+disattiva il ripiego.}
+
+\item{min_n}{Numero minimo di valori validi perché una cella usi le
+proprie statistiche.}
 }
 \value{
-\code{dt} con le colonne \code{retribuzione_valida} (logical) e
-\code{retribuzione_clean} (numeric) aggiunte per riferimento, restituito
-invisibilmente.
+\code{dt}, restituito invisibilmente, con le colonne
+\code{flag_retribuzione} e \code{retribuzione_pulita} aggiunte per riferimento.
+L'attributo \code{ccnlcob_retribuzione} è una lista con \code{params} (argomenti
+usati), \code{riepilogo} (\code{data.table} con \code{flag_retribuzione}, \code{n}, \code{quota}
+per ciascun livello) e \code{celle} (\code{data.table} con le colonne di \code{by},
+\code{n} valori validi della cella, \code{mediana_log10} e \code{mad_log10}
+effettivamente usate per la finestra, dopo ripiego e pavimento, e
+\code{fallback} logico; vuoto con \code{method = "none"}). Viene emesso un
+\code{message()} con la quota di valori validi.
 }
 \description{
-Aggiunge il flag \code{retribuzione_valida} e la colonna \code{retribuzione_clean}
-(uguale a \code{retribuzione} dove valida, \code{NA} altrove). Nessuna riga viene
-eliminata: la copertura del campo resta misurabile.
+Aggiunge per riferimento le colonne \code{flag_retribuzione} (character) e
+\code{retribuzione_pulita} (numeric, uguale a \code{retribuzione} dove il flag è
+\code{"valida"}, \code{NA} altrove). Nessuna riga viene eliminata: la copertura del
+campo resta misurabile a valle con \code{n} e \code{copertura}.
 }
 \details{
-La retribuzione dichiarata all'avviamento è un campo di qualità
-disomogenea (testuale in origine, molti valori mancanti). La finestra di
-plausibilità è calcolata sul logaritmo della retribuzione entro ciascun
-gruppo \code{by}, così da adattarsi a livelli diversi fra anni e tipologie
-senza soglie fissate a priori. I default vanno confrontati con una
-diagnostica descrittiva sui dati reali prima dell'uso in produzione.
+Il campo \code{retribuzione} è la retribuzione annua lorda dichiarata dal
+datore di lavoro all'avviamento del rapporto. È un campo a compilazione
+disomogenea (testuale in origine, zero-padded nel file della pipeline: se
+arriva come factor o character viene convertito come in
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}). Le regole e i default derivano dalla diagnostica
+condotta il 2026-09-09 su 32,2 milioni di rapporti della Lombardia
+(\code{reference/ccnlcob/diagnostica_retribuzione.md}):
+\itemize{
+\item i valori in \verb{(0, 100]} sono il 4,5-11\% dei non mancanti e sono
+segnaposto (1, 50, 100); da qui \code{min_valore = 100};
+\item i "nove ripetuti" (999, 9 999, 99 999, 999 999, ...) sono rari
+(0,03\%) ma sistematici; quelli da 999 999 in su ricadono sotto
+\code{max_valore = 1e6}, gli altri stanno in \code{sentinelle}. Nessun annuo lordo
+plausibile supera il milione di euro nei dati COB lombardi;
+\item le celle \verb{anno x macro_tipologia x prior} separano tempo pieno e
+parziale, altrimenti la MAD è dominata dai part-time; nelle celle
+omogenee la MAD grezza in log10 scende a 0,04-0,10 e con \code{k = 4}
+segnalerebbe un quarto dei tempo determinati a tempo pieno: il
+pavimento \code{mad_min = 0.15} (finestra minima x/÷ 4 attorno alla mediana)
+stabilizza la regola, che con \code{k = 4} segnala il 9,7\% dei valori validi
+(4,5\% del tempo indeterminato a tempo pieno) e sposta la mediana di meno
+di 500 euro;
+\item \code{min_n = 200} evita MAD instabili nelle macro-tipologie piccole
+ripiegando sulla cella \verb{anno x prior};
+\item la copertura del campo è inutilizzabile per il 2009-2013, fra il 51\% e
+il 61\% nel 2014-2019 e sopra il 96\% dal 2020: le serie per CCNL vanno
+lette con la copertura a fianco e sono affidabili dal 2020.
+}
+
+I flag sono assegnati in quest'ordine, il primo che si applica vince:
+\code{"mancante"} (\code{NA}), \code{"zero"} (\verb{== 0}), \code{"sentinella"} (\verb{<= min_valore},
+\verb{>= max_valore} o in \code{sentinelle}), \code{"fuori_range"} (fuori dalla finestra
+robusta), \code{"valida"}. Con \code{method = "mad"}, sui valori rimasti validi dopo
+lo stadio delle sentinelle, per ogni cella di \code{by} si calcolano mediana
+\code{m} e MAD \code{s = max(mad, mad_min)} di \code{log10(retribuzione)}
+(\code{\link[stats:mad]{stats::mad()}} con costante 1,4826) e si segnala \code{fuori_range} quando
+\code{abs(log10(x) - m) > k * s}. Le celle con meno di \code{min_n} valori validi
+usano le statistiche della cella \code{by_fallback} corrispondente; se anche
+questa è sotto \code{min_n} nessun flag di finestra viene applicato alle sue
+righe. Per le macro-tipologie a distribuzione degenere (collaborazioni,
+tirocini, altro, domestico part-time) la regola non filtra quasi nulla e la
+mediana non è interpretabile come annuo: vanno escluse o mascherate nelle
+stime.
+
+Nessuna riga viene rimossa e \code{retribuzione} non viene alterata (salvo la
+conversione da factor o character a numeric).
 }
 \examples{
-\dontrun{
 dt <- prepare_rapporti(cob_esempio)
-clean_retribuzione(dt, method = "mad", k = 5)
-dt[, .(copertura = mean(retribuzione_valida)), by = anno]
-}
+clean_retribuzione(dt, min_n = 30)
+attr(dt, "ccnlcob_retribuzione")$riepilogo
+dt[, .(copertura = mean(flag_retribuzione == "valida")), by = anno]
+
+# solo soglie assolute e sentinelle
+clean_retribuzione(dt, method = "none")
 }
 \seealso{
+\code{\link[=normalize_fte]{normalize_fte()}} per la normalizzazione a tempo pieno.
+
 Other retribuzioni: 
 \code{\link{deflate_retribuzione}()},
 \code{\link{median_retribuzione}()},

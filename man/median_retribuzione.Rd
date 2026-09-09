@@ -8,56 +8,100 @@ median_retribuzione(
   dt,
   periodo = c("anno", "trimestre"),
   by = NULL,
+  ccnl = NULL,
   weights = c("giornate", "none"),
-  fte = TRUE,
+  value_col = "retribuzione_fte",
   probs = c(0.25, 0.5, 0.75),
-  min_n = 30
+  min_n = 30L,
+  solo_avviati = TRUE
 )
 }
 \arguments{
 \item{dt}{Un \code{data.table} di rapporti già passato da
-\code{\link[=clean_retribuzione]{clean_retribuzione()}} e, se \code{fte = TRUE}, da \code{\link[=normalize_fte]{normalize_fte()}}.}
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}, \code{\link[=clean_retribuzione]{clean_retribuzione()}} e \code{\link[=normalize_fte]{normalize_fte()}}, con le
+colonne \code{ccnl_key}, \code{periodo}, \code{value_col}, \code{giornate} (se
+\code{weights = "giornate"}) e \code{avviato} (se \code{solo_avviati = TRUE}).}
 
 \item{periodo}{Periodo di avviamento: \code{"anno"} (default) o \code{"trimestre"}.}
 
 \item{by}{Colonne aggiuntive di raggruppamento; \code{NULL} per il solo CCNL.}
 
-\item{weights}{Pesi per la mediana: \code{"giornate"} (default) o \code{"none"}.}
+\item{ccnl}{\code{NULL} per tutte le chiavi, altrimenti vettore character delle
+chiavi \code{ccnl_key} da conservare in uscita (\code{NA} incluso conserva i non
+classificati); il filtro è applicato dopo il calcolo.}
 
-\item{fte}{Se \code{TRUE} (default) usa \code{retribuzione_fte}, altrimenti
-\code{retribuzione_clean}.}
+\item{weights}{Pesi dei quantili: \code{"giornate"} (default) o \code{"none"}.}
 
-\item{probs}{Quantili da riportare; il valore 0.5 è sempre incluso.}
+\item{value_col}{Colonna di retribuzione da aggregare.}
 
-\item{min_n}{Numerosità minima del gruppo sotto la quale le statistiche
-vengono mascherate con \code{NA} (la riga resta con \code{n} e \code{copertura}).}
+\item{probs}{Quantili da riportare, in \verb{[0, 1]}; il valore 0.5 viene
+sempre incluso.}
+
+\item{min_n}{Numero minimo di valori validi nella cella sotto il quale i
+quantili vengono mascherati con \code{NA} (la riga resta, con \code{n},
+\code{n_valide} e \code{copertura}).}
+
+\item{solo_avviati}{Se \code{TRUE} (default) considera solo i rapporti con
+\code{avviato == TRUE}.}
 }
 \value{
-Un \code{data.table} con una riga per (\code{by}, \code{ccnl_key}, \code{periodo}) e
-le colonne \code{n}, \code{copertura}, \code{p25}, \code{mediana}, \code{p75} (o i quantili
-richiesti), \code{var_pct}, \code{indice_100}.
+Un \code{data.table} con una riga per (\code{by}, \code{periodo}, \code{ccnl_key}),
+inclusa la classe \code{"Non classificati"} per \code{ccnl_key} mancante, con le
+colonne di \code{by}, \code{periodo}, \code{ccnl_key}, \code{classe}, \code{n}, \code{n_valide},
+\code{copertura}, \code{giornate}, una colonna per quantile (\code{p25}, \code{mediana},
+\code{p75} con i default; \verb{p<int>} per gli altri), \code{var_pct} e \code{indice};
+ordinato per \code{by}, \code{ccnl_key} (\code{NA} in coda) e periodo. L'attributo
+\code{ccnlcob_retribuzione_mediana} conserva i parametri.
 }
 \description{
-Aggrega la retribuzione (normalizzata FTE o dichiarata) per \code{ccnl_key} e
-periodo di avviamento, con quartili, numerosità, copertura e variazione sul
-periodo precedente.
+Aggrega una colonna di retribuzione (di norma \code{retribuzione_fte}) per
+\code{ccnl_key} e periodo di avviamento, con quantili ponderati per giornate,
+numerosità, copertura, variazione sul periodo precedente e indice a base
+fissa. L'input non viene modificato.
 }
 \details{
-La retribuzione è dichiarata all'avviamento, quindi la coorte di
-avviamento è la dimensione temporale corretta. La mediana e i quartili
-sono ponderati per \code{giornate} (mediana ponderata a gradini, che con pesi
-uniformi coincide con la mediana classica). \code{copertura} è la
-quota di rapporti del gruppo con retribuzione valida. \code{var_pct} è la
-variazione percentuale della mediana sul periodo precedente e \code{indice_100}
-l'indice a base fissa (primo periodo = 100).
+La retribuzione è dichiarata all'avviamento del rapporto e non viene
+aggiornata: la coorte di avviamento (\code{anno} o \code{trimestre} di \code{inizio}) è
+quindi la dimensione temporale corretta. I rapporti avviati prima della
+finestra di analisi appartengono a coorti più vecchie sopravvissute fino
+alla finestra e risentono della selezione per sopravvivenza (restano in
+vita i rapporti più stabili, in genere meglio retribuiti): con
+\code{solo_avviati = TRUE} vengono esclusi.
+
+I quantili sono calcolati con la mediana ponderata a gradini (vedi
+\code{.wquantile()}): con \code{weights = "giornate"} ogni rapporto pesa per i
+giorni-contratto nella finestra, così che un contratto di un anno conti
+più di uno di una settimana, in modo coerente con la mediana ponderata per
+durata di \code{longworkR}; con pesi uniformi il risultato coincide con
+\code{\link[stats:median]{stats::median()}}. \code{n} conta le righe della cella, \code{n_valide} quelle con
+valore non mancante, \code{copertura = n_valide / n}, \code{giornate} è la somma
+delle giornate delle righe valide. Le celle con \code{n_valide < min_n} sono
+mascherate, non eliminate.
+
+\code{var_pct} è la variazione percentuale della mediana rispetto al periodo
+precedente entro (\code{by}, \code{ccnl_key}), \code{NA} per il primo periodo o quando
+uno dei due è mascherato; \code{indice} è la mediana rapportata alla prima
+mediana non mascherata della stessa serie, per 100. Entrambe sono
+calcolate sui periodi presenti in tabella: un periodo assente non produce
+un salto vuoto.
+
+Sui dati reali la copertura del campo è affidabile solo dal 2020 (oltre il
+96\% di valori validi), utilizzabile con \code{copertura} a fianco nel
+2014-2019 e inutilizzabile prima (vedi \code{\link[=clean_retribuzione]{clean_retribuzione()}}).
 }
 \examples{
-\dontrun{
-ret <- median_retribuzione(dt, periodo = "anno", min_n = 30)
-ret[ccnl_key == "H011"]
-}
+dt <- prepare_rapporti(cob_esempio)
+clean_retribuzione(dt, min_n = 30)
+normalize_fte(dt)
+ret <- median_retribuzione(dt, periodo = "anno", min_n = 10)
+ret[ccnl_key == "A011"]
+
+# per orario, senza pesi
+median_retribuzione(dt, by = "orario", weights = "none", min_n = 10)[1:6]
 }
 \seealso{
+\code{\link[=deflate_retribuzione]{deflate_retribuzione()}} per i valori reali.
+
 Other retribuzioni: 
 \code{\link{clean_retribuzione}()},
 \code{\link{deflate_retribuzione}()},

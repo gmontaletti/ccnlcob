@@ -93,7 +93,50 @@
   x / tot
 }
 
-# 3. Periodo di avviamento -----
+# 3. Conversione numerica silenziosa -----
+
+#' Converte un vettore in numeric senza avvisi
+#'
+#' Gestisce i campi che nel file `rap.fst` arrivano come factor con livelli
+#' zero-padded (es. `"000023671"`, `"05"`): i factor sono convertiti sui
+#' livelli (`as.numeric(levels(x))[x]`), i character con `as.numeric()`. I
+#' valori che non rappresentano un numero diventano `NA` e vengono contati.
+#'
+#' @param x Vettore numeric, integer, logical, factor o character.
+#' @param nome Nome della colonna, usato nel messaggio di errore.
+#' @return Lista con `value` (numeric della stessa lunghezza di `x`),
+#'   `n_na` (integer: valori non mancanti diventati `NA`) e `convertito`
+#'   (logical: `TRUE` se `x` non era già numerico).
+#' @keywords internal
+#' @noRd
+.as_numeric_quiet <- function(x, nome = "x") {
+  if (is.numeric(x)) {
+    return(list(value = x, n_na = 0L, convertito = FALSE))
+  }
+  if (is.logical(x)) {
+    return(list(value = as.numeric(x), n_na = 0L, convertito = TRUE))
+  }
+  if (is.factor(x)) {
+    livelli <- suppressWarnings(as.numeric(levels(x)))
+    out <- livelli[x]
+  } else if (is.character(x)) {
+    out <- suppressWarnings(as.numeric(x))
+  } else {
+    stop(
+      "La colonna `",
+      nome,
+      "` deve essere numerica, factor o character.",
+      call. = FALSE
+    )
+  }
+  list(
+    value = out,
+    n_na = as.integer(sum(is.na(out) & !is.na(x))),
+    convertito = TRUE
+  )
+}
+
+# 4. Periodo di avviamento -----
 
 #' Periodo di avviamento da una data
 #'

@@ -49,6 +49,7 @@
 #' @importFrom data.table data.table setDT := .SD .N fifelse fcase uniqueN
 #'   setnames setkey copy rbindlist
 #' @importFrom fst read_fst write_fst
+#' @importFrom stats mad median quantile
 #' @importFrom utils globalVariables
 "_PACKAGE"
 
@@ -114,9 +115,10 @@ utils::globalVariables(c(
   "copertura",
   # retribuzioni
   "retribuzione",
-  "retribuzione_valida",
-  "retribuzione_clean",
+  "retribuzione_pulita",
+  "flag_retribuzione",
   "retribuzione_fte",
+  "flag_fte",
   "retribuzione_reale",
   "ore",
   "ore_riferimento",
@@ -125,7 +127,9 @@ utils::globalVariables(c(
   "p25",
   "p75",
   "var_pct",
+  "var_pct_reale",
   "indice",
+  "indice_reale",
   # dimensioni aggiuntive
   "qualifica",
   "ateco_gruppo",

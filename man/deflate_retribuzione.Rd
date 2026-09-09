@@ -2,47 +2,70 @@
 % Please edit documentation in R/retribuzioni.R
 \name{deflate_retribuzione}
 \alias{deflate_retribuzione}
-\title{Deflaziona una colonna di retribuzione con un indice esterno}
+\title{Deflaziona le colonne di retribuzione con un indice esterno}
 \usage{
 deflate_retribuzione(
   dt,
   indice,
-  base,
-  value_col = "retribuzione_fte",
+  base = NULL,
+  value_cols = c("p25", "mediana", "p75"),
   periodo_col = "anno"
 )
 }
 \arguments{
-\item{dt}{Un \code{data.table} con la colonna \code{value_col} e la colonna di
-periodo \code{periodo_col}.}
+\item{dt}{Un \code{data.table} di risultati, di norma prodotto da
+\code{\link[=median_retribuzione]{median_retribuzione()}}, con la colonna \code{periodo_col} e le colonne
+\code{value_cols}.}
 
-\item{indice}{\code{data.table} con le colonne \code{periodo} e \code{indice}.}
+\item{indice}{\code{data.table} con una colonna di periodo (chiamata come
+\code{periodo_col} oppure \code{periodo}) e la colonna numerica \code{indice} (> 0),
+senza periodi duplicati. Tutti i periodi di \code{dt} devono essere presenti.}
 
-\item{base}{Valore di \code{periodo} usato come base (identità nel periodo
-base).}
+\item{base}{Periodo base, presente in \code{indice}; \code{NULL} (default) usa
+l'ultimo periodo presente in \code{dt}, così che i valori reali siano
+espressi ai prezzi del periodo più recente.}
 
-\item{value_col}{Nome della colonna da deflazionare.}
+\item{value_cols}{Colonne da deflazionare.}
 
 \item{periodo_col}{Nome della colonna di periodo in \code{dt}.}
 }
 \value{
-\code{dt} con la colonna \code{paste0(value_col, "_reale")} aggiunta per
-riferimento, restituito invisibilmente. I periodi assenti in \code{indice}
-producono \code{NA}.
+Un nuovo \code{data.table} con le colonne di \code{dt}, le colonne
+\verb{<col>_reale} e, se pertinenti, \code{var_pct_reale} e \code{indice_reale};
+l'attributo \code{ccnlcob_deflazione} riporta \code{base}, \code{periodo_col} e
+\code{value_cols}. L'input non viene modificato.
 }
 \description{
-Aggiunge la colonna \verb{*_reale} calcolata come
-\code{valore * indice[base] / indice[periodo]}. Il pacchetto non scarica indici:
-\code{indice} è fornito dall'utente (per esempio l'IPCA via \code{istatlab}).
+Aggiunge, in una copia di \code{dt}, una colonna \verb{<col>_reale} per ciascuna
+colonna di \code{value_cols}, calcolata come
+\code{valore * indice[base] / indice[periodo]}. Il pacchetto non scarica
+indici: \code{indice} è fornito dall'utente (per esempio l'IPCA via
+\code{istatlab}).
+}
+\details{
+Nel periodo base \code{valore_reale == valore}. Se fra le colonne prodotte
+esiste \code{mediana_reale}, vengono aggiunte anche \code{var_pct_reale} e
+\code{indice_reale}, ricalcolate come in \code{\link[=median_retribuzione]{median_retribuzione()}} entro le
+serie (\code{by}, \code{ccnl_key}) lette dall'attributo
+\code{ccnlcob_retribuzione_mediana} o, in sua assenza, dalle colonne che
+precedono \code{ccnl_key} (tutta la tabella come una sola serie se \code{ccnl_key}
+manca). Nessuna colonna esistente viene sovrascritta.
 }
 \examples{
-\dontrun{
-ipca <- data.table::data.table(periodo = 2019:2024,
-                               indice = c(100, 99.8, 101.7, 110.5, 116.9, 118.2))
-deflate_retribuzione(ret, indice = ipca, base = 2024, value_col = "mediana")
-}
+dt <- prepare_rapporti(cob_esempio)
+clean_retribuzione(dt, min_n = 30)
+normalize_fte(dt)
+ret <- median_retribuzione(dt, periodo = "anno", min_n = 10)
+ipca <- data.table::data.table(
+  anno = 2019:2024,
+  indice = c(100, 99.8, 101.7, 110.5, 116.9, 118.2)
+)
+reale <- deflate_retribuzione(ret, indice = ipca, base = 2024)
+reale[ccnl_key == "A011", .(anno, mediana, mediana_reale, indice_reale)]
 }
 \seealso{
+\code{\link[=median_retribuzione]{median_retribuzione()}} per la tabella di partenza.
+
 Other retribuzioni: 
 \code{\link{clean_retribuzione}()},
 \code{\link{median_retribuzione}()},

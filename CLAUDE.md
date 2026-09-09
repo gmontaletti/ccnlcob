@@ -72,10 +72,11 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.3.0: Fasi 1, 2 e 2 bis completate (`validate_rapporti()`,
-`prepare_rapporti()`, `compute_giornate()`, `classify_tipologia()`, `rank_ccnl()`,
-`select_ccnl_rilevanti()`, `add_cpi()`, `ccnl_by_cpi()`, `ccnl_by_tipologia()`,
-`filter_perimetro()`); le altre funzioni esportate sono stub.
+Versione 0.4.0: Fasi 1, 2, 2 bis e 3 completate; restano stub
+`compute_giornate_effettive()`, `analyze_ccnl()`, `write_results()`,
+`read_rapporti()`. I default delle funzioni sulle retribuzioni derivano dalla
+diagnostica su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`):
+non cambiarli senza nuova evidenza.
 `prepare_rapporti()` esclude per default gli avviamenti fuori dal perimetro CCNL
 (`perimetro = "ccnl"`, flag `perimetro_ccnl` in `tipologie_contrattuali`). Le misure per gruppo sono calcolate
 da `.aggregate_misure()` (`R/crosstab.R`), usato sia da `rank_ccnl()` sia dalle

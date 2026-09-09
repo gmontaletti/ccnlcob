@@ -2,45 +2,107 @@
 % Please edit documentation in R/retribuzioni.R
 \name{normalize_fte}
 \alias{normalize_fte}
-\title{Normalizza la retribuzione alle ore di riferimento del CCNL}
+\title{Normalizza la retribuzione alle ore di riferimento}
 \usage{
-normalize_fte(dt, ore_riferimento = NULL, fallback_ore = 40)
+normalize_fte(
+  dt,
+  ore_riferimento = 40,
+  ore_riferimento_tabella = NULL,
+  ore_min = 1,
+  value_col = "retribuzione_pulita"
+)
 }
 \arguments{
-\item{dt}{Un \code{data.table} di rapporti con le colonne \code{retribuzione_clean}
-(da \code{\link[=clean_retribuzione]{clean_retribuzione()}}), \code{ore}, \code{prior} e \code{ccnl_key}.}
+\item{dt}{Un \code{data.table} di rapporti con le colonne \code{prior}, \code{ore} e
+\code{value_col} (di norma \code{retribuzione_pulita} da \code{\link[=clean_retribuzione]{clean_retribuzione()}}).
+Viene modificato per riferimento.}
 
-\item{ore_riferimento}{\code{data.table} opzionale con \code{ccnl_key} e
-\code{ore_riferimento}; se \code{NULL} le ore di riferimento vengono stimate dai
-dati.}
+\item{ore_riferimento}{Ore settimanali di riferimento a tempo pieno usate
+per tutte le righe non coperte da \code{ore_riferimento_tabella}.}
 
-\item{fallback_ore}{Ore di riferimento usate quando la stima dai dati non
-è disponibile per un CCNL.}
+\item{ore_riferimento_tabella}{\code{data.table} opzionale con una colonna
+chiave (\code{ccnl_key} oppure \code{macro_tipologia}, rilevata automaticamente)
+e la colonna \code{ore_riferimento}; le righe di \code{dt} non abbinate usano il
+valore scalare.}
+
+\item{ore_min}{Ore minime perché un part-time venga riproporzionato; sotto
+questa soglia (o con \code{ore} mancante o pari a 0) il flag è
+\code{"ore_mancanti"}.}
+
+\item{value_col}{Colonna da normalizzare; \code{"retribuzione"} è ammessa in
+modo esplicito per saltare la pulizia.}
 }
 \value{
-\code{dt} con le colonne \code{ore_riferimento} e \code{retribuzione_fte}
-aggiunte per riferimento, restituito invisibilmente.
+\code{dt}, restituito invisibilmente, con le colonne \code{ore_riferimento}
+(numeric), \code{retribuzione_fte} (numeric) e \code{flag_fte} (character)
+aggiunte per riferimento. L'attributo \code{ccnlcob_fte} è una lista con
+\code{params} (\code{ore_riferimento}, \code{ore_min}, \code{value_col}, \code{tabella_key}) e
+\code{riepilogo} (\code{data.table} con \code{flag_fte}, \code{n}, \code{quota}).
 }
 \description{
-Aggiunge \code{retribuzione_fte}, la retribuzione riportata all'orario di
-riferimento del CCNL, e la colonna \code{ore_riferimento} usata per il calcolo.
+Aggiunge per riferimento \code{ore_riferimento} (ore settimanali di riferimento
+della riga), \code{retribuzione_fte} (retribuzione riportata alle ore di
+riferimento) e \code{flag_fte} (esito della normalizzazione).
 }
 \details{
-\code{retribuzione_fte = retribuzione_clean * ore_riferimento / ore}, dove
-\code{ore_riferimento} è la mediana di \code{ore} fra i rapporti a tempo pieno
-(\code{prior == 1}) dello stesso CCNL: un parametro derivato dai dati, non
-fissato a priori. Il valore di \code{fallback_ore} è usato solo per i CCNL
-senza rapporti a tempo pieno con \code{ore} valide. Se \code{ore} manca,
-\code{retribuzione_fte} è uguale a \code{retribuzione_clean} per i tempi pieni e
-\code{NA} per i tempi parziali.
+La diagnostica del 2026-09-09
+(\code{reference/ccnlcob/diagnostica_retribuzione.md}, §5-6) mostra che:
+\itemize{
+\item la retribuzione dichiarata per il tempo parziale è già proporzionata alle
+ore (il rapporto mediano part-time/full-time segue \code{ore/40} in tutte le
+fasce orarie), quindi la normalizzazione moltiplica per
+\code{ore_riferimento / ore};
+\item \code{ore} è compilato quasi solo per il tempo parziale (mancante nel 95\%
+dei tempo pieno e nel 30\% dei part-time); fra i tempo pieno con \code{ore}
+compilato la moda e la mediana sono 40 in tutte le macro-tipologie salvo
+il lavoro domestico (54): \code{ore_riferimento = 40} è il default
+empiricamente giustificato e la tabella consente l'eccezione
+(\code{macro_tipologia = "Domestico"}, \code{ore_riferimento = 54}) o le ore
+contrattuali note per \code{ccnl_key} (36-39 ore);
+\item \code{ore == 0} è incompatibile con un rapporto attivo e viene trattato come
+mancante; per i part-time senza ore utilizzabili (32\% delle righe) non
+esiste un valore di default difendibile (mediana 20, ma p10 = 5 e
+p90 = 30): \code{retribuzione_fte} resta \code{NA};
+\item \code{ore_min = 1} non esclude nulla: l'amplificazione dell'errore per ore
+molto basse è reale ma marginale in numerosità; l'argomento è esposto per
+chi vuole escluderle.
+}
+
+\code{flag_fte} e \code{retribuzione_fte} sono assegnati così, nell'ordine:
+\itemize{
+\item \code{"non_valida"}: \code{value_col} mancante, \code{retribuzione_fte = NA};
+\item \code{"full_time"}: \code{prior == 1}, valore invariato;
+\item \code{"ore_mancanti"}: \code{prior == 0} e \code{ore} mancante, 0 o \verb{< ore_min},
+\code{retribuzione_fte = NA};
+\item \code{"ore_oltre_riferimento"}: \code{prior == 0} e \code{ore >= ore_riferimento},
+valore invariato;
+\item \code{"riproporzionata"}: \code{prior == 0} e \verb{ore_min <= ore < ore_riferimento},
+\code{retribuzione_fte = valore * ore_riferimento / ore};
+\item \code{"orario_ignoto"}: \code{prior} diverso da 0 e 1, \code{retribuzione_fte = NA}.
+}
+
+Se \code{ore} arriva come factor o character viene convertita come in
+\code{\link[=prepare_rapporti]{prepare_rapporti()}}; i valori della colonna non vengono altrimenti
+alterati. Applicare \code{\link[=clean_retribuzione]{clean_retribuzione()}} prima di questa funzione: la
+regola MAD è tarata sui valori grezzi per \code{prior}.
 }
 \examples{
-\dontrun{
+dt <- prepare_rapporti(cob_esempio)
+clean_retribuzione(dt, min_n = 30)
 normalize_fte(dt)
-dt[prior == 1 & ore == ore_riferimento, all.equal(retribuzione_fte, retribuzione_clean)]
-}
+attr(dt, "ccnlcob_fte")$riepilogo
+
+# ore di riferimento per macro-tipologia
+tabella <- data.table::data.table(
+  macro_tipologia = "Domestico",
+  ore_riferimento = 54
+)
+normalize_fte(dt, ore_riferimento_tabella = tabella)
+dt[, .N, by = .(macro_tipologia, ore_riferimento)]
 }
 \seealso{
+\code{\link[=clean_retribuzione]{clean_retribuzione()}} per la pulizia preliminare.
+
 Other retribuzioni: 
 \code{\link{clean_retribuzione}()},
 \code{\link{deflate_retribuzione}()},

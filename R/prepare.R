@@ -46,6 +46,17 @@
 #' warehouse) viene rinominata `ccnl_warehouse` se quest'ultima è assente.
 #' Il contratto dati viene verificato dopo la rinomina.
 #'
+#' ## Conversione di `retribuzione` e `ore`
+#' Nel file `rap.fst` della pipeline COB `retribuzione` e `ore` sono factor
+#' con livelli zero-padded (es. `"000023671"`, `"05"`). Se presenti come
+#' factor o character, le due colonne vengono convertite in numeric sui
+#' livelli (`as.numeric(levels(f))[f]`) senza avvisi; i valori che non
+#' rappresentano un numero diventano `NA` e sono conteggiati nei metadati
+#' `n_retribuzione_non_numerica` e `n_ore_non_numeriche` (0 quando le
+#' colonne sono già numeriche o assenti). I valori numerici non vengono
+#' alterati: la pulizia della retribuzione è compito di
+#' [clean_retribuzione()], quella delle ore di [normalize_fte()].
+#'
 #' ## Perimetro contrattuale
 #' Subito dopo la verifica del contratto dati la funzione richiama
 #' [filter_perimetro()] con il `perimetro` scelto:
@@ -115,8 +126,8 @@
 #' `window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
 #' (righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
 #' `n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
-#' `n_fine_lt_inizio` e `esclusi_perimetro` (la tabella `esclusi` di
-#' [filter_perimetro()]).
+#' `n_fine_lt_inizio`, `n_retribuzione_non_numerica`, `n_ore_non_numeriche`
+#' e `esclusi_perimetro` (la tabella `esclusi` di [filter_perimetro()]).
 #'
 #' @return Un nuovo `data.table` con le colonne di `dt` (rinominate come
 #'   descritto) e le colonne derivate elencate nei Dettagli, limitato ai
@@ -162,6 +173,7 @@ prepare_rapporti <- function(
   out <- data.table::copy(dt)
   .normalize_names(out)
   .assert_rapporti(out, require = "base", caller = "prepare_rapporti")
+  conversioni <- .coerce_numeric_cols(out, c("retribuzione", "ore"))
 
   # 1.2 Perimetro contrattuale -----
   # as_of di default è calcolata su tutti i rapporti, prima del filtro.
@@ -225,6 +237,8 @@ prepare_rapporti <- function(
     n_sentinel_fine = conteggi$n_sentinel_fine,
     n_sentinel_inizio = conteggi$n_sentinel_inizio,
     n_fine_lt_inizio = conteggi$n_fine_lt_inizio,
+    n_retribuzione_non_numerica = conversioni[["retribuzione"]],
+    n_ore_non_numeriche = conversioni[["ore"]],
     esclusi_perimetro = info_perimetro$esclusi
   )
   data.table::setattr(out, "ccnlcob_meta", meta)
@@ -511,6 +525,30 @@ prepare_rapporti <- function(
     n_sentinel_inizio = as.integer(sum(sent_inizio)),
     n_fine_lt_inizio = as.integer(sum(invertiti))
   )
+}
+
+#' Converte in numeric le colonne indicate, se presenti, per riferimento
+#'
+#' @param dt Un `data.table`, modificato per riferimento.
+#' @param cols Vettore character di colonne da convertire con
+#'   `.as_numeric_quiet()`; le colonne assenti vengono ignorate.
+#' @return Vettore integer con nome per ciascuna colonna di `cols`: numero
+#'   di valori non mancanti diventati `NA` (0 se già numerica o assente).
+#' @keywords internal
+#' @noRd
+.coerce_numeric_cols <- function(dt, cols) {
+  out <- stats::setNames(integer(length(cols)), cols)
+  for (col in cols) {
+    if (!col %in% names(dt)) {
+      next
+    }
+    conv <- .as_numeric_quiet(dt[[col]], nome = col)
+    if (conv$convertito) {
+      data.table::set(dt, j = col, value = conv$value)
+    }
+    out[[col]] <- conv$n_na
+  }
+  out
 }
 
 #' Aggiunge le colonne di periodo (anno, trimestre) dalla data di avviamento
