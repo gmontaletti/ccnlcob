@@ -1,5 +1,32 @@
 # Changelog
 
+## ccnlcob 0.3.0
+
+### Nuove funzionalità
+
+- Perimetro contrattuale: il lookup `tipologie_contrattuali` porta il
+  flag `perimetro_ccnl`, vero per i rapporti di lavoro subordinato cui
+  si applica un CCNL e falso per collaborazioni e lavoro occasionale,
+  tirocini e work experience, associazione in partecipazione, contratto
+  di agenzia, lavoro autonomo nello spettacolo e lavoro congiunto in
+  agricoltura.
+- [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+  applica uno dei perimetri `"ccnl"`, `"standard"` (quello di `cnelR`,
+  flag `esclusa_standard`) o `"completo"` e riporta nei metadati le
+  righe escluse per tipologia.
+
+### Modifiche al comportamento
+
+- [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+  ha il nuovo argomento `perimetro`, con default `"ccnl"`: gli
+  avviamenti fuori perimetro vengono esclusi prima delle sentinelle e
+  della finestra, e contati in `ccnlcob_meta` (`n_dropped_perimetro`,
+  `esclusi_perimetro`). Il comportamento precedente si ottiene con
+  `perimetro = "completo"`. L’output porta sempre la colonna
+  `perimetro_ccnl`.
+
+------------------------------------------------------------------------
+
 ## ccnlcob 0.2.0
 
 ### Nuove funzionalità

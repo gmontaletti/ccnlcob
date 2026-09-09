@@ -10,17 +10,21 @@ giornate di lavoro), come si distribuiscono per CPI (Centro per
 l’Impiego), come si distribuiscono per tipologia contrattuale e come
 evolve la retribuzione mediana dichiarata all’avviamento.
 
-Nella versione 0.2.0 sono operative le prime due fasi del flusso:
+Nella versione 0.3.0 sono operative le prime due fasi del flusso:
 validazione del contratto dati, preparazione dei rapporti, calcolo delle
 giornate di contratto, ranking e selezione dei CCNL rilevanti (Fase 1),
 distribuzione territoriale per CPI e distribuzione per tipologia
-contrattuale (Fase 2). I blocchi di codice di queste sezioni vengono
-eseguiti sul dataset sintetico `cob_esempio` incluso nel pacchetto, con
-il lookup comune -\> CPI `cpi_esempio`. Le funzioni delle fasi
-successive (retribuzioni, giornate effettive, orchestrazione, lettura
-dei dati) sono documentate con la firma definitiva ma restituiscono un
-errore esplicito; i relativi blocchi sono raccolti nella sezione finale
-e non vengono eseguiti.
+contrattuale (Fase 2), oltre al perimetro contrattuale applicato in
+ingresso da
+[`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+tramite
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
+I blocchi di codice di queste sezioni vengono eseguiti sul dataset
+sintetico `cob_esempio` incluso nel pacchetto, con il lookup comune -\>
+CPI `cpi_esempio`. Le funzioni delle fasi successive (retribuzioni,
+giornate effettive, orchestrazione, lettura dei dati) sono documentate
+con la firma definitiva ma restituiscono un errore esplicito; i relativi
+blocchi sono raccolti nella sezione finale e non vengono eseguiti.
 
 ``` r
 
@@ -74,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x55a9f841ff20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x5602b9d02f20>
 ```
 
 ## 2. Preparazione
@@ -84,6 +88,11 @@ lavora su una copia e restituisce un nuovo `data.table`. In sequenza:
 
 - rinomina le varianti maiuscole prodotte dalla pipeline COB e la
   colonna sorgente `ccnl` (codice warehouse) in `ccnl_warehouse`;
+- applica il perimetro contrattuale (argomento `perimetro`, default
+  `"ccnl"`) tramite
+  [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md),
+  escludendo le tipologie alle quali non si applica un CCNL (vedi il
+  paragrafo seguente);
 - sceglie la chiave di analisi `ccnl_key`: per default `codice_cnel` se
   presente, altrimenti `ccnl_warehouse`;
 - risolve le sentinelle sulle date. Una `fine` mancante, non successiva
@@ -104,6 +113,29 @@ avviamento non sentinella ad `as_of`. Nell’esempio entrambi i parametri
 sono espliciti: la finestra copre il triennio 2022-2024 e lo stato dei
 rapporti è valutato al 31 dicembre 2024.
 
+### Perimetro contrattuale
+
+Non tutti gli avviamenti registrati nelle Comunicazioni Obbligatorie
+sono rapporti di lavoro subordinato ai quali si applica un contratto
+collettivo. Restano fuori le collaborazioni e il lavoro occasionale
+(codici MLPS `B.`), i tirocini, i lavori socialmente utili e le work
+experience (`C.`), il lavoro autonomo nello spettacolo (`G.03.00`), il
+lavoro congiunto in agricoltura (`H.02.00`), l’associazione in
+partecipazione (`L.`) e il contratto di agenzia (`M.`). Includere questi
+rapporti nelle classifiche dei CCNL altera le misure di rilevanza: le
+giornate e le persone attribuite a un CCNL comprenderebbero rapporti che
+quel contratto non regola. Per questo
+[`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+applica per default il perimetro `"ccnl"`, definito dal flag
+`perimetro_ccnl` del lookup `tipologie_contrattuali`, prima di ogni
+altro trattamento. I codici assenti dal lookup sono trattati come fuori
+perimetro e conteggiati a parte.
+
+L’esclusione non è mai silenziosa:
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+emette un messaggio riassuntivo, riportato di seguito una sola volta, e
+i conteggi restano nei metadati.
+
 ``` r
 
 dt <- prepare_rapporti(
@@ -112,16 +144,86 @@ dt <- prepare_rapporti(
   window = as.Date(c("2022-01-01", "2024-12-31")),
   ccnl_key = "codice_cnel"
 )
+#> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
 ```
 
-L’attributo `ccnlcob_meta` conserva i parametri usati e i conteggi delle
-correzioni: rapporti in ingresso, rapporti esclusi perché esterni alla
-finestra, sentinelle su `fine` e su `inizio`, intervalli con
-`fine < inizio`.
+I metadati riportano il perimetro applicato, il numero di rapporti
+esclusi e la tabella `esclusi_perimetro` con le righe escluse per
+tipologia.
 
 ``` r
 
-attr(dt, "ccnlcob_meta")
+meta <- attr(dt, "ccnlcob_meta")
+meta[c("perimetro", "n_input", "n_dropped_perimetro", "n_tipologia_ignota")]
+#> $perimetro
+#> [1] "ccnl"
+#> 
+#> $n_input
+#> [1] 5000
+#> 
+#> $n_dropped_perimetro
+#> [1] 254
+#> 
+#> $n_tipologia_ignota
+#> [1] 0
+knitr::kable(meta$esclusi_perimetro)
+```
+
+| cod_tipologia_contrattuale | des_tipologia_contrattuale | macro_tipologia | n |
+|:---|:---|:---|---:|
+| C.01.00 | TIROCINIO | Tirocinio | 110 |
+| B.03.00 | COLLABORAZIONE COORDINATA E CONTINUATIVA | Collaborazioni | 90 |
+| B.04.00 | COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021 | Collaborazioni | 35 |
+| C.03.00 | LAVORO O ATTIVITÀ SOCIALMENTE UTILE (LSU - ASU) | Altro | 19 |
+
+Nel dataset di esempio il perimetro esclude 254 rapporti su 5000 in 4
+tipologie, con 0 codici ignoti. Sono disponibili tre perimetri:
+
+- `"ccnl"` (default): conserva le tipologie con
+  `perimetro_ccnl == TRUE`; i codici ignoti vengono esclusi;
+- `"standard"`: riproduce il perimetro di `cnelR`, che esclude solo le
+  tipologie con `esclusa_standard == TRUE` nel lookup; i codici ignoti
+  vengono conservati;
+- `"completo"`: non esclude nulla e riproduce il comportamento delle
+  versioni fino alla 0.2.0. La colonna logica `perimetro_ccnl` resta
+  disponibile per distinguere i rapporti.
+
+Il filtro può essere applicato anche al dato grezzo con
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md),
+che restituisce un nuovo `data.table` con la colonna `perimetro_ccnl` e
+l’attributo `ccnlcob_perimetro`; l’input non viene modificato.
+
+``` r
+
+std <- filter_perimetro(cob_esempio, perimetro = "standard")
+attr(std, "ccnlcob_perimetro")[c("perimetro", "n_input", "n_kept", "n_dropped")]
+#> $perimetro
+#> [1] "standard"
+#> 
+#> $n_input
+#> [1] 5000
+#> 
+#> $n_kept
+#> [1] 4765
+#> 
+#> $n_dropped
+#> [1] 235
+tutto <- filter_perimetro(cob_esempio, perimetro = "completo")
+tutto[, .N, by = perimetro_ccnl]
+#>    perimetro_ccnl     N
+#>            <lgcl> <int>
+#> 1:           TRUE  4746
+#> 2:          FALSE   254
+```
+
+L’attributo `ccnlcob_meta` conserva i parametri usati e i conteggi delle
+correzioni: rapporti in ingresso, rapporti esclusi dal perimetro,
+rapporti esclusi perché esterni alla finestra, sentinelle su `fine` e su
+`inizio`, intervalli con `fine < inizio`.
+
+``` r
+
+meta[setdiff(names(meta), "esclusi_perimetro")]
 #> $as_of
 #> [1] "2024-12-31"
 #> 
@@ -131,14 +233,23 @@ attr(dt, "ccnlcob_meta")
 #> $ccnl_key
 #> [1] "codice_cnel"
 #> 
+#> $perimetro
+#> [1] "ccnl"
+#> 
 #> $n_input
 #> [1] 5000
 #> 
+#> $n_dropped_perimetro
+#> [1] 254
+#> 
+#> $n_tipologia_ignota
+#> [1] 0
+#> 
 #> $n_dropped_window
-#> [1] 1935
+#> [1] 1819
 #> 
 #> $n_sentinel_fine
-#> [1] 155
+#> [1] 149
 #> 
 #> $n_sentinel_inizio
 #> [1] 0
@@ -149,6 +260,8 @@ attr(dt, "ccnlcob_meta")
 
 Le colonne aggiunte hanno il seguente significato:
 
+- `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo il
+  lookup; con il perimetro di default vale sempre `TRUE`;
 - `giornate` (integer): giorni di contratto compresi nella finestra,
   estremi inclusi. Un rapporto iniziato prima di `window[1]` o terminato
   dopo `window[2]` conta solo la parte interna alla finestra; poiché i
@@ -189,8 +302,8 @@ knitr::kable(
 dt[, .(rapporti = .N, giornate = sum(giornate)), by = avviato]
 #>    avviato rapporti giornate
 #>     <lgcl>    <int>    <int>
-#> 1:    TRUE     2550   452820
-#> 2:   FALSE      515   197646
+#> 1:    TRUE     2436   434922
+#> 2:   FALSE      491   188754
 ```
 
 La macro-tipologia deriva dal lookup `tipologie_contrattuali`, incluso
@@ -217,13 +330,8 @@ dt[, .N, by = .(macro_tipologia, orario)][order(-N)]
 #>  8:    Somministrazione     PT   111
 #>  9:       Intermittente     FT    93
 #> 10:       Apprendistato     PT    63
-#> 11:           Tirocinio     FT    50
-#> 12:      Collaborazioni     FT    44
-#> 13:           Domestico     PT    31
-#> 14:           Domestico     FT    26
-#> 15:      Collaborazioni     PT    20
-#> 16:           Tirocinio     PT    17
-#> 17:               Altro     FT     7
+#> 11:           Domestico     PT    31
+#> 12:           Domestico     FT    26
 ```
 
 ## 3. Giornate di contratto
@@ -256,8 +364,8 @@ compute_giornate(dt24, window = as.Date(c("2024-01-01", "2024-12-31")))
 dt24[, .(rapporti = .N, giornate = sum(giornate)), by = .(nel_2024 = giornate > 0)]
 #>    nel_2024 rapporti giornate
 #>      <lgcl>    <int>    <int>
-#> 1:     TRUE     1458   231464
-#> 2:    FALSE     1607        0
+#> 1:     TRUE     1393   221212
+#> 2:    FALSE     1534        0
 ```
 
 ## 4. Ranking dei CCNL
@@ -298,16 +406,16 @@ knitr::kable(
 
 | ccnl_key | n_lavoratori | quota_n_lavoratori | rank_n_lavoratori | giornate | quota_giornate | rank_giornate | quota_cum_giornate |
 |:---|---:|---:|---:|---:|---:|---:|---:|
-| A011 | 226 | 0.124 | 1 | 125537 | 0.193 | 1 | 0.193 |
-| H011 | 174 | 0.095 | 2 | 65546 | 0.101 | 2 | 0.294 |
-| T011 | 141 | 0.077 | 3 | 50943 | 0.078 | 3 | 0.372 |
-| C011 | 112 | 0.061 | 4 | 33494 | 0.051 | 4 | 0.424 |
-| IC91 | 90 | 0.049 | 5 | 30765 | 0.047 | 5 | 0.471 |
-| A012 | 80 | 0.044 | 6 | 24034 | 0.037 | 6 | 0.508 |
-| B011 | 66 | 0.036 | 7 | 20667 | 0.032 | 7 | 0.540 |
-| F011 | 61 | 0.033 | 8 | 17180 | 0.026 | 10 | 0.622 |
-| D011 | 60 | 0.033 | 9 | 17999 | 0.028 | 9 | 0.595 |
-| E011 | 58 | 0.032 | 10 | 18284 | 0.028 | 8 | 0.568 |
+| A011 | 218 | 0.124 | 1 | 118854 | 0.191 | 1 | 0.191 |
+| H011 | 167 | 0.095 | 2 | 62233 | 0.100 | 2 | 0.290 |
+| T011 | 136 | 0.077 | 3 | 49468 | 0.079 | 3 | 0.370 |
+| C011 | 110 | 0.062 | 4 | 31713 | 0.051 | 4 | 0.421 |
+| IC91 | 86 | 0.049 | 5 | 29904 | 0.048 | 5 | 0.468 |
+| A012 | 78 | 0.044 | 6 | 23667 | 0.038 | 6 | 0.506 |
+| B011 | 62 | 0.035 | 7 | 18770 | 0.030 | 7 | 0.537 |
+| F011 | 61 | 0.035 | 8 | 17180 | 0.028 | 10 | 0.621 |
+| D011 | 57 | 0.032 | 9 | 17326 | 0.028 | 9 | 0.593 |
+| E011 | 57 | 0.032 | 9 | 18163 | 0.029 | 8 | 0.566 |
 
 La riga dei non classificati chiude la tabella; la sua quota misura la
 parte del fenomeno che il raccordo dei codici CCNL non copre.
@@ -322,8 +430,8 @@ knitr::kable(
 
 | classe           | giornate | quota |
 |:-----------------|---------:|------:|
-| CCNL             |   545848 | 0.839 |
-| Non classificati |   104618 | 0.161 |
+| CCNL             |   522744 | 0.838 |
+| Non classificati |   100932 | 0.162 |
 
 Con l’argomento `periodo` il ranking è calcolato entro ciascuna coorte
 di avviamento (`anno` o `trimestre`): quote, rank e quote cumulate sono
@@ -338,24 +446,24 @@ knitr::kable(per_anno[rank_giornate <= 3L], digits = 3)
 
 | anno | ccnl_key | classe | giornate | quota_giornate | rank_giornate | quota_cum_giornate |
 |-----:|:---------|:-------|---------:|---------------:|--------------:|-------------------:|
-| 2019 | T011     | CCNL   |     5376 |          0.127 |             1 |              0.127 |
-| 2019 | A011     | CCNL   |     3526 |          0.083 |             2 |              0.210 |
-| 2019 | B011     | CCNL   |     3288 |          0.077 |             3 |              0.287 |
-| 2020 | A011     | CCNL   |    10477 |          0.214 |             1 |              0.214 |
-| 2020 | H011     | CCNL   |     8329 |          0.170 |             2 |              0.383 |
-| 2020 | T011     | CCNL   |     3710 |          0.076 |             3 |              0.459 |
-| 2021 | A011     | CCNL   |    23528 |          0.222 |             1 |              0.222 |
-| 2021 | H011     | CCNL   |     8549 |          0.081 |             2 |              0.302 |
-| 2021 | C011     | CCNL   |     7105 |          0.067 |             3 |              0.369 |
-| 2022 | A011     | CCNL   |    40045 |          0.199 |             1 |              0.199 |
-| 2022 | H011     | CCNL   |    18487 |          0.092 |             2 |              0.291 |
-| 2022 | T011     | CCNL   |    16842 |          0.084 |             3 |              0.375 |
-| 2023 | A011     | CCNL   |    29584 |          0.187 |             1 |              0.187 |
-| 2023 | H011     | CCNL   |    17496 |          0.111 |             2 |              0.298 |
-| 2023 | T011     | CCNL   |    12155 |          0.077 |             3 |              0.375 |
-| 2024 | A011     | CCNL   |    18377 |          0.196 |             1 |              0.196 |
-| 2024 | H011     | CCNL   |    10425 |          0.111 |             2 |              0.307 |
-| 2024 | T011     | CCNL   |     8626 |          0.092 |             3 |              0.399 |
+| 2019 | T011     | CCNL   |     5376 |          0.134 |             1 |              0.134 |
+| 2019 | A011     | CCNL   |     3526 |          0.088 |             2 |              0.221 |
+| 2019 | B011     | CCNL   |     3288 |          0.082 |             3 |              0.303 |
+| 2020 | A011     | CCNL   |     9381 |          0.207 |             1 |              0.207 |
+| 2020 | H011     | CCNL   |     7067 |          0.156 |             2 |              0.363 |
+| 2020 | T011     | CCNL   |     3710 |          0.082 |             3 |              0.445 |
+| 2021 | A011     | CCNL   |    23180 |          0.225 |             1 |              0.225 |
+| 2021 | H011     | CCNL   |     8520 |          0.083 |             2 |              0.307 |
+| 2021 | C011     | CCNL   |     7000 |          0.068 |             3 |              0.375 |
+| 2022 | A011     | CCNL   |    37331 |          0.194 |             1 |              0.194 |
+| 2022 | H011     | CCNL   |    17774 |          0.092 |             2 |              0.286 |
+| 2022 | T011     | CCNL   |    16098 |          0.084 |             3 |              0.370 |
+| 2023 | A011     | CCNL   |    28729 |          0.185 |             1 |              0.185 |
+| 2023 | H011     | CCNL   |    17288 |          0.112 |             2 |              0.297 |
+| 2023 | T011     | CCNL   |    11990 |          0.077 |             3 |              0.374 |
+| 2024 | A011     | CCNL   |    16707 |          0.191 |             1 |              0.191 |
+| 2024 | H011     | CCNL   |     9324 |          0.107 |             2 |              0.298 |
+| 2024 | T011     | CCNL   |     8060 |          0.092 |             3 |              0.390 |
 
 ## 5. Selezione dei CCNL rilevanti
 
@@ -384,15 +492,15 @@ chiavi selezionate.
 rilevanti <- select_ccnl_rilevanti(ranking, measure = "giornate", cum_share = 0.8)
 rilevanti
 #>  [1] "A011" "H011" "T011" "C011" "IC91" "A012" "B011" "E011" "D011" "F011"
-#> [11] "M011" "H012" "I011" "K011" "G011" "L011" "Q011" "N011" "V011" "P011"
+#> [11] "H012" "M011" "I011" "K011" "G011" "L011" "Q011" "N011" "V011" "P011"
 #> [21] "T012"
 length(rilevanti)
 #> [1] 21
 ranking[ccnl_key %in% rilevanti, max(quota_cum_giornate)]
-#> [1] 0.8017375
+#> [1] 0.802484
 ```
 
-Nel dataset di esempio la copertura del codice CNEL è pari a 0.839 delle
+Nel dataset di esempio la copertura del codice CNEL è pari a 0.838 delle
 giornate, per cui la soglia dell’80% del totale seleziona 21 dei 25 CCNL
 classificati.
 
@@ -423,13 +531,13 @@ knitr::kable(
 
 | ccnl_key | classe | selezionato | n_lavoratori | quota_n_lavoratori | giornate | quota_giornate |
 |:---|:---|:---|---:|---:|---:|---:|
-| A011 | CCNL | TRUE | 226 | 0.124 | 125537 | 0.193 |
-| H011 | CCNL | TRUE | 174 | 0.095 | 65546 | 0.101 |
-| T011 | CCNL | TRUE | 141 | 0.077 | 50943 | 0.078 |
-| C011 | CCNL | TRUE | 112 | 0.061 | 33494 | 0.051 |
-| IC91 | CCNL | TRUE | 90 | 0.049 | 30765 | 0.047 |
-| Altri CCNL | Altri CCNL | FALSE | 877 | 0.481 | 239563 | 0.368 |
-| NA | Non classificati | FALSE | 204 | 0.112 | 104618 | 0.161 |
+| A011 | CCNL | TRUE | 218 | 0.124 | 118854 | 0.191 |
+| H011 | CCNL | TRUE | 167 | 0.095 | 62233 | 0.100 |
+| T011 | CCNL | TRUE | 136 | 0.077 | 49468 | 0.079 |
+| C011 | CCNL | TRUE | 110 | 0.062 | 31713 | 0.051 |
+| IC91 | CCNL | TRUE | 86 | 0.049 | 29904 | 0.048 |
+| Altri CCNL | Altri CCNL | FALSE | 848 | 0.480 | 230572 | 0.370 |
+| NA | Non classificati | FALSE | 200 | 0.113 | 100932 | 0.162 |
 
 ``` r
 
@@ -499,19 +607,19 @@ attr(dt, "ccnlcob_cpi")
 dt[, .N, by = .(cpi_code, cpi_name)][order(-N)]
 #>        cpi_code        cpi_name     N
 #>          <char>          <char> <int>
-#>  1: F205C000169      CPI MILANO   954
-#>  2: L682C000600      CPI VARESE   437
-#>  3: B157C000683     CPI BRESCIA   314
-#>  4: F704C000581       CPI MONZA   287
-#>  5: A794C000060     CPI BERGAMO   244
-#>  6: C933C000073        CPI COMO   163
-#>  7:       FUORI Fuori Lombardia   151
-#>  8: G388C000070       CPI PAVIA   145
-#>  9: D150C000030     CPI CREMONA    97
-#> 10: E507C000578       CPI LECCO    91
-#> 11: E897C000034     CPI MANTOVA    78
-#> 12: I829C000043     CPI SONDRIO    56
-#> 13: E648C000580        CPI LODI    48
+#>  1: F205C000169      CPI MILANO   913
+#>  2: L682C000600      CPI VARESE   417
+#>  3: B157C000683     CPI BRESCIA   296
+#>  4: F704C000581       CPI MONZA   279
+#>  5: A794C000060     CPI BERGAMO   230
+#>  6: C933C000073        CPI COMO   159
+#>  7:       FUORI Fuori Lombardia   140
+#>  8: G388C000070       CPI PAVIA   139
+#>  9: D150C000030     CPI CREMONA    95
+#> 10: E507C000578       CPI LECCO    88
+#> 11: E897C000034     CPI MANTOVA    72
+#> 12: I829C000043     CPI SONDRIO    52
+#> 13: E648C000580        CPI LODI    47
 ```
 
 [`ccnl_by_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_cpi.md)
@@ -538,19 +646,19 @@ knitr::kable(
 
 | cpi_name        | giornate | quota_riga | quota_colonna |    lq |
 |:----------------|---------:|-----------:|--------------:|------:|
-| CPI MILANO      |    38886 |      0.310 |         0.186 | 0.964 |
-| CPI BRESCIA     |    16218 |      0.129 |         0.254 | 1.318 |
-| CPI VARESE      |    13295 |      0.106 |         0.143 | 0.742 |
-| CPI BERGAMO     |    11677 |      0.093 |         0.217 | 1.123 |
-| CPI MONZA       |    10016 |      0.080 |         0.182 | 0.944 |
-| Fuori Lombardia |     8524 |      0.068 |         0.249 | 1.291 |
-| CPI PAVIA       |     8410 |      0.067 |         0.264 | 1.365 |
-| CPI SONDRIO     |     4272 |      0.034 |         0.273 | 1.417 |
-| CPI COMO        |     3816 |      0.030 |         0.120 | 0.622 |
-| CPI LODI        |     3497 |      0.028 |         0.371 | 1.920 |
-| CPI MANTOVA     |     2960 |      0.024 |         0.200 | 1.034 |
-| CPI LECCO       |     2476 |      0.020 |         0.127 | 0.656 |
-| CPI CREMONA     |     1490 |      0.012 |         0.079 | 0.411 |
+| CPI MILANO      |    37334 |      0.314 |         0.186 | 0.974 |
+| CPI BRESCIA     |    15721 |      0.132 |         0.264 | 1.386 |
+| CPI VARESE      |    12445 |      0.105 |         0.138 | 0.725 |
+| CPI BERGAMO     |    10862 |      0.091 |         0.215 | 1.126 |
+| CPI MONZA       |     9532 |      0.080 |         0.179 | 0.938 |
+| CPI PAVIA       |     8255 |      0.069 |         0.264 | 1.385 |
+| Fuori Lombardia |     8181 |      0.069 |         0.248 | 1.303 |
+| CPI COMO        |     3545 |      0.030 |         0.113 | 0.593 |
+| CPI LODI        |     3222 |      0.027 |         0.352 | 1.846 |
+| CPI SONDRIO     |     2955 |      0.025 |         0.211 | 1.105 |
+| CPI MANTOVA     |     2839 |      0.024 |         0.211 | 1.107 |
+| CPI LECCO       |     2473 |      0.021 |         0.134 | 0.704 |
+| CPI CREMONA     |     1490 |      0.013 |         0.081 | 0.427 |
 
 Per ogni cella (CCNL `c`, CPI `d`), detto `v` il valore della misura e
 `T` il totale, la tabella riporta tre grandezze:
@@ -578,21 +686,21 @@ sulle giornate.
 ``` r
 
 cpi[, .(quota_riga = sum(quota_riga), lq_min = min(lq), lq_max = max(lq)), by = ccnl_key]
-#>    ccnl_key quota_riga      lq_min   lq_max
-#>      <char>      <num>       <num>    <num>
-#> 1:     A011          1 0.411293375 1.920262
-#> 2:     C011          1 0.334628590 1.814877
-#> 3:     H011          1 0.459591420 1.386507
-#> 4:     IC91          1 0.009937513 3.093907
-#> 5:     T011          1 0.094811592 1.587235
+#>    ccnl_key quota_riga     lq_min   lq_max
+#>      <char>      <num>      <num>    <num>
+#> 1:     A011          1 0.42668877 1.845559
+#> 2:     C011          1 0.35950792 1.722439
+#> 3:     H011          1 0.44464003 1.404219
+#> 4:     IC91          1 0.01000221 3.397226
+#> 5:     T011          1 0.10421043 1.615597
 cpi[order(-lq)][1:5, .(ccnl_key, cpi_name, giornate, quota_colonna, lq)]
 #>    ccnl_key        cpi_name giornate quota_colonna       lq
 #>      <char>          <char>    <int>         <num>    <num>
-#> 1:     IC91     CPI SONDRIO     2286    0.14633210 3.093907
-#> 2:     A011        CPI LODI     3497    0.37060195 1.920262
-#> 3:     C011 Fuori Lombardia     3197    0.09345221 1.814877
-#> 4:     IC91       CPI LECCO     1605    0.08206361 1.735075
-#> 5:     IC91        CPI COMO     2514    0.07907401 1.671866
+#> 1:     IC91     CPI SONDRIO     2286    0.16289012 3.397226
+#> 2:     A011        CPI LODI     3222    0.35170833 1.845559
+#> 3:     IC91       CPI LECCO     1581    0.08576078 1.788622
+#> 4:     C011 Fuori Lombardia     2885    0.08758349 1.722439
+#> 5:     IC91        CPI COMO     2514    0.08013260 1.671241
 ```
 
 Gli argomenti `periodo` (`anno` o `trimestre`) e `by` producono la
@@ -630,22 +738,18 @@ knitr::kable(
 
 | tipologia           | orario | n_rapporti | quota_riga |    lq |
 |:--------------------|:-------|-----------:|-----------:|------:|
-| Tempo determinato   | FT     |        131 |      0.275 | 1.044 |
-| Tempo indeterminato | FT     |        110 |      0.231 | 1.122 |
-| Tempo determinato   | PT     |         48 |      0.101 | 1.033 |
-| Somministrazione    | FT     |         39 |      0.082 | 0.882 |
-| Tempo indeterminato | PT     |         34 |      0.071 | 0.911 |
-| Intermittente       | PT     |         19 |      0.040 | 0.722 |
-| Apprendistato       | FT     |         18 |      0.038 | 0.694 |
-| Intermittente       | FT     |         14 |      0.029 | 0.949 |
-| Collaborazioni      | FT     |         12 |      0.025 | 1.692 |
-| Tirocinio           | FT     |         12 |      0.025 | 1.531 |
-| Apprendistato       | PT     |         11 |      0.023 | 1.155 |
-| Somministrazione    | PT     |         11 |      0.023 | 0.614 |
-| Collaborazioni      | PT     |          6 |      0.013 |    NA |
-| Domestico           | FT     |          4 |      0.008 |    NA |
-| Domestico           | PT     |          4 |      0.008 |    NA |
-| Tirocinio           | PT     |          3 |      0.006 |    NA |
+| Tempo determinato   | FT     |        131 |      0.296 | 1.072 |
+| Tempo indeterminato | FT     |        110 |      0.248 | 1.152 |
+| Tempo determinato   | PT     |         48 |      0.108 | 1.060 |
+| Somministrazione    | FT     |         39 |      0.088 | 0.905 |
+| Tempo indeterminato | PT     |         34 |      0.077 | 0.935 |
+| Intermittente       | PT     |         19 |      0.043 | 0.741 |
+| Apprendistato       | FT     |         18 |      0.041 | 0.712 |
+| Intermittente       | FT     |         14 |      0.032 | 0.974 |
+| Apprendistato       | PT     |         11 |      0.025 | 1.186 |
+| Somministrazione    | PT     |         11 |      0.025 | 0.630 |
+| Domestico           | FT     |          4 |      0.009 |    NA |
+| Domestico           | PT     |          4 |      0.009 |    NA |
 
 `quota_riga` descrive la composizione contrattuale del CCNL,
 `quota_colonna` il peso del CCNL entro la tipologia e `lq` il ricorso
@@ -667,13 +771,13 @@ knitr::kable(
 )
 ```
 
-| ccnl_key | Altro | Apprendistato | Collaborazioni | Domestico | Intermittente | Somministrazione | Tempo determinato | Tempo indeterminato | Tirocinio |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| A011 | 0.000 | 0.061 | 0.038 | 0.017 | 0.069 | 0.105 | 0.376 | 0.303 | 0.032 |
-| C011 | 0.000 | 0.063 | 0.014 | 0.014 | 0.056 | 0.162 | 0.324 | 0.352 | 0.014 |
-| H011 | 0.000 | 0.080 | 0.018 | 0.022 | 0.066 | 0.146 | 0.350 | 0.270 | 0.047 |
-| IC91 | 0.000 | 0.117 | 0.018 | 0.000 | 0.108 | 0.135 | 0.315 | 0.279 | 0.027 |
-| T011 | 0.005 | 0.077 | 0.015 | 0.036 | 0.097 | 0.122 | 0.378 | 0.255 | 0.015 |
+| ccnl_key | Apprendistato | Domestico | Intermittente | Somministrazione | Tempo determinato | Tempo indeterminato |
+|:---|---:|---:|---:|---:|---:|---:|
+| A011 | 0.065 | 0.018 | 0.074 | 0.113 | 0.404 | 0.325 |
+| C011 | 0.065 | 0.014 | 0.058 | 0.167 | 0.333 | 0.362 |
+| H011 | 0.086 | 0.023 | 0.070 | 0.156 | 0.375 | 0.289 |
+| IC91 | 0.123 | 0.000 | 0.113 | 0.142 | 0.330 | 0.292 |
+| T011 | 0.079 | 0.037 | 0.101 | 0.127 | 0.392 | 0.265 |
 
 ## Fasi successive
 
@@ -756,6 +860,8 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
   [`?validate_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md).
 - Regole sulle sentinelle e colonne derivate:
   [`?prepare_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md).
+- Perimetro contrattuale:
+  [`?filter_perimetro`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
 - Misure e quote del ranking:
   [`?rank_ccnl`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md),
   [`?select_ccnl_rilevanti`](https://gmontaletti.github.io/ccnlcob/reference/select_ccnl_rilevanti.md).

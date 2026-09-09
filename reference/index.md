@@ -41,12 +41,15 @@ Mapping comune -\> CPI e distribuzione territoriale dei CCNL.
 
 ## Tipologie
 
-Macro-classi contrattuali e distribuzione dei CCNL per tipologia.
+Macro-classi contrattuali, perimetro CCNL e distribuzione dei CCNL per
+tipologia.
 
 - [`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md)
   : Distribuisce i CCNL per tipologia contrattuale
 - [`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md)
   : Classifica i codici di tipologia contrattuale in macro-classi
+- [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+  : Filtra i rapporti per perimetro contrattuale
 
 ## Retribuzioni
 

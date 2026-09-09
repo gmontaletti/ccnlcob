@@ -88,23 +88,24 @@ library(data.table)
 #> 
 #>     %notin%
 dt <- prepare_rapporti(cob_esempio)
+#> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
 add_cpi(dt, geo = "sede_lavoro", lookup = cpi_esempio)
 dt[, .N, by = .(cpi_code, cpi_name)][order(-N)]
 #>        cpi_code        cpi_name     N
 #>          <char>          <char> <int>
-#>  1: F205C000169      CPI MILANO  1600
-#>  2: L682C000600      CPI VARESE   732
-#>  3: B157C000683     CPI BRESCIA   483
-#>  4: F704C000581       CPI MONZA   441
-#>  5: A794C000060     CPI BERGAMO   389
-#>  6: C933C000073        CPI COMO   262
-#>  7:       FUORI Fuori Lombardia   250
-#>  8: G388C000070       CPI PAVIA   221
-#>  9: E507C000578       CPI LECCO   152
-#> 10: D150C000030     CPI CREMONA   150
-#> 11: E897C000034     CPI MANTOVA   132
-#> 12: E648C000580        CPI LODI    99
-#> 13: I829C000043     CPI SONDRIO    89
+#>  1: F205C000169      CPI MILANO  1522
+#>  2: L682C000600      CPI VARESE   694
+#>  3: B157C000683     CPI BRESCIA   450
+#>  4: F704C000581       CPI MONZA   418
+#>  5: A794C000060     CPI BERGAMO   366
+#>  6: C933C000073        CPI COMO   252
+#>  7:       FUORI Fuori Lombardia   236
+#>  8: G388C000070       CPI PAVIA   211
+#>  9: E507C000578       CPI LECCO   146
+#> 10: D150C000030     CPI CREMONA   145
+#> 11: E897C000034     CPI MANTOVA   126
+#> 12: E648C000580        CPI LODI    97
+#> 13: I829C000043     CPI SONDRIO    83
 attr(dt, "ccnlcob_cpi")
 #> $geo
 #> [1] "sede_lavoro"
@@ -118,9 +119,9 @@ add_cpi(dt, geo = "residenza", lookup = cpi_esempio)
 dt[, .N, by = cpi_name][order(-N)][1:5]
 #>       cpi_name     N
 #>         <char> <int>
-#> 1:  CPI MILANO  1429
-#> 2:  CPI VARESE   746
-#> 3: CPI BRESCIA   589
-#> 4:   CPI MONZA   456
-#> 5: CPI BERGAMO   312
+#> 1:  CPI MILANO  1362
+#> 2:  CPI VARESE   700
+#> 3: CPI BRESCIA   568
+#> 4:   CPI MONZA   431
+#> 5: CPI BERGAMO   295
 ```

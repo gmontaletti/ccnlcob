@@ -15,7 +15,7 @@ macro-classe di tipologie_contrattuali o il codice MLPS di dettaglio."></head><b
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -171,73 +171,63 @@ delle celle di un CCNL può superare il conteggio del CCNL in
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="classify_tipologia.html">classify_tipologia()</a></code>, <code><a href="rank_ccnl.html">rank_ccnl()</a></code>, <code><a href="ccnl_by_cpi.html">ccnl_by_cpi()</a></code>.</p>
 <p>Other tipologie:
-<code><a href="classify_tipologia.html">classify_tipologia()</a></code></p></div>
+<code><a href="classify_tipologia.html">classify_tipologia()</a></code>,
+<code><a href="filter_perimetro.html">filter_perimetro()</a></code></p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_rapporti.html">prepare_rapporti</a></span><span class="op">(</span><span class="va">cob_esempio</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.</span>
 <span class="r-in"><span><span class="va">tip</span> <span class="op">&lt;-</span> <span class="fu">ccnl_by_tipologia</span><span class="op">(</span><span class="va">dt</span>, measure <span class="op">=</span> <span class="st">"n_rapporti"</span>, level <span class="op">=</span> <span class="st">"macro"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">tip</span><span class="op">[</span><span class="va">ccnl_key</span> <span class="op">==</span> <span class="st">"A011"</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     ccnl_key classe           tipologia orario n_rapporti  quota_riga</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       &lt;char&gt; &lt;char&gt;              &lt;char&gt; &lt;char&gt;      &lt;int&gt;       &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     A011   CCNL   Tempo determinato     FT        275 0.285269710</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     A011   CCNL Tempo indeterminato     FT        209 0.216804979</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     A011   CCNL   Tempo determinato     PT         95 0.098547718</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     A011   CCNL    Somministrazione     FT         88 0.091286307</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     A011   CCNL Tempo indeterminato     PT         71 0.073651452</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     A011   CCNL       Apprendistato     FT         44 0.045643154</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     A011   CCNL       Intermittente     PT         38 0.039419087</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     A011   CCNL    Somministrazione     PT         26 0.026970954</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     A011   CCNL       Intermittente     FT         24 0.024896266</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     A011   CCNL      Collaborazioni     FT         22 0.022821577</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     A011   CCNL       Apprendistato     PT         20 0.020746888</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     A011   CCNL           Tirocinio     FT         20 0.020746888</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     A011   CCNL      Collaborazioni     PT         10 0.010373444</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     A011   CCNL           Domestico     PT          8 0.008298755</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     A011   CCNL           Domestico     FT          6 0.006224066</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     A011   CCNL           Tirocinio     PT          4 0.004149378</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     A011   CCNL               Altro     FT          3 0.003112033</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     A011   CCNL               Altro     PT          1 0.001037344</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     A011   CCNL   Tempo determinato     FT        275 0.304203540</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     A011   CCNL Tempo indeterminato     FT        209 0.231194690</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     A011   CCNL   Tempo determinato     PT         95 0.105088496</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     A011   CCNL    Somministrazione     FT         88 0.097345133</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     A011   CCNL Tempo indeterminato     PT         71 0.078539823</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     A011   CCNL       Apprendistato     FT         44 0.048672566</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     A011   CCNL       Intermittente     PT         38 0.042035398</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     A011   CCNL    Somministrazione     PT         26 0.028761062</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     A011   CCNL       Intermittente     FT         24 0.026548673</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     A011   CCNL       Apprendistato     PT         20 0.022123894</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     A011   CCNL           Domestico     PT          8 0.008849558</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     A011   CCNL           Domestico     FT          6 0.006637168</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     quota_colonna        lq</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             &lt;num&gt;     &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     0.2099237 1.0888157</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     0.2019324 1.0473670</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     0.1958763 1.0159559</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     0.1929825 1.0009463</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     0.1955923 1.0144828</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     0.1471572 0.7632634</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     0.1328671 0.6891449</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     0.1547619 0.8027070</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     0.1610738 0.8354452</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     0.2417582 1.2539328</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     0.2000000 1.0373444</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     0.2531646 1.3130942</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     0.2941176 1.5255065</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     0.1379310 0.7154099</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:     0.1621622 0.8410901</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:     0.1290323 0.6692545</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:     0.1875000        NA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:     0.3333333        NA</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     0.2099237 1.1020992</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     0.2019324 1.0601449</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     0.1958763 1.0283505</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     0.1929825 1.0131579</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     0.1955923 1.0268595</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     0.1471572 0.7725753</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:     0.1328671 0.6975524</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:     0.1547619 0.8125000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:     0.1610738 0.8456376</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     0.2000000 1.0500000</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     0.1379310 0.7241379</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:     0.1621622 0.8513514</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Quote per macro-tipologia senza orario, in forma larga</span></span></span>
 <span class="r-in"><span><span class="va">largo</span> <span class="op">&lt;-</span> <span class="fu">ccnl_by_tipologia</span><span class="op">(</span><span class="va">dt</span>, orario <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/data.table/man/dcast.data.table.html" class="external-link">dcast</a></span><span class="op">(</span><span class="va">largo</span>, <span class="va">ccnl_key</span> <span class="op">~</span> <span class="va">tipologia</span>, value.var <span class="op">=</span> <span class="st">"quota_riga"</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> Key: &lt;ccnl_key&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    ccnl_key       Altro Apprendistato Collaborazioni   Domestico Intermittente</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;       &lt;num&gt;         &lt;num&gt;          &lt;num&gt;       &lt;num&gt;         &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     &lt;NA&gt;          NA    0.08533333     0.01866667 0.022666667    0.08666667</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     A011 0.004149378    0.06639004     0.03319502 0.014522822    0.06431535</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     A012          NA    0.07065217     0.02173913 0.016304348    0.06521739</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     B011 0.012195122    0.08536585     0.01829268 0.006097561    0.13414634</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     C011          NA    0.06273063     0.02952030 0.014760148    0.07011070</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Somministrazione Tempo determinato Tempo indeterminato  Tirocinio</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>               &lt;num&gt;             &lt;num&gt;               &lt;num&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:        0.1226667         0.3400000           0.3013333 0.02266667</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:        0.1182573         0.3838174           0.2904564 0.02489627</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:        0.1141304         0.4402174           0.2391304 0.03260870</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:        0.1158537         0.3109756           0.2987805 0.01829268</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:        0.1402214         0.3431734           0.3173432 0.02214022</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    ccnl_key Apprendistato   Domestico Intermittente Somministrazione</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt;         &lt;num&gt;       &lt;num&gt;         &lt;num&gt;            &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     &lt;NA&gt;    0.08901252 0.023643950    0.09040334        0.1279555</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     A011    0.07079646 0.015486726    0.06858407        0.1261062</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     A012    0.07471264 0.017241379    0.06896552        0.1206897</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     B011    0.08974359 0.006410256    0.14102564        0.1217949</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     C011    0.06614786 0.015564202    0.07392996        0.1478599</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Tempo determinato Tempo indeterminato</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                &lt;num&gt;               &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:         0.3546592           0.3143255</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:         0.4092920           0.3097345</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:         0.4655172           0.2528736</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:         0.3269231           0.3141026</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:         0.3618677           0.3346304</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Codici MLPS con descrizione, giornate per anno, solo due CCNL</span></span></span>
 <span class="r-in"><span><span class="fu">ccnl_by_tipologia</span><span class="op">(</span></span></span>
@@ -252,27 +242,19 @@ delle celle di un CCNL può superare il conteggio del CCNL in
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:  2024     A011   CCNL   A.06.01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  4:  2024     A011   CCNL   A.02.01</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  5:  2024     A011   CCNL   A.05.02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:  2024     A011   CCNL   B.03.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:  2024     A011   CCNL   A.03.09</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:  2024     A011   CCNL   A.06.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:  2024     A011   CCNL   C.01.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:  2024     A011   CCNL   A.03.08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:  2024     A011   CCNL   B.04.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:  2024     A011   CCNL   A.04.02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:  2024     H011   CCNL   A.02.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:  2024     H011   CCNL   A.01.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:  2024     H011   CCNL   A.06.01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:  2024     H011   CCNL   C.01.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:  2024     H011   CCNL   A.03.09</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:  2024     H011   CCNL   A.02.01</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:  2024     H011   CCNL   A.04.02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:  2024     H011   CCNL   A.05.02</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:  2024     H011   CCNL   B.03.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:  2024     H011   CCNL   A.06.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:  2024     H011   CCNL   B.04.00</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:  2024     H011   CCNL   A.03.08</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      anno ccnl_key classe tipologia</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     &lt;int&gt;   &lt;char&gt; &lt;char&gt;    &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:  2024     A011   CCNL   A.03.09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:  2024     A011   CCNL   A.06.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:  2024     A011   CCNL   A.03.08</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:  2024     A011   CCNL   A.04.02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:  2024     H011   CCNL   A.02.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:  2024     H011   CCNL   A.01.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:  2024     H011   CCNL   A.06.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:  2024     H011   CCNL   A.03.09</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:  2024     H011   CCNL   A.02.01</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:  2024     H011   CCNL   A.04.02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:  2024     H011   CCNL   A.05.02</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:  2024     H011   CCNL   A.06.00</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:  2024     H011   CCNL   A.03.08</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                              des_tipologia_contrattuale</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                  &lt;char&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  1:                                                                                                                                        LAVORO A TEMPO INDETERMINATO</span>
@@ -280,55 +262,39 @@ delle celle di un CCNL può superare il conteggio del CCNL in
 <span class="r-out co"><span class="r-pr">#&gt;</span>  3:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  4:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  5:                                                                                                                                                LAVORO INTERMITTENTE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:                                                                                                                            COLLABORAZIONE COORDINATA E CONTINUATIVA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                                           TIROCINIO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                                                                                   COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                                                                                                                                    LAVORO DOMESTICO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                                                          LAVORO A TEMPO DETERMINATO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                                                                                                                        LAVORO A TEMPO INDETERMINATO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                                           TIROCINIO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:                                                                                                                                                    LAVORO DOMESTICO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:                                                                                                                                                LAVORO INTERMITTENTE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:                                                                                                                            COLLABORAZIONE COORDINATA E CONTINUATIVA</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:                                                                                                   COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                              des_tipologia_contrattuale</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                  &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                                    LAVORO DOMESTICO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:                                                                                                                                          LAVORO A TEMPO DETERMINATO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                                                                                                                        LAVORO A TEMPO INDETERMINATO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                                                                                                                                    LAVORO DOMESTICO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                                LAVORO INTERMITTENTE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     giornate   quota_riga quota_colonna         lq</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;int&gt;        &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     5521 0.3004298852   0.232512108 1.18728322</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     4376 0.2381237416   0.148404382 0.75780153</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     2250 0.1224356533   0.192917774 0.98510154</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     1833 0.0997442455   0.377393453 1.92709497</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     1230 0.0669314905   0.162698413 0.83079155</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6:     1191 0.0648092725   0.459136469 2.34450166</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:      847 0.0460902215   0.161548732 0.82492090</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:      471 0.0256298634   0.221647059 1.13180271</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:      366 0.0199161996   0.136567164 0.69735681</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:      170 0.0092506938   0.291095890 1.48643126</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:      113 0.0061489906   0.131855309 0.67329653</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:        9 0.0004897426   0.005142857 0.02626112</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:     3963 0.3801438849   0.134398209 1.20976437</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:     2826 0.2710791367   0.119014529 1.07129059</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:      811 0.0777937650   0.069536140 0.62591864</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:      694 0.0665707434   0.258955224 2.33094477</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:      567 0.0543884892   0.108144192 0.97344296</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:      329 0.0315587530   0.067737286 0.60972654</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:      318 0.0305035971   0.181714286 1.63567260</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:      301 0.0288729017   0.039814815 0.35838680</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:      255 0.0244604317   0.098303778 0.88486602</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:      204 0.0195683453   0.096000000 0.86412892</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:      152 0.0145803357   0.177362894 1.59650423</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:        5 0.0004796163   0.008561644 0.07706629</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     giornate   quota_riga quota_colonna         lq</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;int&gt;        &lt;num&gt;         &lt;num&gt;      &lt;num&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:     5521 0.3304602861   0.232512108 1.21654477</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:     4376 0.2619261387   0.148404382 0.77647816</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:     2250 0.1346740887   0.192917774 1.00938016</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:     1833 0.1097144909   0.377393453 1.97458977</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:     1230 0.0736218352   0.162698413 0.85126708</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:      847 0.0506973125   0.161548732 0.84525174</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:      471 0.0281917759   0.221647059 1.15969689</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:      170 0.0101753756   0.291095890 1.52306555</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:        9 0.0005386964   0.005142857 0.02690834</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:     3963 0.4250321750   0.134398209 1.26000483</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:     2826 0.3030888031   0.119014529 1.11578036</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:      811 0.0869798370   0.069536140 0.65191250</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:      567 0.0608108108   0.108144192 1.01386920</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:      329 0.0352852853   0.067737286 0.63504796</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:      318 0.0341055341   0.181714286 1.70360066</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:      301 0.0322822823   0.039814815 0.37327029</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:      204 0.0218790219   0.096000000 0.90001544</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:        5 0.0005362505   0.008561644 0.08026679</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

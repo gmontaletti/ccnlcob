@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,20 @@
       <small>Source: <a href="https://github.com/gmontaletti/ccnlcob/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.0" id="ccnlcob-030">ccnlcob 0.3.0<a class="anchor" aria-label="anchor" href="#ccnlcob-030"></a></h2>
+<div class="section level3">
+<h3 id="nuove-funzionalità-0-3-0">Nuove funzionalità<a class="anchor" aria-label="anchor" href="#nuove-funzionalit%C3%A0-0-3-0"></a></h3>
+<ul><li>Perimetro contrattuale: il lookup <code>tipologie_contrattuali</code> porta il flag <code>perimetro_ccnl</code>, vero per i rapporti di lavoro subordinato cui si applica un CCNL e falso per collaborazioni e lavoro occasionale, tirocini e work experience, associazione in partecipazione, contratto di agenzia, lavoro autonomo nello spettacolo e lavoro congiunto in agricoltura.</li>
+<li>
+<code><a href="../reference/filter_perimetro.html">filter_perimetro()</a></code> applica uno dei perimetri <code>"ccnl"</code>, <code>"standard"</code> (quello di <code>cnelR</code>, flag <code>esclusa_standard</code>) o <code>"completo"</code> e riporta nei metadati le righe escluse per tipologia.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="modifiche-al-comportamento-0-3-0">Modifiche al comportamento<a class="anchor" aria-label="anchor" href="#modifiche-al-comportamento-0-3-0"></a></h3>
+<ul><li>
+<code><a href="../reference/prepare_rapporti.html">prepare_rapporti()</a></code> ha il nuovo argomento <code>perimetro</code>, con default <code>"ccnl"</code>: gli avviamenti fuori perimetro vengono esclusi prima delle sentinelle e della finestra, e contati in <code>ccnlcob_meta</code> (<code>n_dropped_perimetro</code>, <code>esclusi_perimetro</code>). Il comportamento precedente si ottiene con <code>perimetro = "completo"</code>. L’output porta sempre la colonna <code>perimetro_ccnl</code>.</li>
+</ul><hr></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="ccnlcob-020">ccnlcob 0.2.0<a class="anchor" aria-label="anchor" href="#ccnlcob-020"></a></h2>
 <div class="section level3">

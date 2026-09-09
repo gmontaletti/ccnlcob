@@ -138,73 +138,63 @@ perché una persona può comparire in più tipologie.
 [`ccnl_by_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_cpi.md).
 
 Other tipologie:
-[`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md)
+[`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md),
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
 
 ## Examples
 
 ``` r
 dt <- prepare_rapporti(cob_esempio)
+#> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
 tip <- ccnl_by_tipologia(dt, measure = "n_rapporti", level = "macro")
 tip[ccnl_key == "A011"]
 #>     ccnl_key classe           tipologia orario n_rapporti  quota_riga
 #>       <char> <char>              <char> <char>      <int>       <num>
-#>  1:     A011   CCNL   Tempo determinato     FT        275 0.285269710
-#>  2:     A011   CCNL Tempo indeterminato     FT        209 0.216804979
-#>  3:     A011   CCNL   Tempo determinato     PT         95 0.098547718
-#>  4:     A011   CCNL    Somministrazione     FT         88 0.091286307
-#>  5:     A011   CCNL Tempo indeterminato     PT         71 0.073651452
-#>  6:     A011   CCNL       Apprendistato     FT         44 0.045643154
-#>  7:     A011   CCNL       Intermittente     PT         38 0.039419087
-#>  8:     A011   CCNL    Somministrazione     PT         26 0.026970954
-#>  9:     A011   CCNL       Intermittente     FT         24 0.024896266
-#> 10:     A011   CCNL      Collaborazioni     FT         22 0.022821577
-#> 11:     A011   CCNL       Apprendistato     PT         20 0.020746888
-#> 12:     A011   CCNL           Tirocinio     FT         20 0.020746888
-#> 13:     A011   CCNL      Collaborazioni     PT         10 0.010373444
-#> 14:     A011   CCNL           Domestico     PT          8 0.008298755
-#> 15:     A011   CCNL           Domestico     FT          6 0.006224066
-#> 16:     A011   CCNL           Tirocinio     PT          4 0.004149378
-#> 17:     A011   CCNL               Altro     FT          3 0.003112033
-#> 18:     A011   CCNL               Altro     PT          1 0.001037344
+#>  1:     A011   CCNL   Tempo determinato     FT        275 0.304203540
+#>  2:     A011   CCNL Tempo indeterminato     FT        209 0.231194690
+#>  3:     A011   CCNL   Tempo determinato     PT         95 0.105088496
+#>  4:     A011   CCNL    Somministrazione     FT         88 0.097345133
+#>  5:     A011   CCNL Tempo indeterminato     PT         71 0.078539823
+#>  6:     A011   CCNL       Apprendistato     FT         44 0.048672566
+#>  7:     A011   CCNL       Intermittente     PT         38 0.042035398
+#>  8:     A011   CCNL    Somministrazione     PT         26 0.028761062
+#>  9:     A011   CCNL       Intermittente     FT         24 0.026548673
+#> 10:     A011   CCNL       Apprendistato     PT         20 0.022123894
+#> 11:     A011   CCNL           Domestico     PT          8 0.008849558
+#> 12:     A011   CCNL           Domestico     FT          6 0.006637168
 #>     quota_colonna        lq
 #>             <num>     <num>
-#>  1:     0.2099237 1.0888157
-#>  2:     0.2019324 1.0473670
-#>  3:     0.1958763 1.0159559
-#>  4:     0.1929825 1.0009463
-#>  5:     0.1955923 1.0144828
-#>  6:     0.1471572 0.7632634
-#>  7:     0.1328671 0.6891449
-#>  8:     0.1547619 0.8027070
-#>  9:     0.1610738 0.8354452
-#> 10:     0.2417582 1.2539328
-#> 11:     0.2000000 1.0373444
-#> 12:     0.2531646 1.3130942
-#> 13:     0.2941176 1.5255065
-#> 14:     0.1379310 0.7154099
-#> 15:     0.1621622 0.8410901
-#> 16:     0.1290323 0.6692545
-#> 17:     0.1875000        NA
-#> 18:     0.3333333        NA
+#>  1:     0.2099237 1.1020992
+#>  2:     0.2019324 1.0601449
+#>  3:     0.1958763 1.0283505
+#>  4:     0.1929825 1.0131579
+#>  5:     0.1955923 1.0268595
+#>  6:     0.1471572 0.7725753
+#>  7:     0.1328671 0.6975524
+#>  8:     0.1547619 0.8125000
+#>  9:     0.1610738 0.8456376
+#> 10:     0.2000000 1.0500000
+#> 11:     0.1379310 0.7241379
+#> 12:     0.1621622 0.8513514
 
 # Quote per macro-tipologia senza orario, in forma larga
 largo <- ccnl_by_tipologia(dt, orario = FALSE)
 data.table::dcast(largo, ccnl_key ~ tipologia, value.var = "quota_riga")[1:5]
 #> Key: <ccnl_key>
-#>    ccnl_key       Altro Apprendistato Collaborazioni   Domestico Intermittente
-#>      <char>       <num>         <num>          <num>       <num>         <num>
-#> 1:     <NA>          NA    0.08533333     0.01866667 0.022666667    0.08666667
-#> 2:     A011 0.004149378    0.06639004     0.03319502 0.014522822    0.06431535
-#> 3:     A012          NA    0.07065217     0.02173913 0.016304348    0.06521739
-#> 4:     B011 0.012195122    0.08536585     0.01829268 0.006097561    0.13414634
-#> 5:     C011          NA    0.06273063     0.02952030 0.014760148    0.07011070
-#>    Somministrazione Tempo determinato Tempo indeterminato  Tirocinio
-#>               <num>             <num>               <num>      <num>
-#> 1:        0.1226667         0.3400000           0.3013333 0.02266667
-#> 2:        0.1182573         0.3838174           0.2904564 0.02489627
-#> 3:        0.1141304         0.4402174           0.2391304 0.03260870
-#> 4:        0.1158537         0.3109756           0.2987805 0.01829268
-#> 5:        0.1402214         0.3431734           0.3173432 0.02214022
+#>    ccnl_key Apprendistato   Domestico Intermittente Somministrazione
+#>      <char>         <num>       <num>         <num>            <num>
+#> 1:     <NA>    0.08901252 0.023643950    0.09040334        0.1279555
+#> 2:     A011    0.07079646 0.015486726    0.06858407        0.1261062
+#> 3:     A012    0.07471264 0.017241379    0.06896552        0.1206897
+#> 4:     B011    0.08974359 0.006410256    0.14102564        0.1217949
+#> 5:     C011    0.06614786 0.015564202    0.07392996        0.1478599
+#>    Tempo determinato Tempo indeterminato
+#>                <num>               <num>
+#> 1:         0.3546592           0.3143255
+#> 2:         0.4092920           0.3097345
+#> 3:         0.4655172           0.2528736
+#> 4:         0.3269231           0.3141026
+#> 5:         0.3618677           0.3346304
 
 # Codici MLPS con descrizione, giornate per anno, solo due CCNL
 ccnl_by_tipologia(
@@ -219,27 +209,19 @@ ccnl_by_tipologia(
 #>  3:  2024     A011   CCNL   A.06.01
 #>  4:  2024     A011   CCNL   A.02.01
 #>  5:  2024     A011   CCNL   A.05.02
-#>  6:  2024     A011   CCNL   B.03.00
-#>  7:  2024     A011   CCNL   A.03.09
-#>  8:  2024     A011   CCNL   A.06.00
-#>  9:  2024     A011   CCNL   C.01.00
-#> 10:  2024     A011   CCNL   A.03.08
-#> 11:  2024     A011   CCNL   B.04.00
-#> 12:  2024     A011   CCNL   A.04.02
-#> 13:  2024     H011   CCNL   A.02.00
-#> 14:  2024     H011   CCNL   A.01.00
-#> 15:  2024     H011   CCNL   A.06.01
-#> 16:  2024     H011   CCNL   C.01.00
-#> 17:  2024     H011   CCNL   A.03.09
-#> 18:  2024     H011   CCNL   A.02.01
-#> 19:  2024     H011   CCNL   A.04.02
-#> 20:  2024     H011   CCNL   A.05.02
-#> 21:  2024     H011   CCNL   B.03.00
-#> 22:  2024     H011   CCNL   A.06.00
-#> 23:  2024     H011   CCNL   B.04.00
-#> 24:  2024     H011   CCNL   A.03.08
-#>      anno ccnl_key classe tipologia
-#>     <int>   <char> <char>    <char>
+#>  6:  2024     A011   CCNL   A.03.09
+#>  7:  2024     A011   CCNL   A.06.00
+#>  8:  2024     A011   CCNL   A.03.08
+#>  9:  2024     A011   CCNL   A.04.02
+#> 10:  2024     H011   CCNL   A.02.00
+#> 11:  2024     H011   CCNL   A.01.00
+#> 12:  2024     H011   CCNL   A.06.01
+#> 13:  2024     H011   CCNL   A.03.09
+#> 14:  2024     H011   CCNL   A.02.01
+#> 15:  2024     H011   CCNL   A.04.02
+#> 16:  2024     H011   CCNL   A.05.02
+#> 17:  2024     H011   CCNL   A.06.00
+#> 18:  2024     H011   CCNL   A.03.08
 #>                                                                                                                                              des_tipologia_contrattuale
 #>                                                                                                                                                                  <char>
 #>  1:                                                                                                                                        LAVORO A TEMPO INDETERMINATO
@@ -247,53 +229,37 @@ ccnl_by_tipologia(
 #>  3:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO
 #>  4:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE
 #>  5:                                                                                                                                                LAVORO INTERMITTENTE
-#>  6:                                                                                                                            COLLABORAZIONE COORDINATA E CONTINUATIVA
-#>  7:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE
-#>  8:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO
-#>  9:                                                                                                                                                           TIROCINIO
-#> 10: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE
-#> 11:                                                                                                   COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021
-#> 12:                                                                                                                                                    LAVORO DOMESTICO
-#> 13:                                                                                                                                          LAVORO A TEMPO DETERMINATO
-#> 14:                                                                                                                                        LAVORO A TEMPO INDETERMINATO
-#> 15:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO
-#> 16:                                                                                                                                                           TIROCINIO
-#> 17:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE
-#> 18:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE
-#> 19:                                                                                                                                                    LAVORO DOMESTICO
-#> 20:                                                                                                                                                LAVORO INTERMITTENTE
-#> 21:                                                                                                                            COLLABORAZIONE COORDINATA E CONTINUATIVA
-#> 22:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO
-#> 23:                                                                                                   COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021
-#> 24: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE
-#>                                                                                                                                              des_tipologia_contrattuale
-#>                                                                                                                                                                  <char>
+#>  6:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE
+#>  7:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO
+#>  8: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE
+#>  9:                                                                                                                                                    LAVORO DOMESTICO
+#> 10:                                                                                                                                          LAVORO A TEMPO DETERMINATO
+#> 11:                                                                                                                                        LAVORO A TEMPO INDETERMINATO
+#> 12:                                                                                               LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO DETERMINATO
+#> 13:                                                                                                           APPRENDISTATO PROFESSIONALIZZANTE O CONTRATTO DI MESTIERE
+#> 14:                                                                                                                         LAVORO A TEMPO DETERMINATO PER SOSTITUZIONE
+#> 15:                                                                                                                                                    LAVORO DOMESTICO
+#> 16:                                                                                                                                                LAVORO INTERMITTENTE
+#> 17:                                                                                             LAVORO INTERINALE (O A SCOPO DI SOMMINISTRAZIONE) A TEMPO INDETERMINATO
+#> 18: APPRENDISTATO PER LA QUALIFICA E PER IL DIPLOMA PROFESSIONALE, IL DIPLOMA DI ISTRUZIONE SECONDARIA SUPERIORE E IL CERTIFICATO DI SPECIALIZZAZIONE TECNICA SUPERIORE
 #>     giornate   quota_riga quota_colonna         lq
 #>        <int>        <num>         <num>      <num>
-#>  1:     5521 0.3004298852   0.232512108 1.18728322
-#>  2:     4376 0.2381237416   0.148404382 0.75780153
-#>  3:     2250 0.1224356533   0.192917774 0.98510154
-#>  4:     1833 0.0997442455   0.377393453 1.92709497
-#>  5:     1230 0.0669314905   0.162698413 0.83079155
-#>  6:     1191 0.0648092725   0.459136469 2.34450166
-#>  7:      847 0.0460902215   0.161548732 0.82492090
-#>  8:      471 0.0256298634   0.221647059 1.13180271
-#>  9:      366 0.0199161996   0.136567164 0.69735681
-#> 10:      170 0.0092506938   0.291095890 1.48643126
-#> 11:      113 0.0061489906   0.131855309 0.67329653
-#> 12:        9 0.0004897426   0.005142857 0.02626112
-#> 13:     3963 0.3801438849   0.134398209 1.20976437
-#> 14:     2826 0.2710791367   0.119014529 1.07129059
-#> 15:      811 0.0777937650   0.069536140 0.62591864
-#> 16:      694 0.0665707434   0.258955224 2.33094477
-#> 17:      567 0.0543884892   0.108144192 0.97344296
-#> 18:      329 0.0315587530   0.067737286 0.60972654
-#> 19:      318 0.0305035971   0.181714286 1.63567260
-#> 20:      301 0.0288729017   0.039814815 0.35838680
-#> 21:      255 0.0244604317   0.098303778 0.88486602
-#> 22:      204 0.0195683453   0.096000000 0.86412892
-#> 23:      152 0.0145803357   0.177362894 1.59650423
-#> 24:        5 0.0004796163   0.008561644 0.07706629
-#>     giornate   quota_riga quota_colonna         lq
-#>        <int>        <num>         <num>      <num>
+#>  1:     5521 0.3304602861   0.232512108 1.21654477
+#>  2:     4376 0.2619261387   0.148404382 0.77647816
+#>  3:     2250 0.1346740887   0.192917774 1.00938016
+#>  4:     1833 0.1097144909   0.377393453 1.97458977
+#>  5:     1230 0.0736218352   0.162698413 0.85126708
+#>  6:      847 0.0506973125   0.161548732 0.84525174
+#>  7:      471 0.0281917759   0.221647059 1.15969689
+#>  8:      170 0.0101753756   0.291095890 1.52306555
+#>  9:        9 0.0005386964   0.005142857 0.02690834
+#> 10:     3963 0.4250321750   0.134398209 1.26000483
+#> 11:     2826 0.3030888031   0.119014529 1.11578036
+#> 12:      811 0.0869798370   0.069536140 0.65191250
+#> 13:      567 0.0608108108   0.108144192 1.01386920
+#> 14:      329 0.0352852853   0.067737286 0.63504796
+#> 15:      318 0.0341055341   0.181714286 1.70360066
+#> 16:      301 0.0322822823   0.039814815 0.37327029
+#> 17:      204 0.0218790219   0.096000000 0.90001544
+#> 18:        5 0.0005362505   0.008561644 0.08026679
 ```

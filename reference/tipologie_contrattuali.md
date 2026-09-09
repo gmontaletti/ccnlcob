@@ -5,7 +5,9 @@ Lookup delle tipologie contrattuali delle Comunicazioni Obbligatorie
 Sociali) con la macro-classe usata da
 [`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md)
 e
-[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md)
+[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md),
+il flag di appartenenza al perimetro CCNL usato da
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
 e il flag di esclusione dal perimetro "standard" adottato da `cnelR`.
 
 ## Usage
@@ -33,6 +35,19 @@ colonne:
   `Tempo determinato`, `Apprendistato`, `Somministrazione`,
   `Intermittente`, `Collaborazioni`, `Tirocinio`, `Domestico`, `Altro`.
 
+- perimetro_ccnl:
+
+  logical. `TRUE` per le tipologie di lavoro subordinato alle quali si
+  applica un CCNL: tutti i codici `A.` (incluso il lavoro domestico),
+  `F.` (marittimo), `G.01.00` e `G.02.00` (spettacolo subordinato),
+  `H.01.00` e `H.03.00` (agricoltura subordinata), `I.` (pubblica
+  amministrazione) e `N.` (piattaforma). `FALSE` per `B.`
+  (collaborazioni e parasubordinati), `C.` (tirocini, LSU e work
+  experience), `G.03.00` (lavoro autonomo nello spettacolo), `H.02.00`
+  (lavoro congiunto in agricoltura), `L.` (associazione in
+  partecipazione) e `M.` (contratto di agenzia). Le regole complete sono
+  in `data-raw/tipologie_contrattuali.R`.
+
 - esclusa_standard:
 
   logical. `TRUE` per le tipologie escluse dal perimetro "standard" di
@@ -47,6 +62,7 @@ Rev.093 del 2026-04-26.
 ## See also
 
 [`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md),
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md),
 [`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md)
 
 ## Examples
@@ -69,12 +85,12 @@ head(tipologie_contrattuali)
 #> 4:                                            APPRENDISTATO EX ART.16 L. 196/97
 #> 5: APPRENDISTATO PER L'ESPLETAMENTO DEL DIRITTO DOVERE DI ISTRUZIONE FORMAZIONE
 #> 6:                                            APPRENDISTATO PROFESSIONALIZZANTE
-#>        macro_tipologia esclusa_standard
-#>                 <char>           <lgcl>
-#> 1: Tempo indeterminato            FALSE
-#> 2:   Tempo determinato            FALSE
-#> 3:   Tempo determinato            FALSE
-#> 4:       Apprendistato            FALSE
-#> 5:       Apprendistato            FALSE
-#> 6:       Apprendistato            FALSE
+#>        macro_tipologia perimetro_ccnl esclusa_standard
+#>                 <char>         <lgcl>           <lgcl>
+#> 1: Tempo indeterminato           TRUE            FALSE
+#> 2:   Tempo determinato           TRUE            FALSE
+#> 3:   Tempo determinato           TRUE            FALSE
+#> 4:       Apprendistato           TRUE            FALSE
+#> 5:       Apprendistato           TRUE            FALSE
+#> 6:       Apprendistato           TRUE            FALSE
 ```

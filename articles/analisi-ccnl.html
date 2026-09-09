@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,14 +77,16 @@ flusso risponde a quattro domande: quali CCNL sono più rilevanti
 (Centro per l’Impiego), come si distribuiscono per tipologia
 contrattuale e come evolve la retribuzione mediana dichiarata
 all’avviamento.</p>
-<p>Nella versione 0.2.0 sono operative le prime due fasi del flusso:
+<p>Nella versione 0.3.0 sono operative le prime due fasi del flusso:
 validazione del contratto dati, preparazione dei rapporti, calcolo delle
 giornate di contratto, ranking e selezione dei CCNL rilevanti (Fase 1),
 distribuzione territoriale per CPI e distribuzione per tipologia
-contrattuale (Fase 2). I blocchi di codice di queste sezioni vengono
-eseguiti sul dataset sintetico <code>cob_esempio</code> incluso nel
-pacchetto, con il lookup comune -&gt; CPI <code>cpi_esempio</code>. Le
-funzioni delle fasi successive (retribuzioni, giornate effettive,
+contrattuale (Fase 2), oltre al perimetro contrattuale applicato in
+ingresso da <code><a href="../reference/prepare_rapporti.html">prepare_rapporti()</a></code> tramite
+<code><a href="../reference/filter_perimetro.html">filter_perimetro()</a></code>. I blocchi di codice di queste sezioni
+vengono eseguiti sul dataset sintetico <code>cob_esempio</code> incluso
+nel pacchetto, con il lookup comune -&gt; CPI <code>cpi_esempio</code>.
+Le funzioni delle fasi successive (retribuzioni, giornate effettive,
 orchestrazione, lettura dei dati) sono documentate con la firma
 definitiva ma restituiscono un errore esplicito; i relativi blocchi sono
 raccolti nella sezione finale e non vengono eseguiti.</p>
@@ -138,7 +140,7 @@ retribuzioni mancanti o anomale.</p>
 <span><span class="co">#&gt;  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...</span></span>
 <span><span class="co">#&gt;  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...</span></span>
 <span><span class="co">#&gt;  $ sesso                     : chr  "F" "F" "M" "F" ...</span></span>
-<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x55a9f841ff20&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x5602b9d02f20&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="preparazione">2. Preparazione<a class="anchor" aria-label="anchor" href="#preparazione"></a>
@@ -149,6 +151,10 @@ nuovo <code>data.table</code>. In sequenza:</p>
 <li>rinomina le varianti maiuscole prodotte dalla pipeline COB e la
 colonna sorgente <code>ccnl</code> (codice warehouse) in
 <code>ccnl_warehouse</code>;</li>
+<li>applica il perimetro contrattuale (argomento <code>perimetro</code>,
+default <code>"ccnl"</code>) tramite <code><a href="../reference/filter_perimetro.html">filter_perimetro()</a></code>,
+escludendo le tipologie alle quali non si applica un CCNL (vedi il
+paragrafo seguente);</li>
 <li>sceglie la chiave di analisi <code>ccnl_key</code>: per default
 <code>codice_cnel</code> se presente, altrimenti
 <code>ccnl_warehouse</code>;</li>
@@ -174,19 +180,145 @@ non sentinella osservata fra <code>inizio</code> e <code>fine</code>; se
 avviamento non sentinella ad <code>as_of</code>. Nell’esempio entrambi i
 parametri sono espliciti: la finestra copre il triennio 2022-2024 e lo
 stato dei rapporti è valutato al 31 dicembre 2024.</p>
+<div class="section level3">
+<h3 id="perimetro-contrattuale">Perimetro contrattuale<a class="anchor" aria-label="anchor" href="#perimetro-contrattuale"></a>
+</h3>
+<p>Non tutti gli avviamenti registrati nelle Comunicazioni Obbligatorie
+sono rapporti di lavoro subordinato ai quali si applica un contratto
+collettivo. Restano fuori le collaborazioni e il lavoro occasionale
+(codici MLPS <code>B.</code>), i tirocini, i lavori socialmente utili e
+le work experience (<code>C.</code>), il lavoro autonomo nello
+spettacolo (<code>G.03.00</code>), il lavoro congiunto in agricoltura
+(<code>H.02.00</code>), l’associazione in partecipazione
+(<code>L.</code>) e il contratto di agenzia (<code>M.</code>). Includere
+questi rapporti nelle classifiche dei CCNL altera le misure di
+rilevanza: le giornate e le persone attribuite a un CCNL
+comprenderebbero rapporti che quel contratto non regola. Per questo
+<code><a href="../reference/prepare_rapporti.html">prepare_rapporti()</a></code> applica per default il perimetro
+<code>"ccnl"</code>, definito dal flag <code>perimetro_ccnl</code> del
+lookup <code>tipologie_contrattuali</code>, prima di ogni altro
+trattamento. I codici assenti dal lookup sono trattati come fuori
+perimetro e conteggiati a parte.</p>
+<p>L’esclusione non è mai silenziosa: <code><a href="../reference/filter_perimetro.html">filter_perimetro()</a></code>
+emette un messaggio riassuntivo, riportato di seguito una sola volta, e
+i conteggi restano nei metadati.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_rapporti.html">prepare_rapporti</a></span><span class="op">(</span></span>
 <span>  <span class="va">dt</span>,</span>
 <span>  as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span>
 <span>  window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2022-01-01"</span>, <span class="st">"2024-12-31"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  ccnl_key <span class="op">=</span> <span class="st">"codice_cnel"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>L’attributo <code>ccnlcob_meta</code> conserva i parametri usati e i
-conteggi delle correzioni: rapporti in ingresso, rapporti esclusi perché
-esterni alla finestra, sentinelle su <code>fine</code> e su
-<code>inizio</code>, intervalli con <code>fine &lt; inizio</code>.</p>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt; filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.</span></span></code></pre></div>
+<p>I metadati riportano il perimetro applicato, il numero di rapporti
+esclusi e la tabella <code>esclusi_perimetro</code> con le righe escluse
+per tipologia.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_meta"</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">meta</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_meta"</span><span class="op">)</span></span>
+<span><span class="va">meta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"perimetro"</span>, <span class="st">"n_input"</span>, <span class="st">"n_dropped_perimetro"</span>, <span class="st">"n_tipologia_ignota"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $perimetro</span></span>
+<span><span class="co">#&gt; [1] "ccnl"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_input</span></span>
+<span><span class="co">#&gt; [1] 5000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_dropped_perimetro</span></span>
+<span><span class="co">#&gt; [1] 254</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_tipologia_ignota</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">meta</span><span class="op">$</span><span class="va">esclusi_perimetro</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="23%">
+<col width="58%">
+<col width="14%">
+<col width="3%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">cod_tipologia_contrattuale</th>
+<th align="left">des_tipologia_contrattuale</th>
+<th align="left">macro_tipologia</th>
+<th align="right">n</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">C.01.00</td>
+<td align="left">TIROCINIO</td>
+<td align="left">Tirocinio</td>
+<td align="right">110</td>
+</tr>
+<tr class="even">
+<td align="left">B.03.00</td>
+<td align="left">COLLABORAZIONE COORDINATA E CONTINUATIVA</td>
+<td align="left">Collaborazioni</td>
+<td align="right">90</td>
+</tr>
+<tr class="odd">
+<td align="left">B.04.00</td>
+<td align="left">COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL
+D.LGS. 36/2021</td>
+<td align="left">Collaborazioni</td>
+<td align="right">35</td>
+</tr>
+<tr class="even">
+<td align="left">C.03.00</td>
+<td align="left">LAVORO O ATTIVITÀ SOCIALMENTE UTILE (LSU - ASU)</td>
+<td align="left">Altro</td>
+<td align="right">19</td>
+</tr>
+</tbody>
+</table>
+<p>Nel dataset di esempio il perimetro esclude 254 rapporti su 5000 in 4
+tipologie, con 0 codici ignoti. Sono disponibili tre perimetri:</p>
+<ul>
+<li>
+<code>"ccnl"</code> (default): conserva le tipologie con
+<code>perimetro_ccnl == TRUE</code>; i codici ignoti vengono
+esclusi;</li>
+<li>
+<code>"standard"</code>: riproduce il perimetro di
+<code>cnelR</code>, che esclude solo le tipologie con
+<code>esclusa_standard == TRUE</code> nel lookup; i codici ignoti
+vengono conservati;</li>
+<li>
+<code>"completo"</code>: non esclude nulla e riproduce il
+comportamento delle versioni fino alla 0.2.0. La colonna logica
+<code>perimetro_ccnl</code> resta disponibile per distinguere i
+rapporti.</li>
+</ul>
+<p>Il filtro può essere applicato anche al dato grezzo con
+<code><a href="../reference/filter_perimetro.html">filter_perimetro()</a></code>, che restituisce un nuovo
+<code>data.table</code> con la colonna <code>perimetro_ccnl</code> e
+l’attributo <code>ccnlcob_perimetro</code>; l’input non viene
+modificato.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">std</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_perimetro.html">filter_perimetro</a></span><span class="op">(</span><span class="va">cob_esempio</span>, perimetro <span class="op">=</span> <span class="st">"standard"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">std</span>, <span class="st">"ccnlcob_perimetro"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"perimetro"</span>, <span class="st">"n_input"</span>, <span class="st">"n_kept"</span>, <span class="st">"n_dropped"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $perimetro</span></span>
+<span><span class="co">#&gt; [1] "standard"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_input</span></span>
+<span><span class="co">#&gt; [1] 5000</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_kept</span></span>
+<span><span class="co">#&gt; [1] 4765</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_dropped</span></span>
+<span><span class="co">#&gt; [1] 235</span></span>
+<span><span class="va">tutto</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/filter_perimetro.html">filter_perimetro</a></span><span class="op">(</span><span class="va">cob_esempio</span>, perimetro <span class="op">=</span> <span class="st">"completo"</span><span class="op">)</span></span>
+<span><span class="va">tutto</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="va">perimetro_ccnl</span><span class="op">]</span></span>
+<span><span class="co">#&gt;    perimetro_ccnl     N</span></span>
+<span><span class="co">#&gt;            &lt;lgcl&gt; &lt;int&gt;</span></span>
+<span><span class="co">#&gt; 1:           TRUE  4746</span></span>
+<span><span class="co">#&gt; 2:          FALSE   254</span></span></code></pre></div>
+<p>L’attributo <code>ccnlcob_meta</code> conserva i parametri usati e i
+conteggi delle correzioni: rapporti in ingresso, rapporti esclusi dal
+perimetro, rapporti esclusi perché esterni alla finestra, sentinelle su
+<code>fine</code> e su <code>inizio</code>, intervalli con
+<code>fine &lt; inizio</code>.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">meta</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">meta</span><span class="op">)</span>, <span class="st">"esclusi_perimetro"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $as_of</span></span>
 <span><span class="co">#&gt; [1] "2024-12-31"</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -196,14 +328,23 @@ esterni alla finestra, sentinelle su <code>fine</code> e su
 <span><span class="co">#&gt; $ccnl_key</span></span>
 <span><span class="co">#&gt; [1] "codice_cnel"</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $perimetro</span></span>
+<span><span class="co">#&gt; [1] "ccnl"</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n_input</span></span>
 <span><span class="co">#&gt; [1] 5000</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_dropped_perimetro</span></span>
+<span><span class="co">#&gt; [1] 254</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_tipologia_ignota</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n_dropped_window</span></span>
-<span><span class="co">#&gt; [1] 1935</span></span>
+<span><span class="co">#&gt; [1] 1819</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n_sentinel_fine</span></span>
-<span><span class="co">#&gt; [1] 155</span></span>
+<span><span class="co">#&gt; [1] 149</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n_sentinel_inizio</span></span>
 <span><span class="co">#&gt; [1] 0</span></span>
@@ -212,6 +353,10 @@ esterni alla finestra, sentinelle su <code>fine</code> e su
 <span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
 <p>Le colonne aggiunte hanno il seguente significato:</p>
 <ul>
+<li>
+<code>perimetro_ccnl</code> (logical): appartenenza al perimetro
+CCNL secondo il lookup; con il perimetro di default vale sempre
+<code>TRUE</code>;</li>
 <li>
 <code>giornate</code> (integer): giorni di contratto compresi nella
 finestra, estremi inclusi. Un rapporto iniziato prima di
@@ -241,7 +386,7 @@ lookup;</li>
 <code>prior == 1</code>, <code>PT</code> per
 <code>prior == 0</code>.</li>
 </ul>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="va">dt</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span>, <span class="fu">.</span><span class="op">(</span></span>
 <span>    <span class="va">id</span>, <span class="va">inizio</span>, <span class="va">fine</span>, <span class="va">ccnl_key</span>, <span class="va">giornate</span>, <span class="va">avviato</span>, <span class="va">attivo</span>,</span>
@@ -356,18 +501,18 @@ lookup;</li>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>rapporti <span class="op">=</span> <span class="va">.N</span>, giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">avviato</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    avviato rapporti giornate</span></span>
 <span><span class="co">#&gt;     &lt;lgcl&gt;    &lt;int&gt;    &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:    TRUE     2550   452820</span></span>
-<span><span class="co">#&gt; 2:   FALSE      515   197646</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:    TRUE     2436   434922</span></span>
+<span><span class="co">#&gt; 2:   FALSE      491   188754</span></span></code></pre></div>
 <p>La macro-tipologia deriva dal lookup
 <code>tipologie_contrattuali</code>, incluso nel pacchetto, tramite
 <code><a href="../reference/classify_tipologia.html">classify_tipologia()</a></code>. La funzione è vettorizzata, conserva
 ordine e lunghezza dell’input e restituisce <code>NA</code> per i codici
 ignoti.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/classify_tipologia.html">classify_tipologia</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A.01.00"</span>, <span class="st">"A.02.00"</span>, <span class="st">"A.03.00"</span>, <span class="st">"C.01.00"</span>, <span class="st">"ZZZ"</span>, <span class="cn">NA</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "Tempo indeterminato" "Tempo determinato"   "Apprendistato"      </span></span>
 <span><span class="co">#&gt; [4] "Tirocinio"           NA                    NA</span></span>
@@ -384,13 +529,9 @@ ignoti.</p>
 <span><span class="co">#&gt;  8:    Somministrazione     PT   111</span></span>
 <span><span class="co">#&gt;  9:       Intermittente     FT    93</span></span>
 <span><span class="co">#&gt; 10:       Apprendistato     PT    63</span></span>
-<span><span class="co">#&gt; 11:           Tirocinio     FT    50</span></span>
-<span><span class="co">#&gt; 12:      Collaborazioni     FT    44</span></span>
-<span><span class="co">#&gt; 13:           Domestico     PT    31</span></span>
-<span><span class="co">#&gt; 14:           Domestico     FT    26</span></span>
-<span><span class="co">#&gt; 15:      Collaborazioni     PT    20</span></span>
-<span><span class="co">#&gt; 16:           Tirocinio     PT    17</span></span>
-<span><span class="co">#&gt; 17:               Altro     FT     7</span></span></code></pre></div>
+<span><span class="co">#&gt; 11:           Domestico     PT    31</span></span>
+<span><span class="co">#&gt; 12:           Domestico     FT    26</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="giornate-di-contratto">3. Giornate di contratto<a class="anchor" aria-label="anchor" href="#giornate-di-contratto"></a>
@@ -410,14 +551,14 @@ vengono corrette. La correzione pro quota è demandata a
 giornate su una finestra diversa da quella di preparazione, per esempio
 il solo anno 2024. I rapporti che non intersecano la nuova finestra
 ricevono zero giornate e restano nel dataset.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt24</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/copy.html" class="external-link">copy</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/compute_giornate.html">compute_giornate</a></span><span class="op">(</span><span class="va">dt24</span>, window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2024-01-01"</span>, <span class="st">"2024-12-31"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">dt24</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>rapporti <span class="op">=</span> <span class="va">.N</span>, giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span>nel_2024 <span class="op">=</span> <span class="va">giornate</span> <span class="op">&gt;</span> <span class="fl">0</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    nel_2024 rapporti giornate</span></span>
 <span><span class="co">#&gt;      &lt;lgcl&gt;    &lt;int&gt;    &lt;int&gt;</span></span>
-<span><span class="co">#&gt; 1:     TRUE     1458   231464</span></span>
-<span><span class="co">#&gt; 2:    FALSE     1607        0</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     TRUE     1393   221212</span></span>
+<span><span class="co">#&gt; 2:    FALSE     1534        0</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="ranking-dei-ccnl">4. Ranking dei CCNL<a class="anchor" aria-label="anchor" href="#ranking-dei-ccnl"></a>
@@ -441,7 +582,7 @@ dedicata, rank <code>NA</code> e quota cumulata <code>NA</code>. Le
 quote di tutte le righe sono calcolate sul totale che include questa
 riga, così che sommino a 1 e la copertura del codice CCNL resti visibile
 direttamente nella tabella.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ranking</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rank_ccnl.html">rank_ccnl</a></span><span class="op">(</span><span class="va">dt</span>, measures <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"n_lavoratori"</span>, <span class="st">"giornate"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">ranking</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "ccnl_key"               "classe"                 "n_lavoratori"          </span></span>
@@ -479,109 +620,109 @@ direttamente nella tabella.</p>
 <tbody>
 <tr class="odd">
 <td align="left">A011</td>
-<td align="right">226</td>
+<td align="right">218</td>
 <td align="right">0.124</td>
 <td align="right">1</td>
-<td align="right">125537</td>
-<td align="right">0.193</td>
+<td align="right">118854</td>
+<td align="right">0.191</td>
 <td align="right">1</td>
-<td align="right">0.193</td>
+<td align="right">0.191</td>
 </tr>
 <tr class="even">
 <td align="left">H011</td>
-<td align="right">174</td>
+<td align="right">167</td>
 <td align="right">0.095</td>
 <td align="right">2</td>
-<td align="right">65546</td>
-<td align="right">0.101</td>
+<td align="right">62233</td>
+<td align="right">0.100</td>
 <td align="right">2</td>
-<td align="right">0.294</td>
+<td align="right">0.290</td>
 </tr>
 <tr class="odd">
 <td align="left">T011</td>
-<td align="right">141</td>
+<td align="right">136</td>
 <td align="right">0.077</td>
 <td align="right">3</td>
-<td align="right">50943</td>
-<td align="right">0.078</td>
+<td align="right">49468</td>
+<td align="right">0.079</td>
 <td align="right">3</td>
-<td align="right">0.372</td>
+<td align="right">0.370</td>
 </tr>
 <tr class="even">
 <td align="left">C011</td>
-<td align="right">112</td>
-<td align="right">0.061</td>
+<td align="right">110</td>
+<td align="right">0.062</td>
 <td align="right">4</td>
-<td align="right">33494</td>
+<td align="right">31713</td>
 <td align="right">0.051</td>
 <td align="right">4</td>
-<td align="right">0.424</td>
+<td align="right">0.421</td>
 </tr>
 <tr class="odd">
 <td align="left">IC91</td>
-<td align="right">90</td>
+<td align="right">86</td>
 <td align="right">0.049</td>
 <td align="right">5</td>
-<td align="right">30765</td>
-<td align="right">0.047</td>
+<td align="right">29904</td>
+<td align="right">0.048</td>
 <td align="right">5</td>
-<td align="right">0.471</td>
+<td align="right">0.468</td>
 </tr>
 <tr class="even">
 <td align="left">A012</td>
-<td align="right">80</td>
+<td align="right">78</td>
 <td align="right">0.044</td>
 <td align="right">6</td>
-<td align="right">24034</td>
-<td align="right">0.037</td>
+<td align="right">23667</td>
+<td align="right">0.038</td>
 <td align="right">6</td>
-<td align="right">0.508</td>
+<td align="right">0.506</td>
 </tr>
 <tr class="odd">
 <td align="left">B011</td>
-<td align="right">66</td>
-<td align="right">0.036</td>
+<td align="right">62</td>
+<td align="right">0.035</td>
 <td align="right">7</td>
-<td align="right">20667</td>
-<td align="right">0.032</td>
+<td align="right">18770</td>
+<td align="right">0.030</td>
 <td align="right">7</td>
-<td align="right">0.540</td>
+<td align="right">0.537</td>
 </tr>
 <tr class="even">
 <td align="left">F011</td>
 <td align="right">61</td>
-<td align="right">0.033</td>
+<td align="right">0.035</td>
 <td align="right">8</td>
 <td align="right">17180</td>
-<td align="right">0.026</td>
+<td align="right">0.028</td>
 <td align="right">10</td>
-<td align="right">0.622</td>
+<td align="right">0.621</td>
 </tr>
 <tr class="odd">
 <td align="left">D011</td>
-<td align="right">60</td>
-<td align="right">0.033</td>
+<td align="right">57</td>
+<td align="right">0.032</td>
 <td align="right">9</td>
-<td align="right">17999</td>
+<td align="right">17326</td>
 <td align="right">0.028</td>
 <td align="right">9</td>
-<td align="right">0.595</td>
+<td align="right">0.593</td>
 </tr>
 <tr class="even">
 <td align="left">E011</td>
-<td align="right">58</td>
+<td align="right">57</td>
 <td align="right">0.032</td>
-<td align="right">10</td>
-<td align="right">18284</td>
-<td align="right">0.028</td>
+<td align="right">9</td>
+<td align="right">18163</td>
+<td align="right">0.029</td>
 <td align="right">8</td>
-<td align="right">0.568</td>
+<td align="right">0.566</td>
 </tr>
 </tbody>
 </table>
 <p>La riga dei non classificati chiude la tabella; la sua quota misura
 la parte del fenomeno che il raccordo dei codici CCNL non copre.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="va">ranking</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, quota <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">quota_giornate</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">classe</span><span class="op">]</span>,</span>
 <span>  digits <span class="op">=</span> <span class="fl">3</span></span>
@@ -595,13 +736,13 @@ la parte del fenomeno che il raccordo dei codici CCNL non copre.</p>
 <tbody>
 <tr class="odd">
 <td align="left">CCNL</td>
-<td align="right">545848</td>
-<td align="right">0.839</td>
+<td align="right">522744</td>
+<td align="right">0.838</td>
 </tr>
 <tr class="even">
 <td align="left">Non classificati</td>
-<td align="right">104618</td>
-<td align="right">0.161</td>
+<td align="right">100932</td>
+<td align="right">0.162</td>
 </tr>
 </tbody>
 </table>
@@ -610,7 +751,7 @@ ciascuna coorte di avviamento (<code>anno</code> o
 <code>trimestre</code>): quote, rank e quote cumulate sono ricalcolati
 per gruppo. L’argomento <code>by</code> permette di aggiungere altre
 colonne di raggruppamento, per esempio <code>macro_tipologia</code>.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">per_anno</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rank_ccnl.html">rank_ccnl</a></span><span class="op">(</span><span class="va">dt</span>, measures <span class="op">=</span> <span class="st">"giornate"</span>, periodo <span class="op">=</span> <span class="st">"anno"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">per_anno</span><span class="op">[</span><span class="va">rank_giornate</span> <span class="op">&lt;=</span> <span class="fl">3L</span><span class="op">]</span>, digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -638,162 +779,162 @@ colonne di raggruppamento, per esempio <code>macro_tipologia</code>.</p>
 <td align="left">T011</td>
 <td align="left">CCNL</td>
 <td align="right">5376</td>
-<td align="right">0.127</td>
+<td align="right">0.134</td>
 <td align="right">1</td>
-<td align="right">0.127</td>
+<td align="right">0.134</td>
 </tr>
 <tr class="even">
 <td align="right">2019</td>
 <td align="left">A011</td>
 <td align="left">CCNL</td>
 <td align="right">3526</td>
-<td align="right">0.083</td>
+<td align="right">0.088</td>
 <td align="right">2</td>
-<td align="right">0.210</td>
+<td align="right">0.221</td>
 </tr>
 <tr class="odd">
 <td align="right">2019</td>
 <td align="left">B011</td>
 <td align="left">CCNL</td>
 <td align="right">3288</td>
-<td align="right">0.077</td>
+<td align="right">0.082</td>
 <td align="right">3</td>
-<td align="right">0.287</td>
+<td align="right">0.303</td>
 </tr>
 <tr class="even">
 <td align="right">2020</td>
 <td align="left">A011</td>
 <td align="left">CCNL</td>
-<td align="right">10477</td>
-<td align="right">0.214</td>
+<td align="right">9381</td>
+<td align="right">0.207</td>
 <td align="right">1</td>
-<td align="right">0.214</td>
+<td align="right">0.207</td>
 </tr>
 <tr class="odd">
 <td align="right">2020</td>
 <td align="left">H011</td>
 <td align="left">CCNL</td>
-<td align="right">8329</td>
-<td align="right">0.170</td>
+<td align="right">7067</td>
+<td align="right">0.156</td>
 <td align="right">2</td>
-<td align="right">0.383</td>
+<td align="right">0.363</td>
 </tr>
 <tr class="even">
 <td align="right">2020</td>
 <td align="left">T011</td>
 <td align="left">CCNL</td>
 <td align="right">3710</td>
-<td align="right">0.076</td>
+<td align="right">0.082</td>
 <td align="right">3</td>
-<td align="right">0.459</td>
+<td align="right">0.445</td>
 </tr>
 <tr class="odd">
 <td align="right">2021</td>
 <td align="left">A011</td>
 <td align="left">CCNL</td>
-<td align="right">23528</td>
-<td align="right">0.222</td>
+<td align="right">23180</td>
+<td align="right">0.225</td>
 <td align="right">1</td>
-<td align="right">0.222</td>
+<td align="right">0.225</td>
 </tr>
 <tr class="even">
 <td align="right">2021</td>
 <td align="left">H011</td>
 <td align="left">CCNL</td>
-<td align="right">8549</td>
-<td align="right">0.081</td>
+<td align="right">8520</td>
+<td align="right">0.083</td>
 <td align="right">2</td>
-<td align="right">0.302</td>
+<td align="right">0.307</td>
 </tr>
 <tr class="odd">
 <td align="right">2021</td>
 <td align="left">C011</td>
 <td align="left">CCNL</td>
-<td align="right">7105</td>
-<td align="right">0.067</td>
+<td align="right">7000</td>
+<td align="right">0.068</td>
 <td align="right">3</td>
-<td align="right">0.369</td>
+<td align="right">0.375</td>
 </tr>
 <tr class="even">
 <td align="right">2022</td>
 <td align="left">A011</td>
 <td align="left">CCNL</td>
-<td align="right">40045</td>
-<td align="right">0.199</td>
+<td align="right">37331</td>
+<td align="right">0.194</td>
 <td align="right">1</td>
-<td align="right">0.199</td>
+<td align="right">0.194</td>
 </tr>
 <tr class="odd">
 <td align="right">2022</td>
 <td align="left">H011</td>
 <td align="left">CCNL</td>
-<td align="right">18487</td>
+<td align="right">17774</td>
 <td align="right">0.092</td>
 <td align="right">2</td>
-<td align="right">0.291</td>
+<td align="right">0.286</td>
 </tr>
 <tr class="even">
 <td align="right">2022</td>
 <td align="left">T011</td>
 <td align="left">CCNL</td>
-<td align="right">16842</td>
+<td align="right">16098</td>
 <td align="right">0.084</td>
 <td align="right">3</td>
-<td align="right">0.375</td>
+<td align="right">0.370</td>
 </tr>
 <tr class="odd">
 <td align="right">2023</td>
 <td align="left">A011</td>
 <td align="left">CCNL</td>
-<td align="right">29584</td>
-<td align="right">0.187</td>
+<td align="right">28729</td>
+<td align="right">0.185</td>
 <td align="right">1</td>
-<td align="right">0.187</td>
+<td align="right">0.185</td>
 </tr>
 <tr class="even">
 <td align="right">2023</td>
 <td align="left">H011</td>
 <td align="left">CCNL</td>
-<td align="right">17496</td>
-<td align="right">0.111</td>
+<td align="right">17288</td>
+<td align="right">0.112</td>
+<td align="right">2</td>
+<td align="right">0.297</td>
+</tr>
+<tr class="odd">
+<td align="right">2023</td>
+<td align="left">T011</td>
+<td align="left">CCNL</td>
+<td align="right">11990</td>
+<td align="right">0.077</td>
+<td align="right">3</td>
+<td align="right">0.374</td>
+</tr>
+<tr class="even">
+<td align="right">2024</td>
+<td align="left">A011</td>
+<td align="left">CCNL</td>
+<td align="right">16707</td>
+<td align="right">0.191</td>
+<td align="right">1</td>
+<td align="right">0.191</td>
+</tr>
+<tr class="odd">
+<td align="right">2024</td>
+<td align="left">H011</td>
+<td align="left">CCNL</td>
+<td align="right">9324</td>
+<td align="right">0.107</td>
 <td align="right">2</td>
 <td align="right">0.298</td>
 </tr>
-<tr class="odd">
-<td align="right">2023</td>
-<td align="left">T011</td>
-<td align="left">CCNL</td>
-<td align="right">12155</td>
-<td align="right">0.077</td>
-<td align="right">3</td>
-<td align="right">0.375</td>
-</tr>
-<tr class="even">
-<td align="right">2024</td>
-<td align="left">A011</td>
-<td align="left">CCNL</td>
-<td align="right">18377</td>
-<td align="right">0.196</td>
-<td align="right">1</td>
-<td align="right">0.196</td>
-</tr>
-<tr class="odd">
-<td align="right">2024</td>
-<td align="left">H011</td>
-<td align="left">CCNL</td>
-<td align="right">10425</td>
-<td align="right">0.111</td>
-<td align="right">2</td>
-<td align="right">0.307</td>
-</tr>
 <tr class="even">
 <td align="right">2024</td>
 <td align="left">T011</td>
 <td align="left">CCNL</td>
-<td align="right">8626</td>
+<td align="right">8060</td>
 <td align="right">0.092</td>
 <td align="right">3</td>
-<td align="right">0.399</td>
+<td align="right">0.390</td>
 </tr>
 </tbody>
 </table>
@@ -820,17 +961,17 @@ stessa, la selezione include tutti i CCNL classificati senza
 raggiungerla.</p>
 <p>Con <code>return = "keys"</code> (default) la funzione restituisce il
 vettore delle chiavi selezionate.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">rilevanti</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_ccnl_rilevanti.html">select_ccnl_rilevanti</a></span><span class="op">(</span><span class="va">ranking</span>, measure <span class="op">=</span> <span class="st">"giornate"</span>, cum_share <span class="op">=</span> <span class="fl">0.8</span><span class="op">)</span></span>
 <span><span class="va">rilevanti</span></span>
 <span><span class="co">#&gt;  [1] "A011" "H011" "T011" "C011" "IC91" "A012" "B011" "E011" "D011" "F011"</span></span>
-<span><span class="co">#&gt; [11] "M011" "H012" "I011" "K011" "G011" "L011" "Q011" "N011" "V011" "P011"</span></span>
+<span><span class="co">#&gt; [11] "H012" "M011" "I011" "K011" "G011" "L011" "Q011" "N011" "V011" "P011"</span></span>
 <span><span class="co">#&gt; [21] "T012"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">rilevanti</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 21</span></span>
 <span><span class="va">ranking</span><span class="op">[</span><span class="va">ccnl_key</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">rilevanti</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">quota_cum_giornate</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; [1] 0.8017375</span></span></code></pre></div>
-<p>Nel dataset di esempio la copertura del codice CNEL è pari a 0.839
+<span><span class="co">#&gt; [1] 0.802484</span></span></code></pre></div>
+<p>Nel dataset di esempio la copertura del codice CNEL è pari a 0.838
 delle giornate, per cui la soglia dell’80% del totale seleziona 21 dei
 25 CCNL classificati.</p>
 <p>Con <code>return = "table"</code> la funzione restituisce il ranking
@@ -841,7 +982,7 @@ sommate e le quote ricalcolate sul gruppo, mentre la riga dei non
 classificati è conservata. Nell’esempio <code>top_n = 5</code> si
 combina con il default <code>cum_share = 0.8</code>; per usare il solo
 <code>top_n</code> occorre impostare <code>cum_share = NULL</code>.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tabella</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_ccnl_rilevanti.html">select_ccnl_rilevanti</a></span><span class="op">(</span></span>
 <span>  <span class="va">ranking</span>,</span>
 <span>  measure <span class="op">=</span> <span class="st">"giornate"</span>,</span>
@@ -879,68 +1020,68 @@ combina con il default <code>cum_share = 0.8</code>; per usare il solo
 <td align="left">A011</td>
 <td align="left">CCNL</td>
 <td align="left">TRUE</td>
-<td align="right">226</td>
+<td align="right">218</td>
 <td align="right">0.124</td>
-<td align="right">125537</td>
-<td align="right">0.193</td>
+<td align="right">118854</td>
+<td align="right">0.191</td>
 </tr>
 <tr class="even">
 <td align="left">H011</td>
 <td align="left">CCNL</td>
 <td align="left">TRUE</td>
-<td align="right">174</td>
+<td align="right">167</td>
 <td align="right">0.095</td>
-<td align="right">65546</td>
-<td align="right">0.101</td>
+<td align="right">62233</td>
+<td align="right">0.100</td>
 </tr>
 <tr class="odd">
 <td align="left">T011</td>
 <td align="left">CCNL</td>
 <td align="left">TRUE</td>
-<td align="right">141</td>
+<td align="right">136</td>
 <td align="right">0.077</td>
-<td align="right">50943</td>
-<td align="right">0.078</td>
+<td align="right">49468</td>
+<td align="right">0.079</td>
 </tr>
 <tr class="even">
 <td align="left">C011</td>
 <td align="left">CCNL</td>
 <td align="left">TRUE</td>
-<td align="right">112</td>
-<td align="right">0.061</td>
-<td align="right">33494</td>
+<td align="right">110</td>
+<td align="right">0.062</td>
+<td align="right">31713</td>
 <td align="right">0.051</td>
 </tr>
 <tr class="odd">
 <td align="left">IC91</td>
 <td align="left">CCNL</td>
 <td align="left">TRUE</td>
-<td align="right">90</td>
+<td align="right">86</td>
 <td align="right">0.049</td>
-<td align="right">30765</td>
-<td align="right">0.047</td>
+<td align="right">29904</td>
+<td align="right">0.048</td>
 </tr>
 <tr class="even">
 <td align="left">Altri CCNL</td>
 <td align="left">Altri CCNL</td>
 <td align="left">FALSE</td>
-<td align="right">877</td>
-<td align="right">0.481</td>
-<td align="right">239563</td>
-<td align="right">0.368</td>
+<td align="right">848</td>
+<td align="right">0.480</td>
+<td align="right">230572</td>
+<td align="right">0.370</td>
 </tr>
 <tr class="odd">
 <td align="left">NA</td>
 <td align="left">Non classificati</td>
 <td align="left">FALSE</td>
-<td align="right">204</td>
-<td align="right">0.112</td>
-<td align="right">104618</td>
-<td align="right">0.161</td>
+<td align="right">200</td>
+<td align="right">0.113</td>
+<td align="right">100932</td>
+<td align="right">0.162</td>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">tabella</span>, <span class="st">"ccnlcob_selezione"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"measure"</span>, <span class="st">"top_n"</span>, <span class="st">"cum_share"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $measure</span></span>
 <span><span class="co">#&gt; [1] "giornate"</span></span>
@@ -953,7 +1094,7 @@ combina con il default <code>cum_share = 0.8</code>; per usare il solo
 <p>Le sezioni seguenti usano i primi cinque CCNL per giornate come
 sottoinsieme di lavoro. Con <code>cum_share = NULL</code> la selezione
 dipende dal solo <code>top_n</code>.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">top5</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/select_ccnl_rilevanti.html">select_ccnl_rilevanti</a></span><span class="op">(</span></span>
 <span>  <span class="va">ranking</span>,</span>
 <span>  measure <span class="op">=</span> <span class="st">"giornate"</span>,</span>
@@ -992,7 +1133,7 @@ assente dal lookup, tipicamente un comune fuori regione, riceve
 <code>cpi_name = "Non disponibile"</code>. Nel dataset di esempio i
 quattro codici non lombardi confluiscono nella classe <code>FUORI</code>
 e nessun codice è mancante.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/add_cpi.html">add_cpi</a></span><span class="op">(</span><span class="va">dt</span>, geo <span class="op">=</span> <span class="st">"sede_lavoro"</span>, lookup <span class="op">=</span> <span class="va">cpi_esempio</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_cpi"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $geo</span></span>
@@ -1003,19 +1144,19 @@ e nessun codice è mancante.</p>
 <span><span class="va">dt</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">cpi_code</span>, <span class="va">cpi_name</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">N</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;        cpi_code        cpi_name     N</span></span>
 <span><span class="co">#&gt;          &lt;char&gt;          &lt;char&gt; &lt;int&gt;</span></span>
-<span><span class="co">#&gt;  1: F205C000169      CPI MILANO   954</span></span>
-<span><span class="co">#&gt;  2: L682C000600      CPI VARESE   437</span></span>
-<span><span class="co">#&gt;  3: B157C000683     CPI BRESCIA   314</span></span>
-<span><span class="co">#&gt;  4: F704C000581       CPI MONZA   287</span></span>
-<span><span class="co">#&gt;  5: A794C000060     CPI BERGAMO   244</span></span>
-<span><span class="co">#&gt;  6: C933C000073        CPI COMO   163</span></span>
-<span><span class="co">#&gt;  7:       FUORI Fuori Lombardia   151</span></span>
-<span><span class="co">#&gt;  8: G388C000070       CPI PAVIA   145</span></span>
-<span><span class="co">#&gt;  9: D150C000030     CPI CREMONA    97</span></span>
-<span><span class="co">#&gt; 10: E507C000578       CPI LECCO    91</span></span>
-<span><span class="co">#&gt; 11: E897C000034     CPI MANTOVA    78</span></span>
-<span><span class="co">#&gt; 12: I829C000043     CPI SONDRIO    56</span></span>
-<span><span class="co">#&gt; 13: E648C000580        CPI LODI    48</span></span></code></pre></div>
+<span><span class="co">#&gt;  1: F205C000169      CPI MILANO   913</span></span>
+<span><span class="co">#&gt;  2: L682C000600      CPI VARESE   417</span></span>
+<span><span class="co">#&gt;  3: B157C000683     CPI BRESCIA   296</span></span>
+<span><span class="co">#&gt;  4: F704C000581       CPI MONZA   279</span></span>
+<span><span class="co">#&gt;  5: A794C000060     CPI BERGAMO   230</span></span>
+<span><span class="co">#&gt;  6: C933C000073        CPI COMO   159</span></span>
+<span><span class="co">#&gt;  7:       FUORI Fuori Lombardia   140</span></span>
+<span><span class="co">#&gt;  8: G388C000070       CPI PAVIA   139</span></span>
+<span><span class="co">#&gt;  9: D150C000030     CPI CREMONA    95</span></span>
+<span><span class="co">#&gt; 10: E507C000578       CPI LECCO    88</span></span>
+<span><span class="co">#&gt; 11: E897C000034     CPI MANTOVA    72</span></span>
+<span><span class="co">#&gt; 12: I829C000043     CPI SONDRIO    52</span></span>
+<span><span class="co">#&gt; 13: E648C000580        CPI LODI    47</span></span></code></pre></div>
 <p><code><a href="../reference/ccnl_by_cpi.html">ccnl_by_cpi()</a></code> calcola la tabella <code>ccnl_key</code> x
 CPI per la misura scelta (le stesse di <code><a href="../reference/rank_ccnl.html">rank_ccnl()</a></code>, default
 <code>giornate</code>). Se <code>dt</code> contiene già
@@ -1024,7 +1165,7 @@ com’è e gli argomenti <code>geo</code> e <code>lookup</code> sono
 ignorati; altrimenti il CPI viene calcolato con <code><a href="../reference/add_cpi.html">add_cpi()</a></code>
 su una copia delle colonne necessarie, senza modificare <code>dt</code>.
 L’argomento <code>ccnl</code> limita l’uscita alle chiavi indicate.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cpi</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ccnl_by_cpi.html">ccnl_by_cpi</a></span><span class="op">(</span><span class="va">dt</span>, measure <span class="op">=</span> <span class="st">"giornate"</span>, ccnl <span class="op">=</span> <span class="va">top5</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">cpi</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "ccnl_key"      "classe"        "cpi_code"      "cpi_name"     </span></span>
@@ -1044,94 +1185,94 @@ L’argomento <code>ccnl</code> limita l’uscita alle chiavi indicate.</p>
 <tbody>
 <tr class="odd">
 <td align="left">CPI MILANO</td>
-<td align="right">38886</td>
-<td align="right">0.310</td>
+<td align="right">37334</td>
+<td align="right">0.314</td>
 <td align="right">0.186</td>
-<td align="right">0.964</td>
+<td align="right">0.974</td>
 </tr>
 <tr class="even">
 <td align="left">CPI BRESCIA</td>
-<td align="right">16218</td>
-<td align="right">0.129</td>
-<td align="right">0.254</td>
-<td align="right">1.318</td>
+<td align="right">15721</td>
+<td align="right">0.132</td>
+<td align="right">0.264</td>
+<td align="right">1.386</td>
 </tr>
 <tr class="odd">
 <td align="left">CPI VARESE</td>
-<td align="right">13295</td>
-<td align="right">0.106</td>
-<td align="right">0.143</td>
-<td align="right">0.742</td>
+<td align="right">12445</td>
+<td align="right">0.105</td>
+<td align="right">0.138</td>
+<td align="right">0.725</td>
 </tr>
 <tr class="even">
 <td align="left">CPI BERGAMO</td>
-<td align="right">11677</td>
-<td align="right">0.093</td>
-<td align="right">0.217</td>
-<td align="right">1.123</td>
+<td align="right">10862</td>
+<td align="right">0.091</td>
+<td align="right">0.215</td>
+<td align="right">1.126</td>
 </tr>
 <tr class="odd">
 <td align="left">CPI MONZA</td>
-<td align="right">10016</td>
+<td align="right">9532</td>
 <td align="right">0.080</td>
-<td align="right">0.182</td>
-<td align="right">0.944</td>
+<td align="right">0.179</td>
+<td align="right">0.938</td>
 </tr>
 <tr class="even">
-<td align="left">Fuori Lombardia</td>
-<td align="right">8524</td>
-<td align="right">0.068</td>
-<td align="right">0.249</td>
-<td align="right">1.291</td>
+<td align="left">CPI PAVIA</td>
+<td align="right">8255</td>
+<td align="right">0.069</td>
+<td align="right">0.264</td>
+<td align="right">1.385</td>
 </tr>
 <tr class="odd">
-<td align="left">CPI PAVIA</td>
-<td align="right">8410</td>
-<td align="right">0.067</td>
-<td align="right">0.264</td>
-<td align="right">1.365</td>
+<td align="left">Fuori Lombardia</td>
+<td align="right">8181</td>
+<td align="right">0.069</td>
+<td align="right">0.248</td>
+<td align="right">1.303</td>
+</tr>
+<tr class="even">
+<td align="left">CPI COMO</td>
+<td align="right">3545</td>
+<td align="right">0.030</td>
+<td align="right">0.113</td>
+<td align="right">0.593</td>
+</tr>
+<tr class="odd">
+<td align="left">CPI LODI</td>
+<td align="right">3222</td>
+<td align="right">0.027</td>
+<td align="right">0.352</td>
+<td align="right">1.846</td>
 </tr>
 <tr class="even">
 <td align="left">CPI SONDRIO</td>
-<td align="right">4272</td>
-<td align="right">0.034</td>
-<td align="right">0.273</td>
-<td align="right">1.417</td>
-</tr>
-<tr class="odd">
-<td align="left">CPI COMO</td>
-<td align="right">3816</td>
-<td align="right">0.030</td>
-<td align="right">0.120</td>
-<td align="right">0.622</td>
-</tr>
-<tr class="even">
-<td align="left">CPI LODI</td>
-<td align="right">3497</td>
-<td align="right">0.028</td>
-<td align="right">0.371</td>
-<td align="right">1.920</td>
+<td align="right">2955</td>
+<td align="right">0.025</td>
+<td align="right">0.211</td>
+<td align="right">1.105</td>
 </tr>
 <tr class="odd">
 <td align="left">CPI MANTOVA</td>
-<td align="right">2960</td>
+<td align="right">2839</td>
 <td align="right">0.024</td>
-<td align="right">0.200</td>
-<td align="right">1.034</td>
+<td align="right">0.211</td>
+<td align="right">1.107</td>
 </tr>
 <tr class="even">
 <td align="left">CPI LECCO</td>
-<td align="right">2476</td>
-<td align="right">0.020</td>
-<td align="right">0.127</td>
-<td align="right">0.656</td>
+<td align="right">2473</td>
+<td align="right">0.021</td>
+<td align="right">0.134</td>
+<td align="right">0.704</td>
 </tr>
 <tr class="odd">
 <td align="left">CPI CREMONA</td>
 <td align="right">1490</td>
-<td align="right">0.012</td>
-<td align="right">0.079</td>
-<td align="right">0.411</td>
+<td align="right">0.013</td>
+<td align="right">0.081</td>
+<td align="right">0.427</td>
 </tr>
 </tbody>
 </table>
@@ -1163,23 +1304,23 @@ con <code>NA</code> nelle celle dei CPI il cui totale <code>T[d]</code>
 è inferiore a <code>min_n</code> (default 30 unità della misura); le
 celle restano nella tabella. Nel dataset di esempio tutti i CPI superano
 la soglia sulle giornate.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cpi</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>quota_riga <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">quota_riga</span><span class="op">)</span>, lq_min <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">lq</span><span class="op">)</span>, lq_max <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">lq</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">ccnl_key</span><span class="op">]</span></span>
-<span><span class="co">#&gt;    ccnl_key quota_riga      lq_min   lq_max</span></span>
-<span><span class="co">#&gt;      &lt;char&gt;      &lt;num&gt;       &lt;num&gt;    &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     A011          1 0.411293375 1.920262</span></span>
-<span><span class="co">#&gt; 2:     C011          1 0.334628590 1.814877</span></span>
-<span><span class="co">#&gt; 3:     H011          1 0.459591420 1.386507</span></span>
-<span><span class="co">#&gt; 4:     IC91          1 0.009937513 3.093907</span></span>
-<span><span class="co">#&gt; 5:     T011          1 0.094811592 1.587235</span></span>
+<span><span class="co">#&gt;    ccnl_key quota_riga     lq_min   lq_max</span></span>
+<span><span class="co">#&gt;      &lt;char&gt;      &lt;num&gt;      &lt;num&gt;    &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:     A011          1 0.42668877 1.845559</span></span>
+<span><span class="co">#&gt; 2:     C011          1 0.35950792 1.722439</span></span>
+<span><span class="co">#&gt; 3:     H011          1 0.44464003 1.404219</span></span>
+<span><span class="co">#&gt; 4:     IC91          1 0.01000221 3.397226</span></span>
+<span><span class="co">#&gt; 5:     T011          1 0.10421043 1.615597</span></span>
 <span><span class="va">cpi</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">lq</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span>, <span class="fu">.</span><span class="op">(</span><span class="va">ccnl_key</span>, <span class="va">cpi_name</span>, <span class="va">giornate</span>, <span class="va">quota_colonna</span>, <span class="va">lq</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;    ccnl_key        cpi_name giornate quota_colonna       lq</span></span>
 <span><span class="co">#&gt;      &lt;char&gt;          &lt;char&gt;    &lt;int&gt;         &lt;num&gt;    &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:     IC91     CPI SONDRIO     2286    0.14633210 3.093907</span></span>
-<span><span class="co">#&gt; 2:     A011        CPI LODI     3497    0.37060195 1.920262</span></span>
-<span><span class="co">#&gt; 3:     C011 Fuori Lombardia     3197    0.09345221 1.814877</span></span>
-<span><span class="co">#&gt; 4:     IC91       CPI LECCO     1605    0.08206361 1.735075</span></span>
-<span><span class="co">#&gt; 5:     IC91        CPI COMO     2514    0.07907401 1.671866</span></span></code></pre></div>
+<span><span class="co">#&gt; 1:     IC91     CPI SONDRIO     2286    0.16289012 3.397226</span></span>
+<span><span class="co">#&gt; 2:     A011        CPI LODI     3222    0.35170833 1.845559</span></span>
+<span><span class="co">#&gt; 3:     IC91       CPI LECCO     1581    0.08576078 1.788622</span></span>
+<span><span class="co">#&gt; 4:     C011 Fuori Lombardia     2885    0.08758349 1.722439</span></span>
+<span><span class="co">#&gt; 5:     IC91        CPI COMO     2514    0.08013260 1.671241</span></span></code></pre></div>
 <p>Gli argomenti <code>periodo</code> (<code>anno</code> o
 <code>trimestre</code>) e <code>by</code> producono la distribuzione
 entro ciascuna coorte di avviamento o entro gruppi aggiuntivi, con quote
@@ -1199,7 +1340,7 @@ come <code>macro_tipologia</code> dopo <code><a href="../reference/prepare_rappo
 i codici senza macro-classe formano la tipologia
 <code>Non classificata</code> e l’orario mancante la classe
 <code>ND</code>. La misura di default è <code>n_rapporti</code>.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tipologie</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ccnl_by_tipologia.html">ccnl_by_tipologia</a></span><span class="op">(</span></span>
 <span>  <span class="va">dt</span>,</span>
 <span>  measure <span class="op">=</span> <span class="st">"n_rapporti"</span>,</span>
@@ -1226,112 +1367,84 @@ i codici senza macro-classe formano la tipologia
 <td align="left">Tempo determinato</td>
 <td align="left">FT</td>
 <td align="right">131</td>
-<td align="right">0.275</td>
-<td align="right">1.044</td>
+<td align="right">0.296</td>
+<td align="right">1.072</td>
 </tr>
 <tr class="even">
 <td align="left">Tempo indeterminato</td>
 <td align="left">FT</td>
 <td align="right">110</td>
-<td align="right">0.231</td>
-<td align="right">1.122</td>
+<td align="right">0.248</td>
+<td align="right">1.152</td>
 </tr>
 <tr class="odd">
 <td align="left">Tempo determinato</td>
 <td align="left">PT</td>
 <td align="right">48</td>
-<td align="right">0.101</td>
-<td align="right">1.033</td>
+<td align="right">0.108</td>
+<td align="right">1.060</td>
 </tr>
 <tr class="even">
 <td align="left">Somministrazione</td>
 <td align="left">FT</td>
 <td align="right">39</td>
-<td align="right">0.082</td>
-<td align="right">0.882</td>
+<td align="right">0.088</td>
+<td align="right">0.905</td>
 </tr>
 <tr class="odd">
 <td align="left">Tempo indeterminato</td>
 <td align="left">PT</td>
 <td align="right">34</td>
-<td align="right">0.071</td>
-<td align="right">0.911</td>
+<td align="right">0.077</td>
+<td align="right">0.935</td>
 </tr>
 <tr class="even">
 <td align="left">Intermittente</td>
 <td align="left">PT</td>
 <td align="right">19</td>
-<td align="right">0.040</td>
-<td align="right">0.722</td>
+<td align="right">0.043</td>
+<td align="right">0.741</td>
 </tr>
 <tr class="odd">
 <td align="left">Apprendistato</td>
 <td align="left">FT</td>
 <td align="right">18</td>
-<td align="right">0.038</td>
-<td align="right">0.694</td>
+<td align="right">0.041</td>
+<td align="right">0.712</td>
 </tr>
 <tr class="even">
 <td align="left">Intermittente</td>
 <td align="left">FT</td>
 <td align="right">14</td>
-<td align="right">0.029</td>
-<td align="right">0.949</td>
-</tr>
-<tr class="odd">
-<td align="left">Collaborazioni</td>
-<td align="left">FT</td>
-<td align="right">12</td>
-<td align="right">0.025</td>
-<td align="right">1.692</td>
-</tr>
-<tr class="even">
-<td align="left">Tirocinio</td>
-<td align="left">FT</td>
-<td align="right">12</td>
-<td align="right">0.025</td>
-<td align="right">1.531</td>
+<td align="right">0.032</td>
+<td align="right">0.974</td>
 </tr>
 <tr class="odd">
 <td align="left">Apprendistato</td>
 <td align="left">PT</td>
 <td align="right">11</td>
-<td align="right">0.023</td>
-<td align="right">1.155</td>
+<td align="right">0.025</td>
+<td align="right">1.186</td>
 </tr>
 <tr class="even">
 <td align="left">Somministrazione</td>
 <td align="left">PT</td>
 <td align="right">11</td>
-<td align="right">0.023</td>
-<td align="right">0.614</td>
+<td align="right">0.025</td>
+<td align="right">0.630</td>
 </tr>
 <tr class="odd">
-<td align="left">Collaborazioni</td>
-<td align="left">PT</td>
-<td align="right">6</td>
-<td align="right">0.013</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
 <td align="left">Domestico</td>
 <td align="left">FT</td>
 <td align="right">4</td>
-<td align="right">0.008</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">Domestico</td>
-<td align="left">PT</td>
-<td align="right">4</td>
-<td align="right">0.008</td>
+<td align="right">0.009</td>
 <td align="right">NA</td>
 </tr>
 <tr class="even">
-<td align="left">Tirocinio</td>
+<td align="left">Domestico</td>
 <td align="left">PT</td>
-<td align="right">3</td>
-<td align="right">0.006</td>
+<td align="right">4</td>
+<td align="right">0.009</td>
 <td align="right">NA</td>
 </tr>
 </tbody>
@@ -1348,7 +1461,7 @@ il codice MLPS <code>cod_tipologia_contrattuale</code> con la
 descrizione <code>des_tipologia_contrattuale</code>, mentre
 <code>orario = FALSE</code> omette l’incrocio con l’orario e restituisce
 una riga per CCNL e tipologia.</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">larga</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/ccnl_by_tipologia.html">ccnl_by_tipologia</a></span><span class="op">(</span><span class="va">dt</span>, measure <span class="op">=</span> <span class="st">"n_rapporti"</span>, ccnl <span class="op">=</span> <span class="va">top5</span>, orario <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/dcast.data.table.html" class="external-link">dcast</a></span><span class="op">(</span><span class="va">larga</span>, <span class="va">ccnl_key</span> <span class="op">~</span> <span class="va">tipologia</span>, value.var <span class="op">=</span> <span class="st">"quota_riga"</span>, fill <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
@@ -1356,89 +1469,68 @@ una riga per CCNL e tipologia.</p>
 <span><span class="op">)</span></span></code></pre></div>
 <table class="table">
 <colgroup>
-<col width="6%">
-<col width="4%">
-<col width="10%">
-<col width="11%">
-<col width="7%">
-<col width="10%">
-<col width="12%">
+<col width="8%">
 <col width="13%">
-<col width="15%">
-<col width="7%">
+<col width="9%">
+<col width="13%">
+<col width="16%">
+<col width="17%">
+<col width="19%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">ccnl_key</th>
-<th align="right">Altro</th>
 <th align="right">Apprendistato</th>
-<th align="right">Collaborazioni</th>
 <th align="right">Domestico</th>
 <th align="right">Intermittente</th>
 <th align="right">Somministrazione</th>
 <th align="right">Tempo determinato</th>
 <th align="right">Tempo indeterminato</th>
-<th align="right">Tirocinio</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
 <td align="left">A011</td>
-<td align="right">0.000</td>
-<td align="right">0.061</td>
-<td align="right">0.038</td>
-<td align="right">0.017</td>
-<td align="right">0.069</td>
-<td align="right">0.105</td>
-<td align="right">0.376</td>
-<td align="right">0.303</td>
-<td align="right">0.032</td>
+<td align="right">0.065</td>
+<td align="right">0.018</td>
+<td align="right">0.074</td>
+<td align="right">0.113</td>
+<td align="right">0.404</td>
+<td align="right">0.325</td>
 </tr>
 <tr class="even">
 <td align="left">C011</td>
-<td align="right">0.000</td>
-<td align="right">0.063</td>
+<td align="right">0.065</td>
 <td align="right">0.014</td>
-<td align="right">0.014</td>
-<td align="right">0.056</td>
-<td align="right">0.162</td>
-<td align="right">0.324</td>
-<td align="right">0.352</td>
-<td align="right">0.014</td>
+<td align="right">0.058</td>
+<td align="right">0.167</td>
+<td align="right">0.333</td>
+<td align="right">0.362</td>
 </tr>
 <tr class="odd">
 <td align="left">H011</td>
-<td align="right">0.000</td>
-<td align="right">0.080</td>
-<td align="right">0.018</td>
-<td align="right">0.022</td>
-<td align="right">0.066</td>
-<td align="right">0.146</td>
-<td align="right">0.350</td>
-<td align="right">0.270</td>
-<td align="right">0.047</td>
+<td align="right">0.086</td>
+<td align="right">0.023</td>
+<td align="right">0.070</td>
+<td align="right">0.156</td>
+<td align="right">0.375</td>
+<td align="right">0.289</td>
 </tr>
 <tr class="even">
 <td align="left">IC91</td>
+<td align="right">0.123</td>
 <td align="right">0.000</td>
-<td align="right">0.117</td>
-<td align="right">0.018</td>
-<td align="right">0.000</td>
-<td align="right">0.108</td>
-<td align="right">0.135</td>
-<td align="right">0.315</td>
-<td align="right">0.279</td>
-<td align="right">0.027</td>
+<td align="right">0.113</td>
+<td align="right">0.142</td>
+<td align="right">0.330</td>
+<td align="right">0.292</td>
 </tr>
 <tr class="odd">
 <td align="left">T011</td>
-<td align="right">0.005</td>
-<td align="right">0.077</td>
-<td align="right">0.015</td>
-<td align="right">0.036</td>
-<td align="right">0.097</td>
-<td align="right">0.122</td>
-<td align="right">0.378</td>
-<td align="right">0.255</td>
-<td align="right">0.015</td>
+<td align="right">0.079</td>
+<td align="right">0.037</td>
+<td align="right">0.101</td>
+<td align="right">0.127</td>
+<td align="right">0.392</td>
+<td align="right">0.265</td>
 </tr>
 </tbody>
 </table>
@@ -1456,7 +1548,7 @@ di <code>vecshift::vecshift()</code> per ripartire pro quota
 (1/<code>arco</code>) i giorni in cui la stessa persona ha più rapporti
 concorrenti, in modo che la somma per persona coincida con i
 giorni-persona occupati.</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
 <span><span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, effettive <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate_effettive</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">cf</span><span class="op">]</span></span></code></pre></div>
 <p><code><a href="../reference/clean_retribuzione.html">clean_retribuzione()</a></code> (Fase 3) segnalerà le retribuzioni
@@ -1466,7 +1558,7 @@ dati; <code><a href="../reference/median_retribuzione.html">median_retribuzione(
 ponderata per giornate per coorte di avviamento;
 <code><a href="../reference/deflate_retribuzione.html">deflate_retribuzione()</a></code> (Fase 3) applicherà un indice
 fornito dall’utente.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/clean_retribuzione.html">clean_retribuzione</a></span><span class="op">(</span><span class="va">dt</span>, method <span class="op">=</span> <span class="st">"mad"</span>, k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/normalize_fte.html">normalize_fte</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
 <span><span class="va">retribuzioni</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/median_retribuzione.html">median_retribuzione</a></span><span class="op">(</span><span class="va">dt</span>, periodo <span class="op">=</span> <span class="st">"anno"</span>, min_n <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
@@ -1480,7 +1572,7 @@ fornito dall’utente.</p>
 restituendo un oggetto <code>ccnlcob_result</code>, e
 <code><a href="../reference/write_results.html">write_results()</a></code> (Fase 4) serializzerà le tabelle piccole in
 RDS e i cubi in FST.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_ccnl.html">analyze_ccnl</a></span><span class="op">(</span></span>
 <span>  <span class="va">cob_esempio</span>,</span>
 <span>  as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span>
@@ -1496,7 +1588,7 @@ RDS e i cubi in FST.</p>
 FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <code>sl2_rapporti_36m_classificati</code> prodotta da
 <code>cnelR</code>.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span><span class="st">"output/rapporti_classificati.fst"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/validate_rapporti.html">validate_rapporti</a></span><span class="op">(</span><span class="va">dt</span>, require <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cpi"</span>, <span class="st">"retribuzione"</span>, <span class="st">"datore"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -1507,6 +1599,7 @@ FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <li>Contratto dati in ingresso: <code><a href="../reference/validate_rapporti.html">?validate_rapporti</a></code>.</li>
 <li>Regole sulle sentinelle e colonne derivate:
 <code><a href="../reference/prepare_rapporti.html">?prepare_rapporti</a></code>.</li>
+<li>Perimetro contrattuale: <code><a href="../reference/filter_perimetro.html">?filter_perimetro</a></code>.</li>
 <li>Misure e quote del ranking: <code><a href="../reference/rank_ccnl.html">?rank_ccnl</a></code>,
 <code><a href="../reference/select_ccnl_rilevanti.html">?select_ccnl_rilevanti</a></code>.</li>
 <li>Mapping comune -&gt; CPI e distribuzione territoriale:

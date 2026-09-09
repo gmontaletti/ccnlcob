@@ -81,7 +81,7 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.2.0: Fasi 1 e 2 completate
+Versione 0.3.0: Fasi 1, 2 e 2 bis completate
 ([`validate_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md),
 [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md),
 [`compute_giornate()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate.md),
@@ -90,9 +90,14 @@ Versione 0.2.0: Fasi 1 e 2 completate
 [`select_ccnl_rilevanti()`](https://gmontaletti.github.io/ccnlcob/reference/select_ccnl_rilevanti.md),
 [`add_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/add_cpi.md),
 [`ccnl_by_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_cpi.md),
-[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md));
-le altre funzioni esportate sono stub. Le misure per gruppo sono
-calcolate da `.aggregate_misure()` (`R/crosstab.R`), usato sia da
+[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md),
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md));
+le altre funzioni esportate sono stub.
+[`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+esclude per default gli avviamenti fuori dal perimetro CCNL
+(`perimetro = "ccnl"`, flag `perimetro_ccnl` in
+`tipologie_contrattuali`). Le misure per gruppo sono calcolate da
+`.aggregate_misure()` (`R/crosstab.R`), usato sia da
 [`rank_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md)
 sia dalle tabelle incrociate. Le fasi successive sono elencate in
 `../reference/ccnlcob/piano_sviluppo.md` §8. Verificare sempre il check

@@ -37,7 +37,8 @@ lookup. Errore se `tipologie` non contiene le due colonne richieste.
 ## See also
 
 Other tipologie:
-[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md)
+[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md),
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
 
 ## Examples
 

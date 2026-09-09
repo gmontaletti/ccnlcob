@@ -55,19 +55,20 @@ Other giornate:
 ``` r
 library(data.table)
 dt <- prepare_rapporti(cob_esempio)
+#> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
 compute_giornate(dt, window = as.Date(c("2023-01-01", "2023-12-31")))
 dt[giornate > 0, sum(giornate), by = ccnl_key][order(-V1)][1:5]
 #>    ccnl_key    V1
 #>      <char> <int>
-#> 1:     A011 40566
-#> 2:     <NA> 34978
-#> 3:     H011 21573
-#> 4:     T011 17382
-#> 5:     C011 12895
+#> 1:     A011 37796
+#> 2:     <NA> 33850
+#> 3:     H011 20936
+#> 4:     T011 16852
+#> 5:     C011 12407
 
 # senza finestra: intera durata del rapporto
 compute_giornate(dt)
 dt[, summary(giornate)]
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-#>     1.0    52.0   128.0   216.6   256.0  2173.0 
+#>     1.0    52.0   130.0   218.2   257.0  2173.0 
 ```

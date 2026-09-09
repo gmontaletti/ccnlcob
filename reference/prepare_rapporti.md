@@ -2,10 +2,11 @@
 
 Normalizza un dataset di rapporti di lavoro conforme al contratto dati:
 rinomina le colonne (varianti maiuscole della pipeline e `ccnl` in
-`ccnl_warehouse`), risolve le sentinelle sulle date, esclude i rapporti
-esterni alla finestra di analisi e aggiunge le colonne derivate usate
-dalle funzioni analitiche. L'input non viene mai modificato: la funzione
-lavora su una copia e restituisce un nuovo `data.table`.
+`ccnl_warehouse`), applica il perimetro contrattuale, risolve le
+sentinelle sulle date, esclude i rapporti esterni alla finestra di
+analisi e aggiunge le colonne derivate usate dalle funzioni analitiche.
+L'input non viene mai modificato: la funzione lavora su una copia e
+restituisce un nuovo `data.table`.
 
 ## Usage
 
@@ -15,6 +16,7 @@ prepare_rapporti(
   as_of = NULL,
   window = NULL,
   ccnl_key = c("codice_cnel", "ccnl_warehouse"),
+  perimetro = c("ccnl", "standard", "completo"),
   tipologie = ccnlcob::tipologie_contrattuali
 )
 ```
@@ -50,18 +52,29 @@ prepare_rapporti(
   colonna presente in `dt`; se una colonna richiesta esplicitamente è
   assente la funzione produce un errore.
 
+- perimetro:
+
+  Perimetro contrattuale applicato da
+  [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+  prima di ogni altro trattamento: `"ccnl"` (default) conserva solo le
+  tipologie di lavoro subordinato alle quali si applica un CCNL;
+  `"standard"` conserva il perimetro "standard" di `cnelR`; `"completo"`
+  non esclude nulla. Vedi Dettagli.
+
 - tipologie:
 
   Lookup delle tipologie contrattuali con le colonne
-  `cod_tipologia_contrattuale` e `macro_tipologia`; default
+  `cod_tipologia_contrattuale`, `macro_tipologia`, `perimetro_ccnl` e
+  `esclusa_standard`; default
   [tipologie_contrattuali](https://gmontaletti.github.io/ccnlcob/reference/tipologie_contrattuali.md).
 
 ## Value
 
 Un nuovo `data.table` con le colonne di `dt` (rinominate come descritto)
-e le colonne derivate elencate nei Dettagli, limitato ai rapporti che
-intersecano la finestra; l'attributo `ccnlcob_meta` riporta i parametri
-e i conteggi. L'input non viene modificato.
+e le colonne derivate elencate nei Dettagli, limitato ai rapporti
+interni al perimetro che intersecano la finestra; l'attributo
+`ccnlcob_meta` riporta i parametri e i conteggi. L'input non viene
+modificato.
 
 ## Details
 
@@ -74,6 +87,35 @@ solo se la colonna minuscola corrispondente è assente: `INIZIO`, `FINE`,
 `eta`), `SESSO_LAV` (in `sesso`). La colonna sorgente `ccnl` (codice
 warehouse) viene rinominata `ccnl_warehouse` se quest'ultima è assente.
 Il contratto dati viene verificato dopo la rinomina.
+
+### Perimetro contrattuale
+
+Subito dopo la verifica del contratto dati la funzione richiama
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+con il `perimetro` scelto:
+
+- `"ccnl"` (default) conserva i rapporti con `perimetro_ccnl == TRUE`
+  nel lookup, cioè il lavoro subordinato al quale si applica un CCNL
+  (codici `A.`, `F.`, `G.01.00`, `G.02.00`, `H.01.00`, `H.03.00`, `I.`,
+  `N.`); esclude collaborazioni e parasubordinati (`B.`), tirocini e
+  work experience (`C.`), lavoro autonomo nello spettacolo (`G.03.00`),
+  lavoro congiunto in agricoltura (`H.02.00`), associazione in
+  partecipazione (`L.`), contratti di agenzia (`M.`) e i codici ignoti;
+
+- `"standard"` conserva i rapporti con `esclusa_standard == FALSE`
+  (perimetro di `cnelR`), codici ignoti inclusi;
+
+- `"completo"` conserva tutte le righe e riproduce il comportamento
+  delle versioni fino alla 0.2.0, che non applicavano alcun perimetro.
+
+Le righe escluse sono conteggiate in `n_dropped_perimetro` e dettagliate
+per tipologia in `esclusi_perimetro`;
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)
+emette un [`message()`](https://rdrr.io/r/base/message.html)
+riassuntivo, sopprimibile. La data di riferimento di default
+(`as_of = NULL`) è calcolata prima del filtro, su tutti i rapporti, così
+da non dipendere dal perimetro; la finestra di default parte invece dal
+primo avviamento interno al perimetro.
 
 ### Sentinelle sulle date
 
@@ -105,6 +147,10 @@ estremi inclusi, ed è quindi sempre `>= 1`.
 
 - `ccnl_key` (character): chiave di analisi scelta; `NA` resta `NA`;
 
+- `perimetro_ccnl` (logical): appartenenza al perimetro CCNL secondo
+  `tipologie`, `FALSE` per i codici ignoti; con `perimetro = "ccnl"` è
+  sempre `TRUE`;
+
 - `troncata`, `troncata_inizio` (integer 0/1): flag delle sentinelle;
 
 - `giornate` (integer): giorni-contratto nella finestra, vedi
@@ -133,9 +179,11 @@ estremi inclusi, ed è quindi sempre `>= 1`.
 ### Metadati
 
 L'attributo `ccnlcob_meta` del risultato è una lista con `as_of`,
-`window`, `ccnl_key` (nome della colonna usata), `n_input`,
-`n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio` e
-`n_fine_lt_inizio`.
+`window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
+(righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
+`n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
+`n_fine_lt_inizio` e `esclusi_perimetro` (la tabella `esclusi` di
+[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)).
 
 ## See also
 
@@ -148,16 +196,36 @@ Other ingresso:
 ``` r
 library(data.table)
 dt <- prepare_rapporti(cob_esempio)
+#> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.
 attr(dt, "ccnlcob_meta")[c("as_of", "n_sentinel_fine", "n_fine_lt_inizio")]
 #> $as_of
 #> [1] "2024-12-31"
 #> 
 #> $n_sentinel_fine
-#> [1] 155
+#> [1] 149
 #> 
 #> $n_fine_lt_inizio
 #> [1] 2
 #> 
+attr(dt, "ccnlcob_meta")$esclusi_perimetro
+#>    cod_tipologia_contrattuale
+#>                        <char>
+#> 1:                    C.01.00
+#> 2:                    B.03.00
+#> 3:                    B.04.00
+#> 4:                    C.03.00
+#>                                           des_tipologia_contrattuale
+#>                                                               <char>
+#> 1:                                                         TIROCINIO
+#> 2:                          COLLABORAZIONE COORDINATA E CONTINUATIVA
+#> 3: COLLABORAZIONE OCCASIONALE SPORTIVA EX ART. 28 DEL D.LGS. 36/2021
+#> 4:                   LAVORO O ATTIVITÀ SOCIALMENTE UTILE (LSU - ASU)
+#>    macro_tipologia     n
+#>             <char> <int>
+#> 1:       Tirocinio   110
+#> 2:  Collaborazioni    90
+#> 3:  Collaborazioni    35
+#> 4:           Altro    19
 dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 #>     anno     macro_tipologia     N
 #>    <int>              <char> <int>
@@ -167,12 +235,13 @@ dt[, .N, by = .(anno, macro_tipologia)][order(anno, -N)][1:5]
 #> 4:  2019       Intermittente    69
 #> 5:  2019       Apprendistato    65
 
-# finestra esplicita e chiave warehouse
+# finestra esplicita, chiave warehouse e nessun filtro di perimetro
 dt24 <- prepare_rapporti(
   cob_esempio,
   as_of = as.Date("2024-12-31"),
   window = as.Date(c("2024-01-01", "2024-12-31")),
-  ccnl_key = "ccnl_warehouse"
+  ccnl_key = "ccnl_warehouse",
+  perimetro = "completo"
 )
 dt24[, .(n = .N, giornate = sum(giornate)), by = ccnl_key][order(-giornate)]
 #>     ccnl_key     n giornate

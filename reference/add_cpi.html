@@ -17,7 +17,7 @@ reimplementa. Le colonne sono aggiunte a dt per riferimento."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -127,23 +127,24 @@ fuori Lombardia): <code>cpi_code = "FUORI"</code>, <code>cpi_name = "Fuori Lomba
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>     %notin%</span>
 <span class="r-in"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_rapporti.html">prepare_rapporti</a></span><span class="op">(</span><span class="va">cob_esempio</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.</span>
 <span class="r-in"><span><span class="fu">add_cpi</span><span class="op">(</span><span class="va">dt</span>, geo <span class="op">=</span> <span class="st">"sede_lavoro"</span>, lookup <span class="op">=</span> <span class="va">cpi_esempio</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="fu">.</span><span class="op">(</span><span class="va">cpi_code</span>, <span class="va">cpi_name</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">N</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>        cpi_code        cpi_name     N</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          &lt;char&gt;          &lt;char&gt; &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1: F205C000169      CPI MILANO  1600</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2: L682C000600      CPI VARESE   732</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3: B157C000683     CPI BRESCIA   483</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4: F704C000581       CPI MONZA   441</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5: A794C000060     CPI BERGAMO   389</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6: C933C000073        CPI COMO   262</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:       FUORI Fuori Lombardia   250</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8: G388C000070       CPI PAVIA   221</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9: E507C000578       CPI LECCO   152</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10: D150C000030     CPI CREMONA   150</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11: E897C000034     CPI MANTOVA   132</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12: E648C000580        CPI LODI    99</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13: I829C000043     CPI SONDRIO    89</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1: F205C000169      CPI MILANO  1522</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: L682C000600      CPI VARESE   694</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: B157C000683     CPI BRESCIA   450</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: F704C000581       CPI MONZA   418</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: A794C000060     CPI BERGAMO   366</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: C933C000073        CPI COMO   252</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:       FUORI Fuori Lombardia   236</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: G388C000070       CPI PAVIA   211</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9: E507C000578       CPI LECCO   146</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: D150C000030     CPI CREMONA   145</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: E897C000034     CPI MANTOVA   126</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: E648C000580        CPI LODI    97</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: I829C000043     CPI SONDRIO    83</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_cpi"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> $geo</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "sede_lavoro"</span>
@@ -157,11 +158,11 @@ fuori Lombardia): <code>cpi_code = "FUORI"</code>, <code>cpi_name = "Fuori Lomba
 <span class="r-in"><span><span class="va">dt</span><span class="op">[</span>, <span class="va">.N</span>, by <span class="op">=</span> <span class="va">cpi_name</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">N</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>       cpi_name     N</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>         &lt;char&gt; &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:  CPI MILANO  1429</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:  CPI VARESE   746</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3: CPI BRESCIA   589</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:   CPI MONZA   456</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5: CPI BERGAMO   312</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:  CPI MILANO  1362</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:  CPI VARESE   700</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: CPI BRESCIA   568</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:   CPI MONZA   431</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5: CPI BERGAMO   295</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

@@ -15,7 +15,7 @@ senza correggere le sovrapposizioni fra rapporti della stessa persona
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -101,21 +101,22 @@ qui ma in <code><a href="prepare_rapporti.html">prepare_rapporti()</a></code>.</
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="prepare_rapporti.html">prepare_rapporti</a></span><span class="op">(</span><span class="va">cob_esempio</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> filter_perimetro(): perimetro "ccnl", esclusi 254 rapporti su 5000 (5,1%) in 4 tipologie; 0 con tipologia ignota.</span>
 <span class="r-in"><span><span class="fu">compute_giornate</span><span class="op">(</span><span class="va">dt</span>, window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2023-01-01"</span>, <span class="st">"2023-12-31"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span><span class="op">[</span><span class="va">giornate</span> <span class="op">&gt;</span> <span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">ccnl_key</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">V1</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    ccnl_key    V1</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      &lt;char&gt; &lt;int&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     A011 40566</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     &lt;NA&gt; 34978</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     H011 21573</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     T011 17382</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     C011 12895</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:     A011 37796</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:     &lt;NA&gt; 33850</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:     H011 20936</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:     T011 16852</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:     C011 12407</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># senza finestra: intera durata del rapporto</span></span></span>
 <span class="r-in"><span><span class="fu">compute_giornate</span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">dt</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span><span class="op">]</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     1.0    52.0   128.0   216.6   256.0  2173.0 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     1.0    52.0   130.0   218.2   257.0  2173.0 </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
