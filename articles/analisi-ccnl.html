@@ -140,7 +140,7 @@ retribuzioni mancanti o anomale.</p>
 <span><span class="co">#&gt;  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...</span></span>
 <span><span class="co">#&gt;  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...</span></span>
 <span><span class="co">#&gt;  $ sesso                     : chr  "F" "F" "M" "F" ...</span></span>
-<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x55eb8d1baf00&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x5577531f5f00&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="preparazione">2. Preparazione<a class="anchor" aria-label="anchor" href="#preparazione"></a>
@@ -2267,10 +2267,13 @@ localizzazione usa una scala divergente centrata su 1 e le celle
 mascherate sotto <code>min_n</code> restano grigie.</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_ranking.html">plot_ranking</a></span><span class="op">(</span><span class="va">res</span>, measure <span class="op">=</span> <span class="st">"n_lavoratori"</span>, top_n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></code></pre></div>
+<p><img src="analisi-ccnl_files/figure-html/grafici-ranking-1.png" class="r-plt" alt="" width="768"></p>
 <div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cpi.html">plot_cpi</a></span><span class="op">(</span><span class="va">res</span>, value <span class="op">=</span> <span class="st">"lq"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="analisi-ccnl_files/figure-html/grafici-cpi-1.png" class="r-plt" alt="" width="768"></p>
 <div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_retribuzioni.html">plot_retribuzioni</a></span><span class="op">(</span><span class="va">res</span>, keys <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">keys</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, reale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="analisi-ccnl_files/figure-html/grafici-retribuzioni-1.png" class="r-plt" alt="" width="768"></p>
 <p><code><a href="../reference/plot_ranking_periodo.html">plot_ranking_periodo()</a></code> e <code><a href="../reference/plot_tipologie.html">plot_tipologie()</a></code>
 completano la serie; <code><a href="../reference/render_report.html">render_report()</a></code> compila il report
 Quarto parametrico (<code>inst/quarto/report_ccnl.qmd</code>) sulla
@@ -2295,10 +2298,10 @@ Con una sorgente DB la selezione delle colonne e il filtro
 <code class="sourceCode R"><span><span class="va">percorso</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"rapporti_esempio.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">cob_esempio</span>, <span class="va">percorso</span><span class="op">)</span></span>
 <span><span class="va">letti</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span><span class="va">percorso</span><span class="op">)</span></span>
-<span><span class="co">#&gt; read_rapporti(): lette 5.000 righe da /tmp/RtmpVUR4yW/rapporti_esempio.rds.</span></span>
+<span><span class="co">#&gt; read_rapporti(): lette 5.000 righe da /tmp/Rtmph3mBu8/rapporti_esempio.rds.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">letti</span>, <span class="st">"ccnlcob_source"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"source"</span>, <span class="st">"n"</span>, <span class="st">"colonne_mappate"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $source</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpVUR4yW/rapporti_esempio.rds"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/Rtmph3mBu8/rapporti_esempio.rds"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n</span></span>
 <span><span class="co">#&gt; [1] 5000</span></span>

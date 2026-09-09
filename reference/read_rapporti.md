@@ -150,7 +150,7 @@ f <- tempfile(fileext = ".rds")
 saveRDS(cob_esempio, f)
 dt <- read_rapporti(f, columns = c("id", "cf", "inizio", "fine"),
                     validate = FALSE)
-#> read_rapporti(): lette 5.000 righe da /tmp/RtmpaT4s5e/file19c37a77626b.rds.
+#> read_rapporti(): lette 5.000 righe da /tmp/RtmpcJSBtY/file1a11400f2910.rds.
 unlink(f)
 
 if (FALSE) { # \dontrun{

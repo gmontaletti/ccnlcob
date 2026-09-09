@@ -75,15 +75,15 @@ manifesto <- write_results(res, dir = dir_out, overwrite = TRUE)
 manifesto
 #>            oggetto                                     file formato righe  byte
 #>             <char>                                   <char>  <char> <int> <num>
-#> 1:            meta            /tmp/RtmpaT4s5e/ccnl/meta.rds     rds    NA  1754
-#> 2:         ranking         /tmp/RtmpaT4s5e/ccnl/ranking.rds     rds    25  3264
-#> 3: ranking_periodo /tmp/RtmpaT4s5e/ccnl/ranking_periodo.rds     rds   150 14387
-#> 4:       rilevanti       /tmp/RtmpaT4s5e/ccnl/rilevanti.rds     rds    22  3047
-#> 5:            keys            /tmp/RtmpaT4s5e/ccnl/keys.rds     rds    NA   115
-#> 6:             cpi             /tmp/RtmpaT4s5e/ccnl/cpi.fst     fst   254 15886
-#> 7:       tipologie       /tmp/RtmpaT4s5e/ccnl/tipologie.fst     fst   225 10811
-#> 8:    retribuzioni    /tmp/RtmpaT4s5e/ccnl/retribuzioni.rds     rds   120  4117
-#> 9:         qualita         /tmp/RtmpaT4s5e/ccnl/qualita.rds     rds    25  1013
+#> 1:            meta            /tmp/RtmpcJSBtY/ccnl/meta.rds     rds    NA  1760
+#> 2:         ranking         /tmp/RtmpcJSBtY/ccnl/ranking.rds     rds    25  3264
+#> 3: ranking_periodo /tmp/RtmpcJSBtY/ccnl/ranking_periodo.rds     rds   150 14387
+#> 4:       rilevanti       /tmp/RtmpcJSBtY/ccnl/rilevanti.rds     rds    22  3047
+#> 5:            keys            /tmp/RtmpcJSBtY/ccnl/keys.rds     rds    NA   115
+#> 6:             cpi             /tmp/RtmpcJSBtY/ccnl/cpi.fst     fst   254 15886
+#> 7:       tipologie       /tmp/RtmpcJSBtY/ccnl/tipologie.fst     fst   225 10811
+#> 8:    retribuzioni    /tmp/RtmpcJSBtY/ccnl/retribuzioni.rds     rds   120  4117
+#> 9:         qualita         /tmp/RtmpcJSBtY/ccnl/qualita.rds     rds    25  1013
 readRDS(file.path(dir_out, "meta.rds"))$versione
 #> [1] "0.7.0"
 unlink(dir_out, recursive = TRUE)

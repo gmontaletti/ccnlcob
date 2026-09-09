@@ -20,8 +20,9 @@ scale_fill_ccnlcob(...)
 
 - ...:
 
-  Argomenti passati a `ggplot2::discrete_scale()` (`name`, `breaks`,
-  `labels`, `guide`, ...).
+  Argomenti passati a
+  [`ggplot2::discrete_scale()`](https://ggplot2.tidyverse.org/reference/discrete_scale.html)
+  (`name`, `breaks`, `labels`, `guide`, ...).
 
 ## Value
 

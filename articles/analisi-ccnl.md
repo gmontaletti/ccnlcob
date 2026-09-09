@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x55eb8d1baf00>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x5577531f5f00>
 ```
 
 ## 2. Preparazione
@@ -1058,15 +1058,21 @@ su 1 e le celle mascherate sotto `min_n` restano grigie.
 plot_ranking(res, measure = "n_lavoratori", top_n = 8)
 ```
 
+![](analisi-ccnl_files/figure-html/grafici-ranking-1.png)
+
 ``` r
 
 plot_cpi(res, value = "lq")
 ```
 
+![](analisi-ccnl_files/figure-html/grafici-cpi-1.png)
+
 ``` r
 
 plot_retribuzioni(res, keys = res$keys[1:4], reale = TRUE)
 ```
+
+![](analisi-ccnl_files/figure-html/grafici-retribuzioni-1.png)
 
 [`plot_ranking_periodo()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking_periodo.md)
 e
@@ -1095,10 +1101,10 @@ decimale). Con una sorgente DB la selezione delle colonne e il filtro
 percorso <- file.path(tempdir(), "rapporti_esempio.rds")
 saveRDS(cob_esempio, percorso)
 letti <- read_rapporti(percorso)
-#> read_rapporti(): lette 5.000 righe da /tmp/RtmpVUR4yW/rapporti_esempio.rds.
+#> read_rapporti(): lette 5.000 righe da /tmp/Rtmph3mBu8/rapporti_esempio.rds.
 attr(letti, "ccnlcob_source")[c("source", "n", "colonne_mappate")]
 #> $source
-#> [1] "/tmp/RtmpVUR4yW/rapporti_esempio.rds"
+#> [1] "/tmp/Rtmph3mBu8/rapporti_esempio.rds"
 #> 
 #> $n
 #> [1] 5000
