@@ -1,0 +1,488 @@
+---
+title: "Analisi dei CCNL nei dati COB"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Analisi dei CCNL nei dati COB}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Obiettivo
+
+Questa vignetta descrive il flusso di lavoro di `ccnlcob` per analizzare un
+dataset di Comunicazioni Obbligatorie (COB) a livello di rapporto di lavoro
+per contratto collettivo nazionale (CCNL). Il flusso risponde a quattro
+domande: quali CCNL sono più rilevanti (persone avviate e giornate di
+lavoro), come si distribuiscono per CPI (Centro per l'Impiego), come si
+distribuiscono per tipologia contrattuale e come evolve la retribuzione
+mediana dichiarata all'avviamento.
+
+Nella versione 0.2.0 sono operative le prime due fasi del flusso:
+validazione del contratto dati, preparazione dei rapporti, calcolo delle
+giornate di contratto, ranking e selezione dei CCNL rilevanti (Fase 1),
+distribuzione territoriale per CPI e distribuzione per tipologia
+contrattuale (Fase 2). I blocchi di codice di queste sezioni vengono
+eseguiti sul dataset sintetico `cob_esempio` incluso nel pacchetto, con il
+lookup comune -> CPI `cpi_esempio`. Le funzioni delle fasi successive
+(retribuzioni, giornate effettive, orchestrazione, lettura dei dati) sono
+documentate con la firma definitiva ma restituiscono un errore esplicito; i
+relativi blocchi sono raccolti nella sezione finale e non vengono eseguiti.
+
+```{r library}
+library(ccnlcob)
+library(data.table)
+```
+
+## 1. Validazione del contratto dati
+
+`validate_rapporti()` verifica che il dataset sia un `data.table` e che
+contenga le colonne del contratto dati. Il blocco `base` (`id`, `cf`,
+`inizio`, `fine`, `cod_tipologia_contrattuale`, `prior` e almeno una colonna
+CCNL fra `codice_cnel`, `ccnl` e `ccnl_warehouse`) è sempre controllato; i
+blocchi `cpi`, `retribuzione` e `datore` vengono verificati solo se
+richiesti. La funzione non modifica il dataset e, se il controllo passa, lo
+restituisce invisibilmente.
+
+Il dataset sintetico `cob_esempio` riproduce il contratto dati con
+sovrapposizioni fra rapporti della stessa persona, sentinelle sulle date di
+fine, codici CNEL mancanti per una quota di rapporti e retribuzioni mancanti
+o anomale.
+
+```{r validazione}
+dt <- copy(cob_esempio)
+validate_rapporti(dt)
+validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
+str(dt)
+```
+
+## 2. Preparazione
+
+`prepare_rapporti()` lavora su una copia e restituisce un nuovo
+`data.table`. In sequenza:
+
+- rinomina le varianti maiuscole prodotte dalla pipeline COB e la colonna
+  sorgente `ccnl` (codice warehouse) in `ccnl_warehouse`;
+- sceglie la chiave di analisi `ccnl_key`: per default `codice_cnel` se
+  presente, altrimenti `ccnl_warehouse`;
+- risolve le sentinelle sulle date. Una `fine` mancante, non successiva a
+  `1900-01-01` o successiva ad `as_of` (incluso `9999-12-31`) identifica un
+  rapporto aperto: la data viene sostituita con `as_of` e `troncata` vale 1.
+  Un `inizio` mancante o non successivo a `1900-01-01` viene portato al
+  `2008-03-01` (avvio del sistema COB) con `troncata_inizio` pari a 1. Dopo
+  le sostituzioni, un rapporto con `fine < inizio` viene riportato a un
+  giorno;
+- rimuove i rapporti che non intersecano la finestra `window` e conta le
+  giornate di contratto interne alla finestra;
+- aggiunge le colonne derivate `avviato`, `attivo`, `anno`, `trimestre`,
+  `macro_tipologia` e `orario`.
+
+Se `as_of` è `NULL` viene usata la data massima non sentinella osservata
+fra `inizio` e `fine`; se `window` è `NULL` la finestra va dal primo
+avviamento non sentinella ad `as_of`. Nell'esempio entrambi i parametri sono
+espliciti: la finestra copre il triennio 2022-2024 e lo stato dei rapporti è
+valutato al 31 dicembre 2024.
+
+```{r preparazione}
+dt <- prepare_rapporti(
+  dt,
+  as_of = as.Date("2024-12-31"),
+  window = as.Date(c("2022-01-01", "2024-12-31")),
+  ccnl_key = "codice_cnel"
+)
+```
+
+L'attributo `ccnlcob_meta` conserva i parametri usati e i conteggi delle
+correzioni: rapporti in ingresso, rapporti esclusi perché esterni alla
+finestra, sentinelle su `fine` e su `inizio`, intervalli con `fine < inizio`.
+
+```{r meta}
+attr(dt, "ccnlcob_meta")
+```
+
+Le colonne aggiunte hanno il seguente significato:
+
+- `giornate` (integer): giorni di contratto compresi nella finestra, estremi
+  inclusi. Un rapporto iniziato prima di `window[1]` o terminato dopo
+  `window[2]` conta solo la parte interna alla finestra; poiché i rapporti
+  esterni sono già stati rimossi, `giornate` è sempre maggiore o uguale a 1;
+- `avviato` (logical): `inizio >= window[1]`, cioè avviamento interno alla
+  finestra. I rapporti iniziati prima della finestra restano nel dataset con
+  `avviato = FALSE`: contribuiscono alle giornate ma non ai conteggi di
+  avviamenti e persone avviate;
+- `attivo` (logical): rapporto in essere alla data `as_of`;
+- `anno` (integer) e `trimestre` (character, `YYYY-Qn`): coorte di
+  avviamento calcolata da `inizio`;
+- `macro_tipologia` (character): macro-classe della tipologia contrattuale,
+  `NA` per i codici assenti dal lookup;
+- `orario` (character): `FT` per `prior == 1`, `PT` per `prior == 0`.
+
+```{r colonne}
+knitr::kable(
+  dt[1:6, .(
+    id, inizio, fine, ccnl_key, giornate, avviato, attivo,
+    anno, trimestre, macro_tipologia, orario
+  )]
+)
+dt[, .(rapporti = .N, giornate = sum(giornate)), by = avviato]
+```
+
+La macro-tipologia deriva dal lookup `tipologie_contrattuali`, incluso nel
+pacchetto, tramite `classify_tipologia()`. La funzione è vettorizzata,
+conserva ordine e lunghezza dell'input e restituisce `NA` per i codici
+ignoti.
+
+```{r tipologie}
+classify_tipologia(c("A.01.00", "A.02.00", "A.03.00", "C.01.00", "ZZZ", NA))
+dt[, .N, by = .(macro_tipologia, orario)][order(-N)]
+```
+
+## 3. Giornate di contratto
+
+`compute_giornate()` è la funzione richiamata da `prepare_rapporti()` per
+calcolare `giornate`. Per ogni rapporto
+
+```
+giornate = max(0, min(fine, window[2]) - max(inizio, window[1]) + 1)
+```
+
+con `window = NULL` la misura coincide con l'intera durata del rapporto. La
+colonna è di tipo integer e viene aggiunta per riferimento, quindi la
+funzione modifica il `data.table` passato come argomento. La misura è
+additiva: ogni rapporto conta per intero e le sovrapposizioni fra rapporti
+della stessa persona non vengono corrette. La correzione pro quota è
+demandata a `compute_giornate_effettive()`, prevista nella Fase 4.
+
+La funzione può essere richiamata direttamente per ricalcolare le giornate
+su una finestra diversa da quella di preparazione, per esempio il solo anno
+2024. I rapporti che non intersecano la nuova finestra ricevono zero
+giornate e restano nel dataset.
+
+```{r giornate}
+dt24 <- copy(dt)
+compute_giornate(dt24, window = as.Date(c("2024-01-01", "2024-12-31")))
+dt24[, .(rapporti = .N, giornate = sum(giornate)), by = .(nel_2024 = giornate > 0)]
+```
+
+## 4. Ranking dei CCNL
+
+`rank_ccnl()` calcola, per ciascun valore di `ccnl_key`, le misure di
+rilevanza richieste e, per ognuna, la quota sul totale (`quota_<misura>`),
+il rank in ordine decrescente (`rank_<misura>`) e la quota cumulata lungo il
+rank (`quota_cum_<misura>`). Le misure disponibili sono `n_rapporti`,
+`n_lavoratori`, `n_datori`, `giornate`, `giornate_effettive` e `stock`; le
+prime tre contano solo i rapporti con `avviato = TRUE`, `stock` conta i
+rapporti con `attivo = TRUE`. Non viene costruito alcun indice composito:
+ogni misura produce il proprio ordinamento e la prima misura in `measures`
+determina l'ordine delle righe.
+
+I rapporti con `ccnl_key` mancante non vengono scartati: formano la riga
+`Non classificati`, con `classe` dedicata, rank `NA` e quota cumulata `NA`.
+Le quote di tutte le righe sono calcolate sul totale che include questa
+riga, così che sommino a 1 e la copertura del codice CCNL resti visibile
+direttamente nella tabella.
+
+```{r ranking}
+ranking <- rank_ccnl(dt, measures = c("n_lavoratori", "giornate"))
+names(ranking)
+knitr::kable(
+  ranking[1:10, .(
+    ccnl_key, n_lavoratori, quota_n_lavoratori, rank_n_lavoratori,
+    giornate, quota_giornate, rank_giornate, quota_cum_giornate
+  )],
+  digits = 3
+)
+```
+
+La riga dei non classificati chiude la tabella; la sua quota misura la parte
+del fenomeno che il raccordo dei codici CCNL non copre.
+
+```{r copertura}
+knitr::kable(
+  ranking[, .(giornate = sum(giornate), quota = sum(quota_giornate)), by = classe],
+  digits = 3
+)
+```
+
+Con l'argomento `periodo` il ranking è calcolato entro ciascuna coorte di
+avviamento (`anno` o `trimestre`): quote, rank e quote cumulate sono
+ricalcolati per gruppo. L'argomento `by` permette di aggiungere altre
+colonne di raggruppamento, per esempio `macro_tipologia`.
+
+```{r ranking-anno}
+per_anno <- rank_ccnl(dt, measures = "giornate", periodo = "anno")
+knitr::kable(per_anno[rank_giornate <= 3L], digits = 3)
+```
+
+## 5. Selezione dei CCNL rilevanti
+
+`select_ccnl_rilevanti()` individua, entro ogni gruppo del ranking, i CCNL
+che coprono una quota cumulata della misura scelta (`cum_share`) e/o i primi
+`top_n`. La selezione scorre i CCNL classificati in ordine di rank e include
+un CCNL finché la quota cumulata dei precedenti è inferiore alla soglia: è
+quindi l'insieme minimo con copertura maggiore o uguale a `cum_share`. Se
+entrambi i criteri sono forniti prevale il più restrittivo. Il pacchetto non
+fissa soglie a priori: i due parametri sono espliciti.
+
+Le quote usate sono quelle del ranking, calcolate sul totale del gruppo
+inclusi i non classificati. Una soglia `cum_share = 0.8` indica quindi l'80%
+delle giornate totali, non l'80% delle giornate con codice CCNL noto. Quando
+la copertura del codice è inferiore a 1, raggiungere la soglia richiede una
+quota più ampia dei CCNL classificati; se la copertura è inferiore alla
+soglia stessa, la selezione include tutti i CCNL classificati senza
+raggiungerla.
+
+Con `return = "keys"` (default) la funzione restituisce il vettore delle
+chiavi selezionate.
+
+```{r selezione-keys}
+rilevanti <- select_ccnl_rilevanti(ranking, measure = "giornate", cum_share = 0.8)
+rilevanti
+length(rilevanti)
+ranking[ccnl_key %in% rilevanti, max(quota_cum_giornate)]
+```
+
+Nel dataset di esempio la copertura del codice CNEL è pari a
+`r round(ranking[classe == "CCNL", sum(quota_giornate)], 3)` delle giornate,
+per cui la soglia dell'80% del totale seleziona `r length(rilevanti)` dei
+`r ranking[classe == "CCNL", .N]` CCNL classificati.
+
+Con `return = "table"` la funzione restituisce il ranking con la colonna
+logica `selezionato`; i CCNL classificati non selezionati sono aggregati in
+una riga `Altri CCNL` (etichetta modificabile con `other_label`) con le
+misure sommate e le quote ricalcolate sul gruppo, mentre la riga dei non
+classificati è conservata. Nell'esempio `top_n = 5` si combina con il
+default `cum_share = 0.8`; per usare il solo `top_n` occorre impostare
+`cum_share = NULL`.
+
+```{r selezione-table}
+tabella <- select_ccnl_rilevanti(
+  ranking,
+  measure = "giornate",
+  top_n = 5,
+  return = "table"
+)
+knitr::kable(
+  tabella[, .(
+    ccnl_key, classe, selezionato, n_lavoratori, quota_n_lavoratori,
+    giornate, quota_giornate
+  )],
+  digits = 3
+)
+attr(tabella, "ccnlcob_selezione")[c("measure", "top_n", "cum_share")]
+```
+
+Le sezioni seguenti usano i primi cinque CCNL per giornate come sottoinsieme
+di lavoro. Con `cum_share = NULL` la selezione dipende dal solo `top_n`.
+
+```{r top5}
+top5 <- select_ccnl_rilevanti(
+  ranking,
+  measure = "giornate",
+  top_n = 5,
+  cum_share = NULL
+)
+top5
+```
+
+## 6. Distribuzione territoriale per CPI
+
+`add_cpi()` associa a ogni rapporto il codice e il nome del CPI a partire
+dal codice Belfiore della sede di lavoro (`comune_sede_lavoro`, con
+`geo = "sede_lavoro"`, default) o della residenza del lavoratore
+(`comune_lavoratore`, con `geo = "residenza"`). Le colonne `cpi_code` e
+`cpi_name` vengono aggiunte per riferimento; l'attributo `ccnlcob_cpi`
+registra la geografia usata e l'origine del mapping.
+
+Il mapping comune -> CPI non è reimplementato nel pacchetto. In produzione,
+con `lookup = NULL`, la funzione delega a
+`longworkR::add_cpi_via_belfiore()`, che legge i file di mapping dalla
+directory `SHARED_DATA_DIR/maps`; il mapping viene costruito una sola volta
+sui codici Belfiore distinti e poi agganciato ai rapporti. In questa
+vignetta si usa invece il lookup `cpi_esempio` incluso nel pacchetto, che
+copre i dodici capoluoghi lombardi presenti in `cob_esempio`. Un lookup
+esplicito richiede le colonne `belfiore` (univoca), `cpi_code` e,
+facoltativa, `cpi_name`.
+
+Nessun rapporto viene scartato. Un codice Belfiore presente ma assente dal
+lookup, tipicamente un comune fuori regione, riceve `cpi_code = "FUORI"` e
+`cpi_name = "Fuori Lombardia"`; un codice mancante riceve `cpi_code = "ND"`
+e `cpi_name = "Non disponibile"`. Nel dataset di esempio i quattro codici
+non lombardi confluiscono nella classe `FUORI` e nessun codice è mancante.
+
+```{r cpi}
+add_cpi(dt, geo = "sede_lavoro", lookup = cpi_esempio)
+attr(dt, "ccnlcob_cpi")
+dt[, .N, by = .(cpi_code, cpi_name)][order(-N)]
+```
+
+`ccnl_by_cpi()` calcola la tabella `ccnl_key` x CPI per la misura scelta
+(le stesse di `rank_ccnl()`, default `giornate`). Se `dt` contiene già
+`cpi_code`, come in questo caso, la colonna viene usata così com'è e gli
+argomenti `geo` e `lookup` sono ignorati; altrimenti il CPI viene calcolato
+con `add_cpi()` su una copia delle colonne necessarie, senza modificare
+`dt`. L'argomento `ccnl` limita l'uscita alle chiavi indicate.
+
+```{r cpi-tabella}
+cpi <- ccnl_by_cpi(dt, measure = "giornate", ccnl = top5)
+names(cpi)
+knitr::kable(
+  cpi[ccnl_key == top5[1], .(cpi_name, giornate, quota_riga, quota_colonna, lq)],
+  digits = 3
+)
+```
+
+Per ogni cella (CCNL `c`, CPI `d`), detto `v` il valore della misura e `T`
+il totale, la tabella riporta tre grandezze:
+
+- `quota_riga = v[c,d] / T[c]`: distribuzione territoriale del CCNL fra i
+  CPI; somma a 1 entro ogni CCNL;
+- `quota_colonna = v[c,d] / T[d]`: peso del CCNL all'interno del CPI; somma
+  a 1 entro ogni CPI;
+- `lq = quota_colonna / (T[c] / T)`: quoziente di localizzazione, cioè la
+  quota di colonna rapportata alla quota complessiva del CCNL. Un valore
+  maggiore di 1 indica che il CCNL è concentrato nel CPI più della media
+  del gruppo; entro ogni CCNL la media di `lq` ponderata con `T[d] / T` è
+  pari a 1.
+
+I totali `T[c]`, `T[d]` e `T` sono calcolati su tutte le righe di `dt`,
+inclusi i rapporti con `ccnl_key` mancante (riga `Non classificati`), e
+prima del filtro `ccnl`: le quote dei CCNL conservati non cambiano
+filtrando. Il filtro esclude la riga dei non classificati, che resta in
+uscita includendo `NA` in `ccnl` oppure con `ccnl = NULL`. Il quoziente
+`lq` è mascherato con `NA` nelle celle dei CPI il cui totale `T[d]` è
+inferiore a `min_n` (default 30 unità della misura); le celle restano nella
+tabella. Nel dataset di esempio tutti i CPI superano la soglia sulle
+giornate.
+
+```{r cpi-controlli}
+cpi[, .(quota_riga = sum(quota_riga), lq_min = min(lq), lq_max = max(lq)), by = ccnl_key]
+cpi[order(-lq)][1:5, .(ccnl_key, cpi_name, giornate, quota_colonna, lq)]
+```
+
+Gli argomenti `periodo` (`anno` o `trimestre`) e `by` producono la
+distribuzione entro ciascuna coorte di avviamento o entro gruppi
+aggiuntivi, con quote e quozienti ricalcolati per gruppo; l'attributo
+`ccnlcob_crosstab` riporta misura, dimensioni, soglia e geografia.
+
+## 7. Distribuzione per tipologia contrattuale
+
+`ccnl_by_tipologia()` calcola con la stessa struttura la tabella
+`ccnl_key` x tipologia, per default incrociata anche con l'orario
+(`FT`/`PT`). Con `level = "macro"` la tipologia è la macro-classe di
+`tipologie_contrattuali`, già presente in `dt` come `macro_tipologia` dopo
+`prepare_rapporti()`; i codici senza macro-classe formano la tipologia
+`Non classificata` e l'orario mancante la classe `ND`. La misura di default
+è `n_rapporti`.
+
+```{r tipologie-ccnl}
+tipologie <- ccnl_by_tipologia(
+  dt,
+  measure = "n_rapporti",
+  ccnl = top5,
+  level = "macro"
+)
+names(tipologie)
+knitr::kable(
+  tipologie[ccnl_key == top5[1], .(tipologia, orario, n_rapporti, quota_riga, lq)],
+  digits = 3
+)
+```
+
+`quota_riga` descrive la composizione contrattuale del CCNL, `quota_colonna`
+il peso del CCNL entro la tipologia e `lq` il ricorso del CCNL alla
+tipologia rispetto alla media del gruppo; le regole sui totali e sul filtro
+`ccnl` sono quelle della sezione precedente. Qui la soglia `min_n` agisce sul
+totale della cella tipologia x orario: nel dataset di esempio le combinazioni
+meno frequenti restano sotto i 30 rapporti e mostrano `lq = NA`. Con
+`level = "codice"` la dimensione è il codice MLPS
+`cod_tipologia_contrattuale` con la descrizione
+`des_tipologia_contrattuale`, mentre `orario = FALSE` omette l'incrocio con
+l'orario e restituisce una riga per CCNL e tipologia.
+
+```{r tipologie-larga}
+larga <- ccnl_by_tipologia(dt, measure = "n_rapporti", ccnl = top5, orario = FALSE)
+knitr::kable(
+  dcast(larga, ccnl_key ~ tipologia, value.var = "quota_riga", fill = 0),
+  digits = 3
+)
+```
+
+## Fasi successive
+
+Le funzioni seguenti sono esportate e documentate ma non ancora
+implementate: nella versione corrente restituiscono un errore che indica la
+fase prevista. I blocchi di questa sezione non vengono eseguiti e mostrano
+l'uso previsto sul dataset preparato nelle sezioni precedenti.
+
+`compute_giornate_effettive()` (Fase 4) userà i segmenti di
+`vecshift::vecshift()` per ripartire pro quota (1/`arco`) i giorni in cui la
+stessa persona ha più rapporti concorrenti, in modo che la somma per persona
+coincida con i giorni-persona occupati.
+
+```{r giornate-effettive, eval = FALSE}
+compute_giornate_effettive(dt)
+dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
+```
+
+`clean_retribuzione()` (Fase 3) segnalerà le retribuzioni non valide senza
+eliminare righe; `normalize_fte()` (Fase 3) riporterà la retribuzione alle
+ore di riferimento del CCNL stimate dai dati; `median_retribuzione()` (Fase
+3) calcolerà la mediana ponderata per giornate per coorte di avviamento;
+`deflate_retribuzione()` (Fase 3) applicherà un indice fornito dall'utente.
+
+```{r retribuzioni, eval = FALSE}
+clean_retribuzione(dt, method = "mad", k = 5)
+normalize_fte(dt)
+retribuzioni <- median_retribuzione(dt, periodo = "anno", min_n = 30)
+
+ipca <- data.table(
+  periodo = 2022:2024,
+  indice = c(100, 105.9, 107.1)
+)
+deflate_retribuzione(retribuzioni, indice = ipca, base = 2024, value_col = "mediana")
+```
+
+`analyze_ccnl()` (Fase 4) eseguirà l'intero flusso restituendo un oggetto
+`ccnlcob_result`, e `write_results()` (Fase 4) serializzerà le tabelle
+piccole in RDS e i cubi in FST.
+
+```{r orchestrazione, eval = FALSE}
+res <- analyze_ccnl(
+  cob_esempio,
+  as_of = as.Date("2024-12-31"),
+  window = as.Date(c("2022-01-01", "2024-12-31")),
+  top_n = 20,
+  cum_share = 0.8,
+  geo = "sede_lavoro",
+  periodo = "anno"
+)
+res
+write_results(res, dir = "output/ccnl")
+```
+
+`read_rapporti()` (Fase 5) caricherà i rapporti da un file FST/RDS o da una
+connessione DBI, per esempio la slice DuckDB `sl2_rapporti_36m_classificati`
+prodotta da `cnelR`.
+
+```{r lettura, eval = FALSE}
+dt <- read_rapporti("output/rapporti_classificati.fst")
+validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
+```
+
+## Riferimenti
+
+- Contratto dati in ingresso: `?validate_rapporti`.
+- Regole sulle sentinelle e colonne derivate: `?prepare_rapporti`.
+- Misure e quote del ranking: `?rank_ccnl`, `?select_ccnl_rilevanti`.
+- Mapping comune -> CPI e distribuzione territoriale: `?add_cpi`,
+  `?ccnl_by_cpi`.
+- Distribuzione per tipologia: `?ccnl_by_tipologia`.
+- Lookup delle tipologie: `?tipologie_contrattuali`.
+- Dataset sintetico e lookup CPI di esempio: `?cob_esempio`, `?cpi_esempio`.

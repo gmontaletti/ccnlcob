@@ -1,0 +1,83 @@
+url: https://gmontaletti.github.io/ccnlcob/
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Introduzione
+      href: articles/analisi-ccnl.html
+    github:
+      icon: fa-github
+      href: https://github.com/gmontaletti/ccnlcob
+      aria-label: GitHub
+
+articles:
+  - title: Guida
+    navbar: ~
+    contents:
+      - analisi-ccnl
+
+reference:
+  - title: Ingresso e preparazione
+    desc: Lettura, validazione del contratto dati e preparazione dei rapporti.
+    contents:
+      - read_rapporti
+      - validate_rapporti
+      - prepare_rapporti
+
+  - title: Giornate
+    desc: Giorni-contratto nella finestra e giorni-persona allocati pro quota.
+    contents:
+      - compute_giornate
+      - compute_giornate_effettive
+
+  - title: Ranking
+    desc: Misure di rilevanza dei CCNL e selezione dei CCNL rilevanti.
+    contents:
+      - rank_ccnl
+      - select_ccnl_rilevanti
+
+  - title: Territorio
+    desc: Mapping comune -> CPI e distribuzione territoriale dei CCNL.
+    contents:
+      - add_cpi
+      - ccnl_by_cpi
+
+  - title: Tipologie
+    desc: Macro-classi contrattuali e distribuzione dei CCNL per tipologia.
+    contents:
+      - ccnl_by_tipologia
+      - classify_tipologia
+
+  - title: Retribuzioni
+    desc: Pulizia, normalizzazione FTE, mediana per coorte e deflazione.
+    contents:
+      - clean_retribuzione
+      - normalize_fte
+      - median_retribuzione
+      - deflate_retribuzione
+
+  - title: Orchestrazione
+    desc: Analisi completa, stampa del risultato e serializzazione.
+    contents:
+      - analyze_ccnl
+      - print.ccnlcob_result
+      - write_results
+
+  - title: Dati
+    desc: Lookup delle tipologie contrattuali, dataset sintetico di esempio e lookup CPI di esempio.
+    contents:
+      - tipologie_contrattuali
+      - cob_esempio
+      - cpi_esempio
+
+  - title: Internal
+    desc: Documentazione interna del pacchetto.
+    contents:
+      - has_keyword("internal")

@@ -1,0 +1,18 @@
+citHeader("Per citare ccnlcob nelle pubblicazioni usare:")
+
+bibentry(
+  bibtype = "Manual",
+  key = "montaletti2026ccnlcob",
+  title = "ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)",
+  author = person("Giampaolo", "Montaletti",
+                  comment = c(ORCID = "0009-0002-5327-1122")),
+  year = "2026",
+  note = "R package version 0.2.0",
+  url = "https://github.com/gmontaletti/ccnlcob",
+  textVersion = paste(
+    "Montaletti, G. (2026).",
+    "ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)",
+    "(Version 0.2.0) [R package].",
+    "https://github.com/gmontaletti/ccnlcob"
+  )
+)

@@ -1,0 +1,46 @@
+Package: ccnlcob
+Title: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)
+Version: 0.2.0
+Date: 2026-09-09
+Authors@R:
+    person("Giampaolo", "Montaletti", , "giampaolo.montaletti@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0002-5327-1122"))
+Description: Analyses employment-relationship microdata from the Italian
+    mandatory communications system (COB, Comunicazioni Obbligatorie) by
+    national collective labour agreement (CCNL). Ranks agreements by number
+    of hired workers and by effective working days, distributes them across
+    public employment offices (CPI, Centro per l'Impiego) and across contract
+    types, and tracks the evolution of the median declared wage by hiring
+    cohort. Consumes relationships already classified by 'cnelR' and returns
+    precomputed data.tables for dashboards and reports.
+License: MIT + file LICENSE
+URL: https://github.com/gmontaletti/ccnlcob,
+    https://gmontaletti.github.io/ccnlcob/
+BugReports: https://github.com/gmontaletti/ccnlcob/issues
+Encoding: UTF-8
+LazyData: true
+LazyDataCompression: xz
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
+Imports:
+    data.table (>= 1.14.0),
+    fst,
+    utils
+Suggests:
+    cnelR,
+    DBI,
+    duckdb,
+    ggplot2,
+    knitr,
+    longworkR,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    vecshift (>= 2.0.0)
+Remotes:
+    gmontaletti/vecshift,
+    gmontaletti/longworkR,
+    gmontaletti/cnelR
+VignetteBuilder: knitr
+Config/testthat/edition: 3
