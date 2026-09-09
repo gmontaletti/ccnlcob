@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x55f306b58f20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x55eb8d1baf00>
 ```
 
 ## 2. Preparazione
@@ -987,7 +987,7 @@ res <- analyze_ccnl(
 )
 res
 #> <ccnlcob_result>
-#>   versione:                0.6.0
+#>   versione:                0.7.0
 #>   as_of:                   2024-12-31
 #>   window:                  2019-01-01 / 2024-12-31
 #>   perimetro:               ccnl
@@ -1044,7 +1044,41 @@ knitr::kable(manifesto[, .(oggetto, formato, righe)])
 | retribuzioni    | rds     |    30 |
 | qualita         | rds     |    25 |
 
-## 11. Lettura dei rapporti da file e da database
+## 11. Grafici
+
+Le funzioni grafiche sono opzionali (richiedono `ggplot2`, in Suggests)
+e restituiscono oggetti `ggplot` senza stamparli. Usano la palette
+Okabe-Ito e codifiche ridondanti (ordine, etichette dirette, tipo di
+linea e forma dei punti), così che l’informazione non dipenda dal solo
+colore; il quoziente di localizzazione usa una scala divergente centrata
+su 1 e le celle mascherate sotto `min_n` restano grigie.
+
+``` r
+
+plot_ranking(res, measure = "n_lavoratori", top_n = 8)
+```
+
+``` r
+
+plot_cpi(res, value = "lq")
+```
+
+``` r
+
+plot_retribuzioni(res, keys = res$keys[1:4], reale = TRUE)
+```
+
+[`plot_ranking_periodo()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking_periodo.md)
+e
+[`plot_tipologie()`](https://gmontaletti.github.io/ccnlcob/reference/plot_tipologie.md)
+completano la serie;
+[`render_report()`](https://gmontaletti.github.io/ccnlcob/reference/render_report.md)
+compila il report Quarto parametrico (`inst/quarto/report_ccnl.qmd`)
+sulla cartella prodotta da
+[`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)
+e richiede Quarto CLI.
+
+## 12. Lettura dei rapporti da file e da database
 
 [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md)
 legge i rapporti da un file FST o RDS, da un file DuckDB o da una
@@ -1061,10 +1095,10 @@ decimale). Con una sorgente DB la selezione delle colonne e il filtro
 percorso <- file.path(tempdir(), "rapporti_esempio.rds")
 saveRDS(cob_esempio, percorso)
 letti <- read_rapporti(percorso)
-#> read_rapporti(): lette 5.000 righe da /tmp/RtmpS0FsUh/rapporti_esempio.rds.
+#> read_rapporti(): lette 5.000 righe da /tmp/RtmpVUR4yW/rapporti_esempio.rds.
 attr(letti, "ccnlcob_source")[c("source", "n", "colonne_mappate")]
 #> $source
-#> [1] "/tmp/RtmpS0FsUh/rapporti_esempio.rds"
+#> [1] "/tmp/RtmpVUR4yW/rapporti_esempio.rds"
 #> 
 #> $n
 #> [1] 5000
@@ -1103,6 +1137,11 @@ res <- analyze_ccnl(dt, as_of = "2026-04-30", top_n = 25)
   [`?write_results`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md).
 - Lettura da file e database:
   [`?read_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md).
+- Grafici e report:
+  [`?plot_ranking`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking.md),
+  [`?plot_cpi`](https://gmontaletti.github.io/ccnlcob/reference/plot_cpi.md),
+  [`?plot_retribuzioni`](https://gmontaletti.github.io/ccnlcob/reference/plot_retribuzioni.md),
+  [`?render_report`](https://gmontaletti.github.io/ccnlcob/reference/render_report.md).
 - Perimetro contrattuale:
   [`?filter_perimetro`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
 - Misure e quote del ranking:

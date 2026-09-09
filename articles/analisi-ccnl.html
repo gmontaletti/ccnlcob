@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -140,7 +140,7 @@ retribuzioni mancanti o anomale.</p>
 <span><span class="co">#&gt;  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...</span></span>
 <span><span class="co">#&gt;  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...</span></span>
 <span><span class="co">#&gt;  $ sesso                     : chr  "F" "F" "M" "F" ...</span></span>
-<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x55f306b58f20&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x55eb8d1baf00&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="preparazione">2. Preparazione<a class="anchor" aria-label="anchor" href="#preparazione"></a>
@@ -2095,7 +2095,7 @@ I blocchi opzionali non disponibili (per esempio il CPI senza lookup né
 <span><span class="op">)</span></span>
 <span><span class="va">res</span></span>
 <span><span class="co">#&gt; &lt;ccnlcob_result&gt;</span></span>
-<span><span class="co">#&gt;   versione:                0.6.0</span></span>
+<span><span class="co">#&gt;   versione:                0.7.0</span></span>
 <span><span class="co">#&gt;   as_of:                   2024-12-31</span></span>
 <span><span class="co">#&gt;   window:                  2019-01-01 / 2024-12-31</span></span>
 <span><span class="co">#&gt;   perimetro:               ccnl</span></span>
@@ -2256,7 +2256,29 @@ contratto di uscita: tabelle piccole in RDS, cubi in FST (compressione
 </table>
 </div>
 <div class="section level2">
-<h2 id="lettura-dei-rapporti-da-file-e-da-database">11. Lettura dei rapporti da file e da database<a class="anchor" aria-label="anchor" href="#lettura-dei-rapporti-da-file-e-da-database"></a>
+<h2 id="grafici">11. Grafici<a class="anchor" aria-label="anchor" href="#grafici"></a>
+</h2>
+<p>Le funzioni grafiche sono opzionali (richiedono <code>ggplot2</code>,
+in Suggests) e restituiscono oggetti <code>ggplot</code> senza
+stamparli. Usano la palette Okabe-Ito e codifiche ridondanti (ordine,
+etichette dirette, tipo di linea e forma dei punti), così che
+l’informazione non dipenda dal solo colore; il quoziente di
+localizzazione usa una scala divergente centrata su 1 e le celle
+mascherate sotto <code>min_n</code> restano grigie.</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_ranking.html">plot_ranking</a></span><span class="op">(</span><span class="va">res</span>, measure <span class="op">=</span> <span class="st">"n_lavoratori"</span>, top_n <span class="op">=</span> <span class="fl">8</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cpi.html">plot_cpi</a></span><span class="op">(</span><span class="va">res</span>, value <span class="op">=</span> <span class="st">"lq"</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_retribuzioni.html">plot_retribuzioni</a></span><span class="op">(</span><span class="va">res</span>, keys <span class="op">=</span> <span class="va">res</span><span class="op">$</span><span class="va">keys</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span>, reale <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/plot_ranking_periodo.html">plot_ranking_periodo()</a></code> e <code><a href="../reference/plot_tipologie.html">plot_tipologie()</a></code>
+completano la serie; <code><a href="../reference/render_report.html">render_report()</a></code> compila il report
+Quarto parametrico (<code>inst/quarto/report_ccnl.qmd</code>) sulla
+cartella prodotta da <code><a href="../reference/write_results.html">write_results()</a></code> e richiede Quarto
+CLI.</p>
+</div>
+<div class="section level2">
+<h2 id="lettura-dei-rapporti-da-file-e-da-database">12. Lettura dei rapporti da file e da database<a class="anchor" aria-label="anchor" href="#lettura-dei-rapporti-da-file-e-da-database"></a>
 </h2>
 <p><code><a href="../reference/read_rapporti.html">read_rapporti()</a></code> legge i rapporti da un file FST o RDS,
 da un file DuckDB o da una connessione DBI, mappa i nomi del warehouse
@@ -2269,14 +2291,14 @@ al contratto dati (<code>id_rapporto</code>,
 <code>integer64</code>, testo numerico con eventuale virgola decimale).
 Con una sorgente DB la selezione delle colonne e il filtro
 <code>where</code> vengono spinti nella query.</p>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">percorso</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"rapporti_esempio.rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS</a></span><span class="op">(</span><span class="va">cob_esempio</span>, <span class="va">percorso</span><span class="op">)</span></span>
 <span><span class="va">letti</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span><span class="va">percorso</span><span class="op">)</span></span>
-<span><span class="co">#&gt; read_rapporti(): lette 5.000 righe da /tmp/RtmpS0FsUh/rapporti_esempio.rds.</span></span>
+<span><span class="co">#&gt; read_rapporti(): lette 5.000 righe da /tmp/RtmpVUR4yW/rapporti_esempio.rds.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">letti</span>, <span class="st">"ccnlcob_source"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"source"</span>, <span class="st">"n"</span>, <span class="st">"colonne_mappate"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $source</span></span>
-<span><span class="co">#&gt; [1] "/tmp/RtmpS0FsUh/rapporti_esempio.rds"</span></span>
+<span><span class="co">#&gt; [1] "/tmp/RtmpVUR4yW/rapporti_esempio.rds"</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n</span></span>
 <span><span class="co">#&gt; [1] 5000</span></span>
@@ -2286,7 +2308,7 @@ Con una sorgente DB la selezione delle colonne e il filtro
 <p>La slice classificata da <code>cnelR</code>
 (<code>sl2_rapporti_36m_classificati</code>) si legge così; il blocco
 non viene eseguito nella vignetta.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span></span>
 <span>  <span class="st">"~/data/cnel/rapporti_azure.duckdb"</span>,</span>
 <span>  table <span class="op">=</span> <span class="st">"sl2_rapporti_36m_classificati"</span>,</span>
@@ -2308,6 +2330,9 @@ non viene eseguito nella vignetta.</p>
 <code><a href="../reference/compute_giornate_effettive.html">?compute_giornate_effettive</a></code>, <code><a href="../reference/analyze_ccnl.html">?analyze_ccnl</a></code>,
 <code><a href="../reference/write_results.html">?write_results</a></code>.</li>
 <li>Lettura da file e database: <code><a href="../reference/read_rapporti.html">?read_rapporti</a></code>.</li>
+<li>Grafici e report: <code><a href="../reference/plot_ranking.html">?plot_ranking</a></code>,
+<code><a href="../reference/plot_cpi.html">?plot_cpi</a></code>, <code><a href="../reference/plot_retribuzioni.html">?plot_retribuzioni</a></code>,
+<code><a href="../reference/render_report.html">?render_report</a></code>.</li>
 <li>Perimetro contrattuale: <code><a href="../reference/filter_perimetro.html">?filter_perimetro</a></code>.</li>
 <li>Misure e quote del ranking: <code><a href="../reference/rank_ccnl.html">?rank_ccnl</a></code>,
 <code><a href="../reference/select_ccnl_rilevanti.html">?select_ccnl_rilevanti</a></code>.</li>

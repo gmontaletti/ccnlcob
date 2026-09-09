@@ -122,7 +122,7 @@ mostra l’uso previsto delle funzioni delle fasi successive.
 
 ## Stato di sviluppo
 
-Versione 0.6.0: le Fasi da 1 a 5 del piano di sviluppo sono completate e
+Versione 0.7.0: le Fasi da 1 a 6 del piano di sviluppo sono completate e
 il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto
 fornisce il contratto dati
 ([`validate_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md)),
@@ -157,10 +157,18 @@ l’analisi completa
 ([`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md)),
 la serializzazione
 ([`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md))
-e la lettura da FST, RDS, DuckDB o connessioni DBI
+la lettura da FST, RDS, DuckDB o connessioni DBI
 ([`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md),
-con la mappatura dei nomi della slice `cnelR`). Restano previsti i
-grafici opzionali (Fase 6).
+con la mappatura dei nomi della slice `cnelR`), le funzioni grafiche
+opzionali su ggplot2 con palette accessibili
+([`plot_ranking()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking.md),
+[`plot_ranking_periodo()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking_periodo.md),
+[`plot_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/plot_cpi.md),
+[`plot_tipologie()`](https://gmontaletti.github.io/ccnlcob/reference/plot_tipologie.md),
+[`plot_retribuzioni()`](https://gmontaletti.github.io/ccnlcob/reference/plot_retribuzioni.md))
+e il report Quarto parametrico
+([`render_report()`](https://gmontaletti.github.io/ccnlcob/reference/render_report.md)).
+Resta da creare il repository di workflow `targets`.
 
 | Fase | Versione | Contenuto | Stato |
 |----|----|----|----|
@@ -171,14 +179,14 @@ grafici opzionali (Fase 6).
 | 3 | 0.4.0 | [`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md), [`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md), [`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md), [`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md) | completata |
 | 4 | 0.5.0 | [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md), [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md), [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md) | completata |
 | 5 | 0.6.0 | [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md) da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | completata (workflow targets separato ancora da creare) |
-| 6 | 0.7.0 | grafici opzionali e report Quarto | prevista |
+| 6 | 0.7.0 | grafici opzionali e report Quarto | completata |
 
 ## Citazione
 
 Per citare ccnlcob nelle pubblicazioni:
 
 Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National
-Collective Labour Agreement (CCNL)* (Version 0.6.0) \[R package\].
+Collective Labour Agreement (CCNL)* (Version 0.7.0) \[R package\].
 <https://github.com/gmontaletti/ccnlcob>
 
 Voce BibTeX:
@@ -187,7 +195,7 @@ Voce BibTeX:
 @software{montaletti2026ccnlcob,
   author = {Montaletti, Giampaolo},
   title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},
-  version = {0.6.0},
+  version = {0.7.0},
   year = {2026},
   url = {https://github.com/gmontaletti/ccnlcob}
 }

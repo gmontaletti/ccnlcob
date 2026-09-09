@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -150,7 +150,7 @@
 <div class="section level2">
 <h2 id="stato-di-sviluppo">Stato di sviluppo<a class="anchor" aria-label="anchor" href="#stato-di-sviluppo"></a>
 </h2>
-<p>Versione 0.6.0: le Fasi da 1 a 5 del piano di sviluppo sono completate e il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto fornisce il contratto dati (<code><a href="reference/validate_rapporti.html">validate_rapporti()</a></code>), il perimetro contrattuale (flag <code>perimetro_ccnl</code> in <code>tipologie_contrattuali</code>, <code><a href="reference/filter_perimetro.html">filter_perimetro()</a></code>, argomento <code>perimetro</code> di <code><a href="reference/prepare_rapporti.html">prepare_rapporti()</a></code> con default <code>"ccnl"</code>), la preparazione dei rapporti (<code><a href="reference/prepare_rapporti.html">prepare_rapporti()</a></code>, <code><a href="reference/classify_tipologia.html">classify_tipologia()</a></code>), le giornate di contratto (<code><a href="reference/compute_giornate.html">compute_giornate()</a></code>), il ranking con selezione dei CCNL (<code><a href="reference/rank_ccnl.html">rank_ccnl()</a></code>, <code><a href="reference/select_ccnl_rilevanti.html">select_ccnl_rilevanti()</a></code>), la distribuzione territoriale per CPI (<code><a href="reference/add_cpi.html">add_cpi()</a></code>, <code><a href="reference/ccnl_by_cpi.html">ccnl_by_cpi()</a></code>, lookup di esempio <code>cpi_esempio</code>) la distribuzione per tipologia contrattuale (<code><a href="reference/ccnl_by_tipologia.html">ccnl_by_tipologia()</a></code>) e le retribuzioni dichiarate (<code><a href="reference/clean_retribuzione.html">clean_retribuzione()</a></code>, <code><a href="reference/normalize_fte.html">normalize_fte()</a></code>, <code><a href="reference/median_retribuzione.html">median_retribuzione()</a></code>, <code><a href="reference/deflate_retribuzione.html">deflate_retribuzione()</a></code>, con default derivati da una diagnostica su dati reali), le giornate effettive pro quota (<code><a href="reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code>), l’analisi completa (<code><a href="reference/analyze_ccnl.html">analyze_ccnl()</a></code>), la serializzazione (<code><a href="reference/write_results.html">write_results()</a></code>) e la lettura da FST, RDS, DuckDB o connessioni DBI (<code><a href="reference/read_rapporti.html">read_rapporti()</a></code>, con la mappatura dei nomi della slice <code>cnelR</code>). Restano previsti i grafici opzionali (Fase 6).</p>
+<p>Versione 0.7.0: le Fasi da 1 a 6 del piano di sviluppo sono completate e il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto fornisce il contratto dati (<code><a href="reference/validate_rapporti.html">validate_rapporti()</a></code>), il perimetro contrattuale (flag <code>perimetro_ccnl</code> in <code>tipologie_contrattuali</code>, <code><a href="reference/filter_perimetro.html">filter_perimetro()</a></code>, argomento <code>perimetro</code> di <code><a href="reference/prepare_rapporti.html">prepare_rapporti()</a></code> con default <code>"ccnl"</code>), la preparazione dei rapporti (<code><a href="reference/prepare_rapporti.html">prepare_rapporti()</a></code>, <code><a href="reference/classify_tipologia.html">classify_tipologia()</a></code>), le giornate di contratto (<code><a href="reference/compute_giornate.html">compute_giornate()</a></code>), il ranking con selezione dei CCNL (<code><a href="reference/rank_ccnl.html">rank_ccnl()</a></code>, <code><a href="reference/select_ccnl_rilevanti.html">select_ccnl_rilevanti()</a></code>), la distribuzione territoriale per CPI (<code><a href="reference/add_cpi.html">add_cpi()</a></code>, <code><a href="reference/ccnl_by_cpi.html">ccnl_by_cpi()</a></code>, lookup di esempio <code>cpi_esempio</code>) la distribuzione per tipologia contrattuale (<code><a href="reference/ccnl_by_tipologia.html">ccnl_by_tipologia()</a></code>) e le retribuzioni dichiarate (<code><a href="reference/clean_retribuzione.html">clean_retribuzione()</a></code>, <code><a href="reference/normalize_fte.html">normalize_fte()</a></code>, <code><a href="reference/median_retribuzione.html">median_retribuzione()</a></code>, <code><a href="reference/deflate_retribuzione.html">deflate_retribuzione()</a></code>, con default derivati da una diagnostica su dati reali), le giornate effettive pro quota (<code><a href="reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code>), l’analisi completa (<code><a href="reference/analyze_ccnl.html">analyze_ccnl()</a></code>), la serializzazione (<code><a href="reference/write_results.html">write_results()</a></code>) la lettura da FST, RDS, DuckDB o connessioni DBI (<code><a href="reference/read_rapporti.html">read_rapporti()</a></code>, con la mappatura dei nomi della slice <code>cnelR</code>), le funzioni grafiche opzionali su ggplot2 con palette accessibili (<code><a href="reference/plot_ranking.html">plot_ranking()</a></code>, <code><a href="reference/plot_ranking_periodo.html">plot_ranking_periodo()</a></code>, <code><a href="reference/plot_cpi.html">plot_cpi()</a></code>, <code><a href="reference/plot_tipologie.html">plot_tipologie()</a></code>, <code><a href="reference/plot_retribuzioni.html">plot_retribuzioni()</a></code>) e il report Quarto parametrico (<code><a href="reference/render_report.html">render_report()</a></code>). Resta da creare il repository di workflow <code>targets</code>.</p>
 <table class="table">
 <colgroup>
 <col width="25%">
@@ -220,7 +220,7 @@
 <td>6</td>
 <td>0.7.0</td>
 <td>grafici opzionali e report Quarto</td>
-<td>prevista</td>
+<td>completata</td>
 </tr>
 </tbody>
 </table>
@@ -229,12 +229,12 @@
 <h2 id="citazione">Citazione<a class="anchor" aria-label="anchor" href="#citazione"></a>
 </h2>
 <p>Per citare ccnlcob nelle pubblicazioni:</p>
-<p>Montaletti, G. (2026). <em>ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)</em> (Version 0.6.0) [R package]. <a href="https://github.com/gmontaletti/ccnlcob" class="external-link uri">https://github.com/gmontaletti/ccnlcob</a></p>
+<p>Montaletti, G. (2026). <em>ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)</em> (Version 0.7.0) [R package]. <a href="https://github.com/gmontaletti/ccnlcob" class="external-link uri">https://github.com/gmontaletti/ccnlcob</a></p>
 <p>Voce BibTeX:</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode bibtex"><code class="sourceCode bibtex"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co">@software{montaletti2026ccnlcob,</span></span>
 <span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="co">  author = {Montaletti, Giampaolo},</span></span>
 <span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="co">  title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},</span></span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">  version = {0.6.0},</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">  version = {0.7.0},</span></span>
 <span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">  year = {2026},</span></span>
 <span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">  url = {https://github.com/gmontaletti/ccnlcob}</span></span>
 <span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co">}</span></span></code></pre></div>

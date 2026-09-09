@@ -1,5 +1,33 @@
 # Changelog
 
+## ccnlcob 0.7.0
+
+### Nuove funzionalità
+
+- Livello grafico opzionale su `ggplot2` (in Suggests) con palette
+  accessibili (Okabe-Ito, scale divergenti centrate su 1 per il
+  quoziente di localizzazione) e codifiche ridondanti:
+  [`plot_ranking()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking.md),
+  [`plot_ranking_periodo()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking_periodo.md),
+  [`plot_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/plot_cpi.md),
+  [`plot_tipologie()`](https://gmontaletti.github.io/ccnlcob/reference/plot_tipologie.md),
+  [`plot_retribuzioni()`](https://gmontaletti.github.io/ccnlcob/reference/plot_retribuzioni.md),
+  con
+  [`theme_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/theme_ccnlcob.md),
+  [`scale_colour_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/scale_colour_ccnlcob.md),
+  [`scale_fill_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/scale_colour_ccnlcob.md)
+  e
+  [`palette_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/palette_ccnlcob.md).
+- Report Quarto parametrico `inst/quarto/report_ccnl.qmd`, che legge la
+  cartella prodotta da
+  [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md),
+  e funzione
+  [`render_report()`](https://gmontaletti.github.io/ccnlcob/reference/render_report.md)
+  che lo compila in HTML autonomo (richiede Quarto CLI e il pacchetto
+  `quarto`).
+
+------------------------------------------------------------------------
+
 ## ccnlcob 0.6.0
 
 ### Nuove funzionalità

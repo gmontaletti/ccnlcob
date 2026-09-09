@@ -75,6 +75,35 @@ Analisi completa, stampa del risultato e serializzazione.
 - [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)
   : Serializza i risultati di analyze_ccnl()
 
+## Grafici
+
+Funzioni grafiche opzionali su ggplot2 con palette accessibili.
+
+- [`plot_ranking()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking.md)
+  : Grafico a barre del ranking dei CCNL
+- [`plot_ranking_periodo()`](https://gmontaletti.github.io/ccnlcob/reference/plot_ranking_periodo.md)
+  : Andamento del ranking dei CCNL per periodo
+- [`plot_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/plot_cpi.md)
+  : Mappa di calore CCNL per CPI
+- [`plot_tipologie()`](https://gmontaletti.github.io/ccnlcob/reference/plot_tipologie.md)
+  : Barre impilate della distribuzione per tipologia contrattuale
+- [`plot_retribuzioni()`](https://gmontaletti.github.io/ccnlcob/reference/plot_retribuzioni.md)
+  : Andamento della retribuzione mediana per periodo
+- [`theme_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/theme_ccnlcob.md)
+  : Tema grafico minimale per ccnlcob
+- [`scale_colour_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/scale_colour_ccnlcob.md)
+  [`scale_fill_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/scale_colour_ccnlcob.md)
+  : Scale colore e riempimento sulla palette Okabe-Ito
+- [`palette_ccnlcob()`](https://gmontaletti.github.io/ccnlcob/reference/palette_ccnlcob.md)
+  : Palette Okabe-Ito per ccnlcob
+
+## Report
+
+Report Quarto parametrico sui risultati serializzati.
+
+- [`render_report()`](https://gmontaletti.github.io/ccnlcob/reference/render_report.md)
+  : Genera il report HTML dei risultati di analyze_ccnl()
+
 ## Dati
 
 Lookup delle tipologie contrattuali, dataset sintetico di esempio e

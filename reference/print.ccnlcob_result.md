@@ -43,7 +43,7 @@ Other orchestrazione:
 res <- analyze_ccnl(cob_esempio, lookup_cpi = cpi_esempio, min_n = 10)
 print(res)
 #> <ccnlcob_result>
-#>   versione:                0.6.0
+#>   versione:                0.7.0
 #>   as_of:                   2024-12-31
 #>   window:                  2019-01-01 / 2024-12-31
 #>   perimetro:               ccnl

@@ -232,7 +232,7 @@ res <- analyze_ccnl(
 )
 res
 #> <ccnlcob_result>
-#>   versione:                0.6.0
+#>   versione:                0.7.0
 #>   as_of:                   2024-12-31
 #>   window:                  2022-01-01 / 2024-12-31
 #>   perimetro:               ccnl
