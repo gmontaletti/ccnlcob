@@ -81,3 +81,4 @@ Thumbs.db
 tests/testthat/testthat-problems.rds
 tests/testthat/_snaps/
 tests/testthat/_problems/
+.code-review-graph/

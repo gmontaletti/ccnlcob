@@ -212,7 +212,7 @@ render_report <- function(
 
 # 2. Helper interni -----
 
-#' Radice del pacchetto quando è caricato con pkgload::load_all()
+#' Radice del pacchetto quando è caricato con `pkgload::load_all()`
 #'
 #' Quarto esegue il template in un processo R separato, dove un pacchetto
 #' caricato con `devtools::load_all()` non è visibile: in quel caso il
@@ -224,8 +224,9 @@ render_report <- function(
 #' @noRd
 .pkg_dev_root <- function() {
   if (
-    requireNamespace("pkgload", quietly = TRUE) &&
-      isTRUE(pkgload::is_dev_package("ccnlcob"))
+    # pkgload::load_all() marca il namespace con `.__DEVTOOLS__`: il controllo
+    # evita una dipendenza da pkgload nel codice del pacchetto.
+    exists(".__DEVTOOLS__", envir = asNamespace("ccnlcob"), inherits = FALSE)
   ) {
     # sotto pkgload system.file(package = ) restituisce <radice>/inst
     return(normalizePath(
