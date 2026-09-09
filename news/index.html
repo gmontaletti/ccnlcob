@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,22 @@
       <small>Source: <a href="https://github.com/gmontaletti/ccnlcob/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.4.0" id="ccnlcob-040">ccnlcob 0.4.0<a class="anchor" aria-label="anchor" href="#ccnlcob-040"></a></h2>
+<div class="section level3">
+<h3 id="nuove-funzionalità-0-4-0">Nuove funzionalità<a class="anchor" aria-label="anchor" href="#nuove-funzionalit%C3%A0-0-4-0"></a></h3>
+<ul><li>
+<code><a href="../reference/clean_retribuzione.html">clean_retribuzione()</a></code> classifica la retribuzione annua lorda dichiarata all’avviamento (<code>flag_retribuzione</code>: valida, mancante, zero, sentinella, fuori_range) e produce <code>retribuzione_pulita</code> senza eliminare righe; la finestra di plausibilità è una regola mediana ± k·MAD su scala logaritmica per cella anno × macro-tipologia × orario, con pavimento sulla MAD e cella di ripiego. I default (<code>min_valore = 100</code>, <code>max_valore = 1e6</code>, <code>k = 4</code>, <code>mad_min = 0.15</code>) derivano dalla diagnostica su 32 milioni di rapporti COB reali.</li>
+<li>
+<code><a href="../reference/normalize_fte.html">normalize_fte()</a></code> riporta la retribuzione dei part-time all’equivalente a tempo pieno (<code>retribuzione_fte</code>, <code>flag_fte</code>) con ore di riferimento 40 e tabella opzionale per CCNL o macro-tipologia: sui dati reali i valori part-time risultano già proporzionali alle ore dichiarate.</li>
+<li>
+<code><a href="../reference/median_retribuzione.html">median_retribuzione()</a></code> calcola per CCNL e coorte di avviamento la mediana e i quartili ponderati per giornate, con <code>n</code>, copertura, mascheramento sotto <code>min_n</code>, variazione percentuale e indice a base fissa.</li>
+<li>
+<code><a href="../reference/deflate_retribuzione.html">deflate_retribuzione()</a></code> aggiunge le colonne <code>_reale</code> a partire da un indice dei prezzi fornito dall’utente e da un periodo base.</li>
+<li>
+<code><a href="../reference/prepare_rapporti.html">prepare_rapporti()</a></code> converte <code>retribuzione</code> e <code>ore</code> da factor o character (come nel file <code>rap.fst</code>) e conta i valori non numerici nei metadati.</li>
+</ul><hr></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.3.0" id="ccnlcob-030">ccnlcob 0.3.0<a class="anchor" aria-label="anchor" href="#ccnlcob-030"></a></h2>
 <div class="section level3">

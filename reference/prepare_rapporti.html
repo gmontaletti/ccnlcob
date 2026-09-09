@@ -19,7 +19,7 @@ restituisce un nuovo data.table."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -144,6 +144,21 @@ Il contratto dati viene verificato dopo la rinomina.</p>
 </div>
 
 <div class="section">
+<h3 id="conversione-di-retribuzione-e-ore">Conversione di <code>retribuzione</code> e <code>ore</code><a class="anchor" aria-label="anchor" href="#conversione-di-retribuzione-e-ore"></a></h3>
+
+
+<p>Nel file <code>rap.fst</code> della pipeline COB <code>retribuzione</code> e <code>ore</code> sono factor
+con livelli zero-padded (es. <code>"000023671"</code>, <code>"05"</code>). Se presenti come
+factor o character, le due colonne vengono convertite in numeric sui
+livelli (<code>as.numeric(levels(f))[f]</code>) senza avvisi; i valori che non
+rappresentano un numero diventano <code>NA</code> e sono conteggiati nei metadati
+<code>n_retribuzione_non_numerica</code> e <code>n_ore_non_numeriche</code> (0 quando le
+colonne sono già numeriche o assenti). I valori numerici non vengono
+alterati: la pulizia della retribuzione è compito di
+<code><a href="clean_retribuzione.html">clean_retribuzione()</a></code>, quella delle ore di <code><a href="normalize_fte.html">normalize_fte()</a></code>.</p>
+</div>
+
+<div class="section">
 <h3 id="perimetro-contrattuale">Perimetro contrattuale<a class="anchor" aria-label="anchor" href="#perimetro-contrattuale"></a></h3>
 
 
@@ -226,8 +241,8 @@ avviamento da <code>inizio</code>;</p></li>
 <code>window</code>, <code>ccnl_key</code> (nome della colonna usata), <code>perimetro</code>, <code>n_input</code>
 (righe di <code>dt</code>), <code>n_dropped_perimetro</code>, <code>n_tipologia_ignota</code>,
 <code>n_dropped_window</code>, <code>n_sentinel_fine</code>, <code>n_sentinel_inizio</code>,
-<code>n_fine_lt_inizio</code> e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di
-<code><a href="filter_perimetro.html">filter_perimetro()</a></code>).</p>
+<code>n_fine_lt_inizio</code>, <code>n_retribuzione_non_numerica</code>, <code>n_ore_non_numeriche</code>
+e <code>esclusi_perimetro</code> (la tabella <code>esclusi</code> di <code><a href="filter_perimetro.html">filter_perimetro()</a></code>).</p>
 </div>
 
     </div>

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -140,7 +140,7 @@ retribuzioni mancanti o anomale.</p>
 <span><span class="co">#&gt;  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...</span></span>
 <span><span class="co">#&gt;  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...</span></span>
 <span><span class="co">#&gt;  $ sesso                     : chr  "F" "F" "M" "F" ...</span></span>
-<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x5602b9d02f20&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x565162cdef20&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="preparazione">2. Preparazione<a class="anchor" aria-label="anchor" href="#preparazione"></a>
@@ -350,7 +350,13 @@ perimetro, rapporti esclusi perché esterni alla finestra, sentinelle su
 <span><span class="co">#&gt; [1] 0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $n_fine_lt_inizio</span></span>
-<span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 2</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_retribuzione_non_numerica</span></span>
+<span><span class="co">#&gt; [1] 0</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $n_ore_non_numeriche</span></span>
+<span><span class="co">#&gt; [1] 0</span></span></code></pre></div>
 <p>Le colonne aggiunte hanno il seguente significato:</p>
 <ul>
 <li>
@@ -1536,6 +1542,389 @@ una riga per CCNL e tipologia.</p>
 </table>
 </div>
 <div class="section level2">
+<h2 id="retribuzioni-dichiarate">8. Retribuzioni dichiarate<a class="anchor" aria-label="anchor" href="#retribuzioni-dichiarate"></a>
+</h2>
+<p>Il campo <code>retribuzione</code> delle COB è la retribuzione annua
+lorda dichiarata all’avviamento. Sui dati reali (diagnostica su 32
+milioni di rapporti) il campo è affidabile dal 2020, contiene segnaposto
+(0, 1, 100, 1.000, novi ripetuti) e, per i part-time, valori già
+proporzionali alle ore dichiarate. Le tre funzioni seguenti ne tengono
+conto: <code><a href="../reference/clean_retribuzione.html">clean_retribuzione()</a></code> classifica ogni valore senza
+eliminare righe, <code><a href="../reference/normalize_fte.html">normalize_fte()</a></code> riporta i part-time
+all’equivalente a tempo pieno, <code><a href="../reference/median_retribuzione.html">median_retribuzione()</a></code>
+calcola mediana e quartili ponderati per giornate per coorte di
+avviamento.</p>
+<p>La finestra di plausibilità è una regola mediana ± <code>k</code>·MAD
+su scala logaritmica, calcolata per cella anno × macro-tipologia ×
+orario con un pavimento sulla MAD (<code>mad_min</code>) e una cella di
+ripiego quando la cella ha meno di <code>min_n</code> valori: i default
+(<code>min_valore = 100</code>, <code>max_valore = 1e6</code>,
+<code>k = 4</code>, <code>mad_min = 0.15</code>) derivano dalla
+diagnostica sui dati reali.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/clean_retribuzione.html">clean_retribuzione</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/normalize_fte.html">normalize_fte</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
+<span><span class="va">riepilogo</span> <span class="op">&lt;-</span> <span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>n <span class="op">=</span> <span class="va">.N</span>, quota <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">.N</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">flag_retribuzione</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">riepilogo</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">flag_retribuzione</th>
+<th align="right">n</th>
+<th align="right">quota</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">valida</td>
+<td align="right">2139</td>
+<td align="right">0.731</td>
+</tr>
+<tr class="even">
+<td align="left">mancante</td>
+<td align="right">735</td>
+<td align="right">0.251</td>
+</tr>
+<tr class="odd">
+<td align="left">sentinella</td>
+<td align="right">44</td>
+<td align="right">0.015</td>
+</tr>
+<tr class="even">
+<td align="left">fuori_range</td>
+<td align="right">7</td>
+<td align="right">0.002</td>
+</tr>
+<tr class="odd">
+<td align="left">zero</td>
+<td align="right">2</td>
+<td align="right">0.001</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>n <span class="op">=</span> <span class="va">.N</span>, quota <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">.N</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">flag_fte</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">n</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">flag_fte</th>
+<th align="right">n</th>
+<th align="right">quota</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">full_time</td>
+<td align="right">1441</td>
+<td align="right">0.492</td>
+</tr>
+<tr class="even">
+<td align="left">non_valida</td>
+<td align="right">788</td>
+<td align="right">0.269</td>
+</tr>
+<tr class="odd">
+<td align="left">riproporzionata</td>
+<td align="right">680</td>
+<td align="right">0.232</td>
+</tr>
+<tr class="even">
+<td align="left">ore_mancanti</td>
+<td align="right">18</td>
+<td align="right">0.006</td>
+</tr>
+</tbody>
+</table>
+<p><code><a href="../reference/normalize_fte.html">normalize_fte()</a></code> usa 40 ore di riferimento (con tabella
+opzionale per CCNL o macro-tipologia, per esempio 54 per il lavoro
+domestico) e moltiplica la retribuzione dei part-time per
+<code>ore_riferimento / ore</code>; i part-time senza ore dichiarate
+ricevono <code>NA</code> con flag <code>ore_mancanti</code>.</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">retribuzioni</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/median_retribuzione.html">median_retribuzione</a></span><span class="op">(</span><span class="va">dt</span>, periodo <span class="op">=</span> <span class="st">"anno"</span>, ccnl <span class="op">=</span> <span class="va">top5</span>, min_n <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">retribuzioni</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">anno</span>, <span class="va">ccnl_key</span>, <span class="va">n</span>, <span class="va">n_valide</span>, <span class="va">copertura</span>, <span class="va">giornate</span>, <span class="va">p25</span>, <span class="va">mediana</span>, <span class="va">p75</span>, <span class="va">var_pct</span>, <span class="va">indice</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  digits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">2</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="6%">
+<col width="11%">
+<col width="4%">
+<col width="11%">
+<col width="12%">
+<col width="11%">
+<col width="7%">
+<col width="9%">
+<col width="7%">
+<col width="9%">
+<col width="8%">
+</colgroup>
+<thead><tr class="header">
+<th align="right">anno</th>
+<th align="left">ccnl_key</th>
+<th align="right">n</th>
+<th align="right">n_valide</th>
+<th align="right">copertura</th>
+<th align="right">giornate</th>
+<th align="right">p25</th>
+<th align="right">mediana</th>
+<th align="right">p75</th>
+<th align="right">var_pct</th>
+<th align="right">indice</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">2022</td>
+<td align="left">A011</td>
+<td align="right">155</td>
+<td align="right">119</td>
+<td align="right">0.77</td>
+<td align="right">28691</td>
+<td align="right">17123</td>
+<td align="right">20121</td>
+<td align="right">28371</td>
+<td align="right">NA</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="right">2023</td>
+<td align="left">A011</td>
+<td align="right">137</td>
+<td align="right">105</td>
+<td align="right">0.77</td>
+<td align="right">21255</td>
+<td align="right">18339</td>
+<td align="right">22360</td>
+<td align="right">28020</td>
+<td align="right">11.1</td>
+<td align="right">111.1</td>
+</tr>
+<tr class="odd">
+<td align="right">2024</td>
+<td align="left">A011</td>
+<td align="right">151</td>
+<td align="right">117</td>
+<td align="right">0.77</td>
+<td align="right">12756</td>
+<td align="right">18795</td>
+<td align="right">24088</td>
+<td align="right">30739</td>
+<td align="right">7.7</td>
+<td align="right">119.7</td>
+</tr>
+<tr class="even">
+<td align="right">2022</td>
+<td align="left">C011</td>
+<td align="right">48</td>
+<td align="right">36</td>
+<td align="right">0.75</td>
+<td align="right">8249</td>
+<td align="right">20984</td>
+<td align="right">27249</td>
+<td align="right">34163</td>
+<td align="right">NA</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="right">2023</td>
+<td align="left">C011</td>
+<td align="right">57</td>
+<td align="right">44</td>
+<td align="right">0.77</td>
+<td align="right">7435</td>
+<td align="right">21921</td>
+<td align="right">28898</td>
+<td align="right">37489</td>
+<td align="right">6.1</td>
+<td align="right">106.1</td>
+</tr>
+<tr class="even">
+<td align="right">2024</td>
+<td align="left">C011</td>
+<td align="right">33</td>
+<td align="right">24</td>
+<td align="right">0.73</td>
+<td align="right">1610</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">2022</td>
+<td align="left">H011</td>
+<td align="right">78</td>
+<td align="right">56</td>
+<td align="right">0.72</td>
+<td align="right">12351</td>
+<td align="right">19593</td>
+<td align="right">21621</td>
+<td align="right">24492</td>
+<td align="right">NA</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="right">2023</td>
+<td align="left">H011</td>
+<td align="right">92</td>
+<td align="right">64</td>
+<td align="right">0.70</td>
+<td align="right">11516</td>
+<td align="right">19787</td>
+<td align="right">26334</td>
+<td align="right">30655</td>
+<td align="right">21.8</td>
+<td align="right">121.8</td>
+</tr>
+<tr class="odd">
+<td align="right">2024</td>
+<td align="left">H011</td>
+<td align="right">86</td>
+<td align="right">61</td>
+<td align="right">0.71</td>
+<td align="right">6793</td>
+<td align="right">20912</td>
+<td align="right">27116</td>
+<td align="right">29599</td>
+<td align="right">3.0</td>
+<td align="right">125.4</td>
+</tr>
+<tr class="even">
+<td align="right">2022</td>
+<td align="left">IC91</td>
+<td align="right">39</td>
+<td align="right">23</td>
+<td align="right">0.59</td>
+<td align="right">6313</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">2023</td>
+<td align="left">IC91</td>
+<td align="right">34</td>
+<td align="right">21</td>
+<td align="right">0.62</td>
+<td align="right">4283</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="right">2024</td>
+<td align="left">IC91</td>
+<td align="right">33</td>
+<td align="right">23</td>
+<td align="right">0.70</td>
+<td align="right">2648</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="right">2022</td>
+<td align="left">T011</td>
+<td align="right">60</td>
+<td align="right">48</td>
+<td align="right">0.80</td>
+<td align="right">13392</td>
+<td align="right">18385</td>
+<td align="right">21879</td>
+<td align="right">25547</td>
+<td align="right">NA</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="right">2023</td>
+<td align="left">T011</td>
+<td align="right">65</td>
+<td align="right">44</td>
+<td align="right">0.68</td>
+<td align="right">8205</td>
+<td align="right">22324</td>
+<td align="right">26771</td>
+<td align="right">35131</td>
+<td align="right">22.4</td>
+<td align="right">122.4</td>
+</tr>
+<tr class="odd">
+<td align="right">2024</td>
+<td align="left">T011</td>
+<td align="right">64</td>
+<td align="right">46</td>
+<td align="right">0.72</td>
+<td align="right">5793</td>
+<td align="right">21240</td>
+<td align="right">27062</td>
+<td align="right">35259</td>
+<td align="right">1.1</td>
+<td align="right">123.7</td>
+</tr>
+</tbody>
+</table>
+<p>La mediana è ponderata per <code>giornate</code> (coerente con
+<code>longworkR</code>); ogni riga riporta <code>n</code>,
+<code>n_valide</code> e la copertura; le celle con meno di
+<code>min_n</code> valori validi sono mascherate con <code>NA</code> ma
+non eliminate. Per default entrano solo i rapporti avviati nella
+finestra (<code>solo_avviati = TRUE</code>): le coorti precedenti sono
+osservate solo se sopravvissute fino alla finestra. <code>var_pct</code>
+è la variazione sul periodo precedente e <code>indice</code> pone a 100
+il primo periodo non mascherato.</p>
+<p><code><a href="../reference/deflate_retribuzione.html">deflate_retribuzione()</a></code> aggiunge le colonne
+<code>_reale</code> a partire da un indice dei prezzi fornito
+dall’utente (per esempio l’IPCA da <code>istatlab</code>) e da un
+periodo base; qui l’indice è fittizio, a solo scopo illustrativo.</p>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">indice_illustrativo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>anno <span class="op">=</span> <span class="fl">2022</span><span class="op">:</span><span class="fl">2024</span>, indice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">105.9</span>, <span class="fl">107.1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">reali</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/deflate_retribuzione.html">deflate_retribuzione</a></span><span class="op">(</span><span class="va">retribuzioni</span>, indice <span class="op">=</span> <span class="va">indice_illustrativo</span>, base <span class="op">=</span> <span class="fl">2024L</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="va">reali</span><span class="op">[</span><span class="va">ccnl_key</span> <span class="op">==</span> <span class="va">top5</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span>, <span class="fu">.</span><span class="op">(</span><span class="va">anno</span>, <span class="va">mediana</span>, <span class="va">mediana_reale</span>, <span class="va">var_pct</span>, <span class="va">var_pct_reale</span>, <span class="va">indice_reale</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  digits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="right">anno</th>
+<th align="right">mediana</th>
+<th align="right">mediana_reale</th>
+<th align="right">var_pct</th>
+<th align="right">var_pct_reale</th>
+<th align="right">indice_reale</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="right">2022</td>
+<td align="right">20121</td>
+<td align="right">21550</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="right">2023</td>
+<td align="right">22360</td>
+<td align="right">22613</td>
+<td align="right">11.1</td>
+<td align="right">4.9</td>
+<td align="right">104.9</td>
+</tr>
+<tr class="odd">
+<td align="right">2024</td>
+<td align="right">24088</td>
+<td align="right">24088</td>
+<td align="right">7.7</td>
+<td align="right">6.5</td>
+<td align="right">111.8</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
 <h2 id="fasi-successive">Fasi successive<a class="anchor" aria-label="anchor" href="#fasi-successive"></a>
 </h2>
 <p>Le funzioni seguenti sono esportate e documentate ma non ancora
@@ -1548,31 +1937,14 @@ di <code>vecshift::vecshift()</code> per ripartire pro quota
 (1/<code>arco</code>) i giorni in cui la stessa persona ha più rapporti
 concorrenti, in modo che la somma per persona coincida con i
 giorni-persona occupati.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
 <span><span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, effettive <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate_effettive</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">cf</span><span class="op">]</span></span></code></pre></div>
-<p><code><a href="../reference/clean_retribuzione.html">clean_retribuzione()</a></code> (Fase 3) segnalerà le retribuzioni
-non valide senza eliminare righe; <code><a href="../reference/normalize_fte.html">normalize_fte()</a></code> (Fase 3)
-riporterà la retribuzione alle ore di riferimento del CCNL stimate dai
-dati; <code><a href="../reference/median_retribuzione.html">median_retribuzione()</a></code> (Fase 3) calcolerà la mediana
-ponderata per giornate per coorte di avviamento;
-<code><a href="../reference/deflate_retribuzione.html">deflate_retribuzione()</a></code> (Fase 3) applicherà un indice
-fornito dall’utente.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/clean_retribuzione.html">clean_retribuzione</a></span><span class="op">(</span><span class="va">dt</span>, method <span class="op">=</span> <span class="st">"mad"</span>, k <span class="op">=</span> <span class="fl">5</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/normalize_fte.html">normalize_fte</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
-<span><span class="va">retribuzioni</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/median_retribuzione.html">median_retribuzione</a></span><span class="op">(</span><span class="va">dt</span>, periodo <span class="op">=</span> <span class="st">"anno"</span>, min_n <span class="op">=</span> <span class="fl">30</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">ipca</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span></span>
-<span>  periodo <span class="op">=</span> <span class="fl">2022</span><span class="op">:</span><span class="fl">2024</span>,</span>
-<span>  indice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">105.9</span>, <span class="fl">107.1</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/deflate_retribuzione.html">deflate_retribuzione</a></span><span class="op">(</span><span class="va">retribuzioni</span>, indice <span class="op">=</span> <span class="va">ipca</span>, base <span class="op">=</span> <span class="fl">2024</span>, value_col <span class="op">=</span> <span class="st">"mediana"</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/analyze_ccnl.html">analyze_ccnl()</a></code> (Fase 4) eseguirà l’intero flusso
 restituendo un oggetto <code>ccnlcob_result</code>, e
 <code><a href="../reference/write_results.html">write_results()</a></code> (Fase 4) serializzerà le tabelle piccole in
 RDS e i cubi in FST.</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_ccnl.html">analyze_ccnl</a></span><span class="op">(</span></span>
 <span>  <span class="va">cob_esempio</span>,</span>
 <span>  as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span>
@@ -1588,7 +1960,7 @@ RDS e i cubi in FST.</p>
 FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <code>sl2_rapporti_36m_classificati</code> prodotta da
 <code>cnelR</code>.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span><span class="st">"output/rapporti_classificati.fst"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/validate_rapporti.html">validate_rapporti</a></span><span class="op">(</span><span class="va">dt</span>, require <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cpi"</span>, <span class="st">"retribuzione"</span>, <span class="st">"datore"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -1599,6 +1971,9 @@ FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <li>Contratto dati in ingresso: <code><a href="../reference/validate_rapporti.html">?validate_rapporti</a></code>.</li>
 <li>Regole sulle sentinelle e colonne derivate:
 <code><a href="../reference/prepare_rapporti.html">?prepare_rapporti</a></code>.</li>
+<li>Retribuzioni: <code><a href="../reference/clean_retribuzione.html">?clean_retribuzione</a></code>,
+<code><a href="../reference/normalize_fte.html">?normalize_fte</a></code>, <code><a href="../reference/median_retribuzione.html">?median_retribuzione</a></code>,
+<code><a href="../reference/deflate_retribuzione.html">?deflate_retribuzione</a></code>.</li>
 <li>Perimetro contrattuale: <code><a href="../reference/filter_perimetro.html">?filter_perimetro</a></code>.</li>
 <li>Misure e quote del ranking: <code><a href="../reference/rank_ccnl.html">?rank_ccnl</a></code>,
 <code><a href="../reference/select_ccnl_rilevanti.html">?select_ccnl_rilevanti</a></code>.</li>

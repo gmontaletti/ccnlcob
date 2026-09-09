@@ -1,5 +1,36 @@
 # Changelog
 
+## ccnlcob 0.4.0
+
+### Nuove funzionalità
+
+- [`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md)
+  classifica la retribuzione annua lorda dichiarata all’avviamento
+  (`flag_retribuzione`: valida, mancante, zero, sentinella, fuori_range)
+  e produce `retribuzione_pulita` senza eliminare righe; la finestra di
+  plausibilità è una regola mediana ± k·MAD su scala logaritmica per
+  cella anno × macro-tipologia × orario, con pavimento sulla MAD e cella
+  di ripiego. I default (`min_valore = 100`, `max_valore = 1e6`,
+  `k = 4`, `mad_min = 0.15`) derivano dalla diagnostica su 32 milioni di
+  rapporti COB reali.
+- [`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md)
+  riporta la retribuzione dei part-time all’equivalente a tempo pieno
+  (`retribuzione_fte`, `flag_fte`) con ore di riferimento 40 e tabella
+  opzionale per CCNL o macro-tipologia: sui dati reali i valori
+  part-time risultano già proporzionali alle ore dichiarate.
+- [`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md)
+  calcola per CCNL e coorte di avviamento la mediana e i quartili
+  ponderati per giornate, con `n`, copertura, mascheramento sotto
+  `min_n`, variazione percentuale e indice a base fissa.
+- [`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md)
+  aggiunge le colonne `_reale` a partire da un indice dei prezzi fornito
+  dall’utente e da un periodo base.
+- [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
+  converte `retribuzione` e `ore` da factor o character (come nel file
+  `rap.fst`) e conta i valori non numerici nei metadati.
+
+------------------------------------------------------------------------
+
 ## ccnlcob 0.3.0
 
 ### Nuove funzionalità

@@ -58,11 +58,11 @@ Pulizia, normalizzazione FTE, mediana per coorte e deflazione.
 - [`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md)
   : Segnala le retribuzioni non valide o implausibili
 - [`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md)
-  : Normalizza la retribuzione alle ore di riferimento del CCNL
+  : Normalizza la retribuzione alle ore di riferimento
 - [`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md)
   : Calcola la retribuzione mediana per CCNL e periodo di avviamento
 - [`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md)
-  : Deflaziona una colonna di retribuzione con un indice esterno
+  : Deflaziona le colonne di retribuzione con un indice esterno
 
 ## Orchestrazione
 

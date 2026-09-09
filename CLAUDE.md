@@ -81,18 +81,14 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.3.0: Fasi 1, 2 e 2 bis completate
-([`validate_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md),
-[`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md),
-[`compute_giornate()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate.md),
-[`classify_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/classify_tipologia.md),
-[`rank_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md),
-[`select_ccnl_rilevanti()`](https://gmontaletti.github.io/ccnlcob/reference/select_ccnl_rilevanti.md),
-[`add_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/add_cpi.md),
-[`ccnl_by_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_cpi.md),
-[`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md),
-[`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md));
-le altre funzioni esportate sono stub.
+Versione 0.4.0: Fasi 1, 2, 2 bis e 3 completate; restano stub
+[`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md),
+[`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md),
+[`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md),
+[`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md).
+I default delle funzioni sulle retribuzioni derivano dalla diagnostica
+su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`): non
+cambiarli senza nuova evidenza.
 [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md)
 esclude per default gli avviamenti fuori dal perimetro CCNL
 (`perimetro = "ccnl"`, flag `perimetro_ccnl` in

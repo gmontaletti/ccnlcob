@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x5602b9d02f20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x565162cdef20>
 ```
 
 ## 2. Preparazione
@@ -256,6 +256,12 @@ meta[setdiff(names(meta), "esclusi_perimetro")]
 #> 
 #> $n_fine_lt_inizio
 #> [1] 2
+#> 
+#> $n_retribuzione_non_numerica
+#> [1] 0
+#> 
+#> $n_ore_non_numeriche
+#> [1] 0
 ```
 
 Le colonne aggiunte hanno il seguente significato:
@@ -779,6 +785,118 @@ knitr::kable(
 | IC91 | 0.123 | 0.000 | 0.113 | 0.142 | 0.330 | 0.292 |
 | T011 | 0.079 | 0.037 | 0.101 | 0.127 | 0.392 | 0.265 |
 
+## 8. Retribuzioni dichiarate
+
+Il campo `retribuzione` delle COB è la retribuzione annua lorda
+dichiarata all’avviamento. Sui dati reali (diagnostica su 32 milioni di
+rapporti) il campo è affidabile dal 2020, contiene segnaposto (0, 1,
+100, 1.000, novi ripetuti) e, per i part-time, valori già proporzionali
+alle ore dichiarate. Le tre funzioni seguenti ne tengono conto:
+[`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md)
+classifica ogni valore senza eliminare righe,
+[`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md)
+riporta i part-time all’equivalente a tempo pieno,
+[`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md)
+calcola mediana e quartili ponderati per giornate per coorte di
+avviamento.
+
+La finestra di plausibilità è una regola mediana ± `k`·MAD su scala
+logaritmica, calcolata per cella anno × macro-tipologia × orario con un
+pavimento sulla MAD (`mad_min`) e una cella di ripiego quando la cella
+ha meno di `min_n` valori: i default (`min_valore = 100`,
+`max_valore = 1e6`, `k = 4`, `mad_min = 0.15`) derivano dalla
+diagnostica sui dati reali.
+
+``` r
+
+clean_retribuzione(dt)
+normalize_fte(dt)
+riepilogo <- dt[, .(n = .N, quota = round(.N / nrow(dt), 3)), by = flag_retribuzione][order(-n)]
+knitr::kable(riepilogo)
+```
+
+| flag_retribuzione |    n | quota |
+|:------------------|-----:|------:|
+| valida            | 2139 | 0.731 |
+| mancante          |  735 | 0.251 |
+| sentinella        |   44 | 0.015 |
+| fuori_range       |    7 | 0.002 |
+| zero              |    2 | 0.001 |
+
+``` r
+
+knitr::kable(dt[, .(n = .N, quota = round(.N / nrow(dt), 3)), by = flag_fte][order(-n)])
+```
+
+| flag_fte        |    n | quota |
+|:----------------|-----:|------:|
+| full_time       | 1441 | 0.492 |
+| non_valida      |  788 | 0.269 |
+| riproporzionata |  680 | 0.232 |
+| ore_mancanti    |   18 | 0.006 |
+
+[`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md)
+usa 40 ore di riferimento (con tabella opzionale per CCNL o
+macro-tipologia, per esempio 54 per il lavoro domestico) e moltiplica la
+retribuzione dei part-time per `ore_riferimento / ore`; i part-time
+senza ore dichiarate ricevono `NA` con flag `ore_mancanti`.
+
+``` r
+
+retribuzioni <- median_retribuzione(dt, periodo = "anno", ccnl = top5, min_n = 30)
+knitr::kable(
+  retribuzioni[, .(anno, ccnl_key, n, n_valide, copertura, giornate, p25, mediana, p75, var_pct, indice)],
+  digits = c(0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1)
+)
+```
+
+| anno | ccnl_key |   n | n_valide | copertura | giornate |   p25 | mediana |   p75 | var_pct | indice |
+|-----:|:---------|----:|---------:|----------:|---------:|------:|--------:|------:|--------:|-------:|
+| 2022 | A011     | 155 |      119 |      0.77 |    28691 | 17123 |   20121 | 28371 |      NA |  100.0 |
+| 2023 | A011     | 137 |      105 |      0.77 |    21255 | 18339 |   22360 | 28020 |    11.1 |  111.1 |
+| 2024 | A011     | 151 |      117 |      0.77 |    12756 | 18795 |   24088 | 30739 |     7.7 |  119.7 |
+| 2022 | C011     |  48 |       36 |      0.75 |     8249 | 20984 |   27249 | 34163 |      NA |  100.0 |
+| 2023 | C011     |  57 |       44 |      0.77 |     7435 | 21921 |   28898 | 37489 |     6.1 |  106.1 |
+| 2024 | C011     |  33 |       24 |      0.73 |     1610 |    NA |      NA |    NA |      NA |     NA |
+| 2022 | H011     |  78 |       56 |      0.72 |    12351 | 19593 |   21621 | 24492 |      NA |  100.0 |
+| 2023 | H011     |  92 |       64 |      0.70 |    11516 | 19787 |   26334 | 30655 |    21.8 |  121.8 |
+| 2024 | H011     |  86 |       61 |      0.71 |     6793 | 20912 |   27116 | 29599 |     3.0 |  125.4 |
+| 2022 | IC91     |  39 |       23 |      0.59 |     6313 |    NA |      NA |    NA |      NA |     NA |
+| 2023 | IC91     |  34 |       21 |      0.62 |     4283 |    NA |      NA |    NA |      NA |     NA |
+| 2024 | IC91     |  33 |       23 |      0.70 |     2648 |    NA |      NA |    NA |      NA |     NA |
+| 2022 | T011     |  60 |       48 |      0.80 |    13392 | 18385 |   21879 | 25547 |      NA |  100.0 |
+| 2023 | T011     |  65 |       44 |      0.68 |     8205 | 22324 |   26771 | 35131 |    22.4 |  122.4 |
+| 2024 | T011     |  64 |       46 |      0.72 |     5793 | 21240 |   27062 | 35259 |     1.1 |  123.7 |
+
+La mediana è ponderata per `giornate` (coerente con `longworkR`); ogni
+riga riporta `n`, `n_valide` e la copertura; le celle con meno di
+`min_n` valori validi sono mascherate con `NA` ma non eliminate. Per
+default entrano solo i rapporti avviati nella finestra
+(`solo_avviati = TRUE`): le coorti precedenti sono osservate solo se
+sopravvissute fino alla finestra. `var_pct` è la variazione sul periodo
+precedente e `indice` pone a 100 il primo periodo non mascherato.
+
+[`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md)
+aggiunge le colonne `_reale` a partire da un indice dei prezzi fornito
+dall’utente (per esempio l’IPCA da `istatlab`) e da un periodo base; qui
+l’indice è fittizio, a solo scopo illustrativo.
+
+``` r
+
+indice_illustrativo <- data.table(anno = 2022:2024, indice = c(100, 105.9, 107.1))
+reali <- deflate_retribuzione(retribuzioni, indice = indice_illustrativo, base = 2024L)
+knitr::kable(
+  reali[ccnl_key == top5[1], .(anno, mediana, mediana_reale, var_pct, var_pct_reale, indice_reale)],
+  digits = c(0, 0, 0, 1, 1, 1)
+)
+```
+
+| anno | mediana | mediana_reale | var_pct | var_pct_reale | indice_reale |
+|-----:|--------:|--------------:|--------:|--------------:|-------------:|
+| 2022 |   20121 |         21550 |      NA |            NA |        100.0 |
+| 2023 |   22360 |         22613 |    11.1 |           4.9 |        104.9 |
+| 2024 |   24088 |         24088 |     7.7 |           6.5 |        111.8 |
+
 ## Fasi successive
 
 Le funzioni seguenti sono esportate e documentate ma non ancora
@@ -796,30 +914,6 @@ giorni-persona occupati.
 
 compute_giornate_effettive(dt)
 dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
-```
-
-[`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md)
-(Fase 3) segnalerà le retribuzioni non valide senza eliminare righe;
-[`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md)
-(Fase 3) riporterà la retribuzione alle ore di riferimento del CCNL
-stimate dai dati;
-[`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md)
-(Fase 3) calcolerà la mediana ponderata per giornate per coorte di
-avviamento;
-[`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md)
-(Fase 3) applicherà un indice fornito dall’utente.
-
-``` r
-
-clean_retribuzione(dt, method = "mad", k = 5)
-normalize_fte(dt)
-retribuzioni <- median_retribuzione(dt, periodo = "anno", min_n = 30)
-
-ipca <- data.table(
-  periodo = 2022:2024,
-  indice = c(100, 105.9, 107.1)
-)
-deflate_retribuzione(retribuzioni, indice = ipca, base = 2024, value_col = "mediana")
 ```
 
 [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md)
@@ -860,6 +954,11 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
   [`?validate_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md).
 - Regole sulle sentinelle e colonne derivate:
   [`?prepare_rapporti`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md).
+- Retribuzioni:
+  [`?clean_retribuzione`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md),
+  [`?normalize_fte`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md),
+  [`?median_retribuzione`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md),
+  [`?deflate_retribuzione`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md).
 - Perimetro contrattuale:
   [`?filter_perimetro`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
 - Misure e quote del ranking:

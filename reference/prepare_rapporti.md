@@ -88,6 +88,20 @@ solo se la colonna minuscola corrispondente è assente: `INIZIO`, `FINE`,
 warehouse) viene rinominata `ccnl_warehouse` se quest'ultima è assente.
 Il contratto dati viene verificato dopo la rinomina.
 
+### Conversione di `retribuzione` e `ore`
+
+Nel file `rap.fst` della pipeline COB `retribuzione` e `ore` sono factor
+con livelli zero-padded (es. `"000023671"`, `"05"`). Se presenti come
+factor o character, le due colonne vengono convertite in numeric sui
+livelli (`as.numeric(levels(f))[f]`) senza avvisi; i valori che non
+rappresentano un numero diventano `NA` e sono conteggiati nei metadati
+`n_retribuzione_non_numerica` e `n_ore_non_numeriche` (0 quando le
+colonne sono già numeriche o assenti). I valori numerici non vengono
+alterati: la pulizia della retribuzione è compito di
+[`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md),
+quella delle ore di
+[`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md).
+
 ### Perimetro contrattuale
 
 Subito dopo la verifica del contratto dati la funzione richiama
@@ -182,7 +196,8 @@ L'attributo `ccnlcob_meta` del risultato è una lista con `as_of`,
 `window`, `ccnl_key` (nome della colonna usata), `perimetro`, `n_input`
 (righe di `dt`), `n_dropped_perimetro`, `n_tipologia_ignota`,
 `n_dropped_window`, `n_sentinel_fine`, `n_sentinel_inizio`,
-`n_fine_lt_inizio` e `esclusi_perimetro` (la tabella `esclusi` di
+`n_fine_lt_inizio`, `n_retribuzione_non_numerica`, `n_ore_non_numeriche`
+e `esclusi_perimetro` (la tabella `esclusi` di
 [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md)).
 
 ## See also
