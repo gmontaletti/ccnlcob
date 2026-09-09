@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x564012b6cf20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x55f306b58f20>
 ```
 
 ## 2. Preparazione
@@ -1061,10 +1061,10 @@ decimale). Con una sorgente DB la selezione delle colonne e il filtro
 percorso <- file.path(tempdir(), "rapporti_esempio.rds")
 saveRDS(cob_esempio, percorso)
 letti <- read_rapporti(percorso)
-#> read_rapporti(): lette 5.000 righe da /tmp/Rtmp9JqvYv/rapporti_esempio.rds.
+#> read_rapporti(): lette 5.000 righe da /tmp/RtmpS0FsUh/rapporti_esempio.rds.
 attr(letti, "ccnlcob_source")[c("source", "n", "colonne_mappate")]
 #> $source
-#> [1] "/tmp/Rtmp9JqvYv/rapporti_esempio.rds"
+#> [1] "/tmp/RtmpS0FsUh/rapporti_esempio.rds"
 #> 
 #> $n
 #> [1] 5000
