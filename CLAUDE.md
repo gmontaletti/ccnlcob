@@ -74,9 +74,8 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.4.0: Fasi 1, 2, 2 bis e 3 completate; restano stub
-`compute_giornate_effettive()`, `analyze_ccnl()`, `write_results()`,
-`read_rapporti()`. I default delle funzioni sulle retribuzioni derivano dalla
+Versione 0.5.0: Fasi 1-4 completate; resta stub solo `read_rapporti()`
+(Fase 5, lettura da FST/DuckDB e slice `cnelR`). I default delle funzioni sulle retribuzioni derivano dalla
 diagnostica su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`):
 non cambiarli senza nuova evidenza.
 `prepare_rapporti()` esclude per default gli avviamenti fuori dal perimetro CCNL
