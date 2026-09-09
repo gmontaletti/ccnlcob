@@ -74,8 +74,13 @@ devtools::check(args = c("--no-manual", "--as-cran"))
 
 ## Stato
 
-Versione 0.5.0: Fasi 1-4 completate; resta stub solo `read_rapporti()`
-(Fase 5, lettura da FST/DuckDB e slice `cnelR`). I default delle funzioni sulle retribuzioni derivano dalla
+Versione 0.6.0: Fasi 1-5 completate, nessuno stub. Validato sulla slice reale
+`cnelR` (8 M rapporti, `~/data/cnel/rapporti_azure.duckdb`): conteggi identici a
+cnelR per 274 codici, catena completa in 37 s (`../reference/ccnlcob/analisi_slice_reale.md`,
+script `../test/ccnlcob/02_analisi_slice_reale.R`). Convenzioni fissate dal run:
+`attivo` = rapporto aperto ad `as_of` come `n_attivi` di cnelR; `CPUB` non
+classificato per default; codici orario `V`/`M` part-time; `giornate` sommate in
+doppia precisione. Manca il repository di workflow `targets` (Fase 5) e i grafici (Fase 6). I default delle funzioni sulle retribuzioni derivano dalla
 diagnostica su dati reali (`../reference/ccnlcob/diagnostica_retribuzione.md`):
 non cambiarli senza nuova evidenza.
 `prepare_rapporti()` esclude per default gli avviamenti fuori dal perimetro CCNL
