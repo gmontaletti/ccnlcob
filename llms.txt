@@ -122,9 +122,9 @@ mostra l’uso previsto delle funzioni delle fasi successive.
 
 ## Stato di sviluppo
 
-Versione 0.4.0: le Fasi 1, 2 e 3 del piano di sviluppo sono completate e
-il pacchetto applica il perimetro CCNL in ingresso. Il pacchetto
-fornisce il contratto dati
+Versione 0.5.0: le Fasi 1, 2, 3 e 4 del piano di sviluppo sono
+completate e il pacchetto applica il perimetro CCNL in ingresso. Il
+pacchetto fornisce il contratto dati
 ([`validate_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/validate_rapporti.md)),
 il perimetro contrattuale (flag `perimetro_ccnl` in
 `tipologie_contrattuali`,
@@ -150,10 +150,16 @@ e le retribuzioni dichiarate
 [`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md),
 [`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md),
 [`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md),
-con default derivati da una diagnostica su dati reali). Le funzioni
-delle Fasi 4-6 sono esportate e documentate con la firma definitiva ma
-restituiscono un errore esplicito con la fase di implementazione
-prevista.
+con default derivati da una diagnostica su dati reali), le giornate
+effettive pro quota
+([`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md)),
+l’analisi completa
+([`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md))
+e la serializzazione
+([`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)).
+Le funzioni delle Fasi 5-6 sono esportate e documentate con la firma
+definitiva ma restituiscono un errore esplicito con la fase di
+implementazione prevista.
 
 | Fase | Versione | Contenuto | Stato |
 |----|----|----|----|
@@ -162,7 +168,7 @@ prevista.
 | 2 | 0.2.0 | [`add_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/add_cpi.md), [`ccnl_by_cpi()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_cpi.md), [`ccnl_by_tipologia()`](https://gmontaletti.github.io/ccnlcob/reference/ccnl_by_tipologia.md), dataset `cpi_esempio` | completata |
 | 2 bis | 0.3.0 | perimetro CCNL: flag `perimetro_ccnl`, [`filter_perimetro()`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md), argomento `perimetro` di [`prepare_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/prepare_rapporti.md) | completata |
 | 3 | 0.4.0 | [`clean_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/clean_retribuzione.md), [`normalize_fte()`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md), [`median_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md), [`deflate_retribuzione()`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md) | completata |
-| 4 | 0.5.0 | [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md), [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md), [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md) | prevista |
+| 4 | 0.5.0 | [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md), [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md), [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md) | completata |
 | 5 | 0.6.0 | [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md) da DuckDB, pipeline `targets` esterna, sito pkgdown, CI | prevista |
 | 6 | 0.7.0 | grafici opzionali e report Quarto | prevista |
 
@@ -171,7 +177,7 @@ prevista.
 Per citare ccnlcob nelle pubblicazioni:
 
 Montaletti, G. (2026). *ccnlcob: Analysis of COB Microdata by National
-Collective Labour Agreement (CCNL)* (Version 0.4.0) \[R package\].
+Collective Labour Agreement (CCNL)* (Version 0.5.0) \[R package\].
 <https://github.com/gmontaletti/ccnlcob>
 
 Voce BibTeX:
@@ -180,7 +186,7 @@ Voce BibTeX:
 @software{montaletti2026ccnlcob,
   author = {Montaletti, Giampaolo},
   title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},
-  version = {0.4.0},
+  version = {0.5.0},
   year = {2026},
   url = {https://github.com/gmontaletti/ccnlcob}
 }

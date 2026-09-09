@@ -78,7 +78,7 @@ str(dt)
 #>  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...
 #>  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...
 #>  $ sesso                     : chr  "F" "F" "M" "F" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x565162cdef20>
+#>  - attr(*, ".internal.selfref")=<pointer: 0x55c7d10def20>
 ```
 
 ## 2. Preparazione
@@ -897,45 +897,152 @@ knitr::kable(
 | 2023 |   22360 |         22613 |    11.1 |           4.9 |        104.9 |
 | 2024 |   24088 |         24088 |     7.7 |           6.5 |        111.8 |
 
-## Fasi successive
+## 9. Giornate effettive
 
-Le funzioni seguenti sono esportate e documentate ma non ancora
-implementate: nella versione corrente restituiscono un errore che indica
-la fase prevista. I blocchi di questa sezione non vengono eseguiti e
-mostrano l’uso previsto sul dataset preparato nelle sezioni precedenti.
-
+`giornate` conta i giorni-contratto: una persona con due rapporti
+concorrenti contribuisce due volte agli stessi giorni.
 [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md)
-(Fase 4) userà i segmenti di `vecshift::vecshift()` per ripartire pro
-quota (1/`arco`) i giorni in cui la stessa persona ha più rapporti
-concorrenti, in modo che la somma per persona coincida con i
-giorni-persona occupati.
+ripartisce ogni giorno-persona pro quota fra i rapporti concorrenti
+(1/`arco`), così che la somma per persona coincida con i giorni
+effettivamente lavorati nella finestra. La segmentazione usa punti di
+rottura a `inizio` e `fine + 1` con estremi inclusivi; i totali per
+persona coincidono con `sum(durata[arco > 0])` di
+`vecshift::vecshift()`, che resta il riferimento dell’ecosistema.
 
 ``` r
 
 compute_giornate_effettive(dt)
-dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
+attr(dt, "ccnlcob_giornate_effettive")[c("n_persone_sovrapposizioni", "giornate_totali", "giornate_effettive_totali")]
+#> $n_persone_sovrapposizioni
+#> [1] 297
+#> 
+#> $giornate_totali
+#> [1] 763201
+#> 
+#> $giornate_effettive_totali
+#> [1] 370941
+per_persona <- dt[, .(giornate = sum(giornate), effettive = sum(giornate_effettive)), by = cf]
+knitr::kable(head(per_persona[giornate > effettive][order(-giornate)], 5), digits = 1)
 ```
 
+| cf      | giornate | effettive |
+|:--------|---------:|----------:|
+| CF00165 |     9714 |      1628 |
+| CF00363 |     9261 |      1317 |
+| CF00240 |     7388 |      1044 |
+| CF00236 |     6635 |      1879 |
+| CF00042 |     6086 |      1382 |
+
+Con la colonna presente,
+[`rank_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/rank_ccnl.md)
+accetta la misura `giornate_effettive`: la quota di un CCNL molto usato
+in rapporti concorrenti (per esempio intermittenti) scende rispetto a
+`giornate`.
+
+``` r
+
+confronto <- rank_ccnl(dt, measures = c("giornate", "giornate_effettive"))
+knitr::kable(
+  head(confronto[, .(ccnl_key, giornate, quota_giornate, giornate_effettive, quota_giornate_effettive)], 8),
+  digits = c(0, 0, 3, 0, 3)
+)
+```
+
+| ccnl_key | giornate | quota_giornate | giornate_effettive | quota_giornate_effettive |
+|:---------|---------:|---------------:|-------------------:|-------------------------:|
+| A011     |   118854 |          0.191 |              68794 |                    0.185 |
+| H011     |    62233 |          0.100 |              40231 |                    0.108 |
+| T011     |    49468 |          0.079 |              33103 |                    0.089 |
+| C011     |    31713 |          0.051 |              17555 |                    0.047 |
+| IC91     |    29904 |          0.048 |              20152 |                    0.054 |
+| A012     |    23667 |          0.038 |              12821 |                    0.035 |
+| B011     |    18770 |          0.030 |              13675 |                    0.037 |
+| E011     |    18163 |          0.029 |              10593 |                    0.029 |
+
+## 10. Analisi completa e serializzazione
+
 [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md)
-(Fase 4) eseguirà l’intero flusso restituendo un oggetto
-`ccnlcob_result`, e
-[`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)
-(Fase 4) serializzerà le tabelle piccole in RDS e i cubi in FST.
+esegue l’intero flusso su una copia dei dati grezzi e restituisce un
+oggetto `ccnlcob_result` con metadati, passi eseguiti e saltati, ranking
+per finestra e per periodo, CCNL rilevanti, distribuzioni per CPI e
+tipologia, retribuzioni (con deflazione se si fornisce un indice) e una
+tabella di qualità per CCNL. I blocchi opzionali non disponibili (per
+esempio il CPI senza lookup né `longworkR`) vengono saltati e annotati,
+mai inventati.
 
 ``` r
 
 res <- analyze_ccnl(
   cob_esempio,
-  as_of = as.Date("2024-12-31"),
-  window = as.Date(c("2022-01-01", "2024-12-31")),
-  top_n = 20,
-  cum_share = 0.8,
-  geo = "sede_lavoro",
-  periodo = "anno"
+  lookup_cpi = cpi_esempio,
+  indice = data.table(anno = 2019:2024, indice = c(100, 99.8, 101.7, 110.0, 116.3, 117.5)),
+  base = 2024L,
+  top_n = 5
 )
 res
-write_results(res, dir = "output/ccnl")
+#> <ccnlcob_result>
+#>   versione:                0.5.0
+#>   as_of:                   2024-12-31
+#>   window:                  2019-01-01 / 2024-12-31
+#>   perimetro:               ccnl
+#>   ccnl_key:                codice_cnel
+#>   rapporti:                input 5.000, in finestra 4.746, avviati 4.746
+#>   lavoratori avviati:      400
+#>   copertura codice CCNL:   84,9%
+#>   copertura retribuzione:  73,2%
+#>   CCNL rilevanti:          5 (misura: giornate)
+#>   primi CCNL:
+#>      1. A011     19,5%
+#>      2. H011     9,7%
+#>      3. T011     8,3%
+#>      4. IC91     4,9%
+#>      5. C011     4,8%
+names(res)
+#> [1] "meta"            "ranking"         "ranking_periodo" "rilevanti"      
+#> [5] "keys"            "cpi"             "tipologie"       "retribuzioni"   
+#> [9] "qualita"
+knitr::kable(res$qualita[order(-n_rapporti)][1:6], digits = 3)
 ```
+
+| ccnl_key | n | n_rapporti | quota_troncata | copertura_retribuzione | copertura_ore | copertura_cpi |
+|:---|---:|---:|---:|---:|---:|---:|
+| A011 | 904 | 904 | 0.121 | 0.756 | 0.988 | 0.951 |
+| NA | 719 | 719 | 0.140 | 0.709 | 0.970 | 0.937 |
+| H011 | 504 | 504 | 0.141 | 0.724 | 0.972 | 0.946 |
+| T011 | 354 | 354 | 0.147 | 0.734 | 0.962 | 0.972 |
+| C011 | 257 | 257 | 0.113 | 0.739 | 0.987 | 0.942 |
+| IC91 | 216 | 216 | 0.125 | 0.708 | 0.951 | 0.954 |
+
+L’indice dei prezzi qui è fittizio, a solo scopo illustrativo.
+[`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)
+serializza il risultato secondo il contratto di uscita: tabelle piccole
+in RDS, cubi in FST (compressione 85, con gli attributi conservati in
+`meta`).
+
+``` r
+
+cartella <- file.path(tempdir(), "ccnl_output")
+manifesto <- write_results(res, cartella, overwrite = TRUE)
+knitr::kable(manifesto[, .(oggetto, formato, righe)])
+```
+
+| oggetto         | formato | righe |
+|:----------------|:--------|------:|
+| meta            | rds     |    NA |
+| ranking         | rds     |    26 |
+| ranking_periodo | rds     |   156 |
+| rilevanti       | rds     |     7 |
+| keys            | rds     |    NA |
+| cpi             | fst     |    65 |
+| tipologie       | fst     |    58 |
+| retribuzioni    | rds     |    30 |
+| qualita         | rds     |    26 |
+
+## Fasi successive
+
+La funzione seguente è esportata e documentata ma non ancora
+implementata: nella versione corrente restituisce un errore che indica
+la fase prevista. Il blocco non viene eseguito e mostra l’uso previsto.
 
 [`read_rapporti()`](https://gmontaletti.github.io/ccnlcob/reference/read_rapporti.md)
 (Fase 5) caricherà i rapporti da un file FST/RDS o da una connessione
@@ -959,6 +1066,10 @@ validate_rapporti(dt, require = c("cpi", "retribuzione", "datore"))
   [`?normalize_fte`](https://gmontaletti.github.io/ccnlcob/reference/normalize_fte.md),
   [`?median_retribuzione`](https://gmontaletti.github.io/ccnlcob/reference/median_retribuzione.md),
   [`?deflate_retribuzione`](https://gmontaletti.github.io/ccnlcob/reference/deflate_retribuzione.md).
+- Giornate effettive, analisi completa e serializzazione:
+  [`?compute_giornate_effettive`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md),
+  [`?analyze_ccnl`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md),
+  [`?write_results`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md).
 - Perimetro contrattuale:
   [`?filter_perimetro`](https://gmontaletti.github.io/ccnlcob/reference/filter_perimetro.md).
 - Misure e quote del ranking:

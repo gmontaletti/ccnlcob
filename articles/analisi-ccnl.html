@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -140,7 +140,7 @@ retribuzioni mancanti o anomale.</p>
 <span><span class="co">#&gt;  $ ateco_gruppo              : chr  "41.2" "10.7" "43.3" "81.2" ...</span></span>
 <span><span class="co">#&gt;  $ eta                       : int  40 47 49 27 27 51 56 56 59 22 ...</span></span>
 <span><span class="co">#&gt;  $ sesso                     : chr  "F" "F" "M" "F" ...</span></span>
-<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x565162cdef20&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt;  - attr(*, ".internal.selfref")=&lt;pointer: 0x55c7d10def20&gt;</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="preparazione">2. Preparazione<a class="anchor" aria-label="anchor" href="#preparazione"></a>
@@ -1925,42 +1925,342 @@ periodo base; qui l’indice è fittizio, a solo scopo illustrativo.</p>
 </table>
 </div>
 <div class="section level2">
-<h2 id="fasi-successive">Fasi successive<a class="anchor" aria-label="anchor" href="#fasi-successive"></a>
+<h2 id="giornate-effettive">9. Giornate effettive<a class="anchor" aria-label="anchor" href="#giornate-effettive"></a>
 </h2>
-<p>Le funzioni seguenti sono esportate e documentate ma non ancora
-implementate: nella versione corrente restituiscono un errore che indica
-la fase prevista. I blocchi di questa sezione non vengono eseguiti e
-mostrano l’uso previsto sul dataset preparato nelle sezioni
-precedenti.</p>
-<p><code><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code> (Fase 4) userà i segmenti
-di <code>vecshift::vecshift()</code> per ripartire pro quota
-(1/<code>arco</code>) i giorni in cui la stessa persona ha più rapporti
-concorrenti, in modo che la somma per persona coincida con i
-giorni-persona occupati.</p>
+<p><code>giornate</code> conta i giorni-contratto: una persona con due
+rapporti concorrenti contribuisce due volte agli stessi giorni.
+<code><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code> ripartisce ogni giorno-persona
+pro quota fra i rapporti concorrenti (1/<code>arco</code>), così che la
+somma per persona coincida con i giorni effettivamente lavorati nella
+finestra. La segmentazione usa punti di rottura a <code>inizio</code> e
+<code>fine + 1</code> con estremi inclusivi; i totali per persona
+coincidono con <code>sum(durata[arco &gt; 0])</code> di
+<code>vecshift::vecshift()</code>, che resta il riferimento
+dell’ecosistema.</p>
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive</a></span><span class="op">(</span><span class="va">dt</span><span class="op">)</span></span>
-<span><span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, effettive <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate_effettive</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">cf</span><span class="op">]</span></span></code></pre></div>
-<p><code><a href="../reference/analyze_ccnl.html">analyze_ccnl()</a></code> (Fase 4) eseguirà l’intero flusso
-restituendo un oggetto <code>ccnlcob_result</code>, e
-<code><a href="../reference/write_results.html">write_results()</a></code> (Fase 4) serializzerà le tabelle piccole in
-RDS e i cubi in FST.</p>
+<span><span class="fu"><a href="https://rdrr.io/r/base/attr.html" class="external-link">attr</a></span><span class="op">(</span><span class="va">dt</span>, <span class="st">"ccnlcob_giornate_effettive"</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"n_persone_sovrapposizioni"</span>, <span class="st">"giornate_totali"</span>, <span class="st">"giornate_effettive_totali"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $n_persone_sovrapposizioni</span></span>
+<span><span class="co">#&gt; [1] 297</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $giornate_totali</span></span>
+<span><span class="co">#&gt; [1] 763201</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $giornate_effettive_totali</span></span>
+<span><span class="co">#&gt; [1] 370941</span></span>
+<span><span class="va">per_persona</span> <span class="op">&lt;-</span> <span class="va">dt</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span>giornate <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate</span><span class="op">)</span>, effettive <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">giornate_effettive</span><span class="op">)</span><span class="op">)</span>, by <span class="op">=</span> <span class="va">cf</span><span class="op">]</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">per_persona</span><span class="op">[</span><span class="va">giornate</span> <span class="op">&gt;</span> <span class="va">effettive</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">giornate</span><span class="op">)</span><span class="op">]</span>, <span class="fl">5</span><span class="op">)</span>, digits <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">cf</th>
+<th align="right">giornate</th>
+<th align="right">effettive</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">CF00165</td>
+<td align="right">9714</td>
+<td align="right">1628</td>
+</tr>
+<tr class="even">
+<td align="left">CF00363</td>
+<td align="right">9261</td>
+<td align="right">1317</td>
+</tr>
+<tr class="odd">
+<td align="left">CF00240</td>
+<td align="right">7388</td>
+<td align="right">1044</td>
+</tr>
+<tr class="even">
+<td align="left">CF00236</td>
+<td align="right">6635</td>
+<td align="right">1879</td>
+</tr>
+<tr class="odd">
+<td align="left">CF00042</td>
+<td align="right">6086</td>
+<td align="right">1382</td>
+</tr>
+</tbody>
+</table>
+<p>Con la colonna presente, <code><a href="../reference/rank_ccnl.html">rank_ccnl()</a></code> accetta la misura
+<code>giornate_effettive</code>: la quota di un CCNL molto usato in
+rapporti concorrenti (per esempio intermittenti) scende rispetto a
+<code>giornate</code>.</p>
 <div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">confronto</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/rank_ccnl.html">rank_ccnl</a></span><span class="op">(</span><span class="va">dt</span>, measures <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"giornate"</span>, <span class="st">"giornate_effettive"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">confronto</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">ccnl_key</span>, <span class="va">giornate</span>, <span class="va">quota_giornate</span>, <span class="va">giornate_effettive</span>, <span class="va">quota_giornate_effettive</span><span class="op">)</span><span class="op">]</span>, <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  digits <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span>, <span class="fl">3</span>, <span class="fl">0</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="11%">
+<col width="11%">
+<col width="19%">
+<col width="24%">
+<col width="32%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">ccnl_key</th>
+<th align="right">giornate</th>
+<th align="right">quota_giornate</th>
+<th align="right">giornate_effettive</th>
+<th align="right">quota_giornate_effettive</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A011</td>
+<td align="right">118854</td>
+<td align="right">0.191</td>
+<td align="right">68794</td>
+<td align="right">0.185</td>
+</tr>
+<tr class="even">
+<td align="left">H011</td>
+<td align="right">62233</td>
+<td align="right">0.100</td>
+<td align="right">40231</td>
+<td align="right">0.108</td>
+</tr>
+<tr class="odd">
+<td align="left">T011</td>
+<td align="right">49468</td>
+<td align="right">0.079</td>
+<td align="right">33103</td>
+<td align="right">0.089</td>
+</tr>
+<tr class="even">
+<td align="left">C011</td>
+<td align="right">31713</td>
+<td align="right">0.051</td>
+<td align="right">17555</td>
+<td align="right">0.047</td>
+</tr>
+<tr class="odd">
+<td align="left">IC91</td>
+<td align="right">29904</td>
+<td align="right">0.048</td>
+<td align="right">20152</td>
+<td align="right">0.054</td>
+</tr>
+<tr class="even">
+<td align="left">A012</td>
+<td align="right">23667</td>
+<td align="right">0.038</td>
+<td align="right">12821</td>
+<td align="right">0.035</td>
+</tr>
+<tr class="odd">
+<td align="left">B011</td>
+<td align="right">18770</td>
+<td align="right">0.030</td>
+<td align="right">13675</td>
+<td align="right">0.037</td>
+</tr>
+<tr class="even">
+<td align="left">E011</td>
+<td align="right">18163</td>
+<td align="right">0.029</td>
+<td align="right">10593</td>
+<td align="right">0.029</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="analisi-completa-e-serializzazione">10. Analisi completa e serializzazione<a class="anchor" aria-label="anchor" href="#analisi-completa-e-serializzazione"></a>
+</h2>
+<p><code><a href="../reference/analyze_ccnl.html">analyze_ccnl()</a></code> esegue l’intero flusso su una copia dei
+dati grezzi e restituisce un oggetto <code>ccnlcob_result</code> con
+metadati, passi eseguiti e saltati, ranking per finestra e per periodo,
+CCNL rilevanti, distribuzioni per CPI e tipologia, retribuzioni (con
+deflazione se si fornisce un indice) e una tabella di qualità per CCNL.
+I blocchi opzionali non disponibili (per esempio il CPI senza lookup né
+<code>longworkR</code>) vengono saltati e annotati, mai inventati.</p>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/analyze_ccnl.html">analyze_ccnl</a></span><span class="op">(</span></span>
 <span>  <span class="va">cob_esempio</span>,</span>
-<span>  as_of <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2024-12-31"</span><span class="op">)</span>,</span>
-<span>  window <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"2022-01-01"</span>, <span class="st">"2024-12-31"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  top_n <span class="op">=</span> <span class="fl">20</span>,</span>
-<span>  cum_share <span class="op">=</span> <span class="fl">0.8</span>,</span>
-<span>  geo <span class="op">=</span> <span class="st">"sede_lavoro"</span>,</span>
-<span>  periodo <span class="op">=</span> <span class="st">"anno"</span></span>
+<span>  lookup_cpi <span class="op">=</span> <span class="va">cpi_esempio</span>,</span>
+<span>  indice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/pkg/data.table/man/data.table.html" class="external-link">data.table</a></span><span class="op">(</span>anno <span class="op">=</span> <span class="fl">2019</span><span class="op">:</span><span class="fl">2024</span>, indice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">99.8</span>, <span class="fl">101.7</span>, <span class="fl">110.0</span>, <span class="fl">116.3</span>, <span class="fl">117.5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  base <span class="op">=</span> <span class="fl">2024L</span>,</span>
+<span>  top_n <span class="op">=</span> <span class="fl">5</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">res</span></span>
-<span><span class="fu"><a href="../reference/write_results.html">write_results</a></span><span class="op">(</span><span class="va">res</span>, dir <span class="op">=</span> <span class="st">"output/ccnl"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co">#&gt; &lt;ccnlcob_result&gt;</span></span>
+<span><span class="co">#&gt;   versione:                0.5.0</span></span>
+<span><span class="co">#&gt;   as_of:                   2024-12-31</span></span>
+<span><span class="co">#&gt;   window:                  2019-01-01 / 2024-12-31</span></span>
+<span><span class="co">#&gt;   perimetro:               ccnl</span></span>
+<span><span class="co">#&gt;   ccnl_key:                codice_cnel</span></span>
+<span><span class="co">#&gt;   rapporti:                input 5.000, in finestra 4.746, avviati 4.746</span></span>
+<span><span class="co">#&gt;   lavoratori avviati:      400</span></span>
+<span><span class="co">#&gt;   copertura codice CCNL:   84,9%</span></span>
+<span><span class="co">#&gt;   copertura retribuzione:  73,2%</span></span>
+<span><span class="co">#&gt;   CCNL rilevanti:          5 (misura: giornate)</span></span>
+<span><span class="co">#&gt;   primi CCNL:</span></span>
+<span><span class="co">#&gt;      1. A011     19,5%</span></span>
+<span><span class="co">#&gt;      2. H011     9,7%</span></span>
+<span><span class="co">#&gt;      3. T011     8,3%</span></span>
+<span><span class="co">#&gt;      4. IC91     4,9%</span></span>
+<span><span class="co">#&gt;      5. C011     4,8%</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "meta"            "ranking"         "ranking_periodo" "rilevanti"      </span></span>
+<span><span class="co">#&gt; [5] "keys"            "cpi"             "tipologie"       "retribuzioni"   </span></span>
+<span><span class="co">#&gt; [9] "qualita"</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">res</span><span class="op">$</span><span class="va">qualita</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">n_rapporti</span><span class="op">)</span><span class="op">]</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">]</span>, digits <span class="op">=</span> <span class="fl">3</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<colgroup>
+<col width="10%">
+<col width="4%">
+<col width="12%">
+<col width="16%">
+<col width="25%">
+<col width="15%">
+<col width="15%">
+</colgroup>
+<thead><tr class="header">
+<th align="left">ccnl_key</th>
+<th align="right">n</th>
+<th align="right">n_rapporti</th>
+<th align="right">quota_troncata</th>
+<th align="right">copertura_retribuzione</th>
+<th align="right">copertura_ore</th>
+<th align="right">copertura_cpi</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">A011</td>
+<td align="right">904</td>
+<td align="right">904</td>
+<td align="right">0.121</td>
+<td align="right">0.756</td>
+<td align="right">0.988</td>
+<td align="right">0.951</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="right">719</td>
+<td align="right">719</td>
+<td align="right">0.140</td>
+<td align="right">0.709</td>
+<td align="right">0.970</td>
+<td align="right">0.937</td>
+</tr>
+<tr class="odd">
+<td align="left">H011</td>
+<td align="right">504</td>
+<td align="right">504</td>
+<td align="right">0.141</td>
+<td align="right">0.724</td>
+<td align="right">0.972</td>
+<td align="right">0.946</td>
+</tr>
+<tr class="even">
+<td align="left">T011</td>
+<td align="right">354</td>
+<td align="right">354</td>
+<td align="right">0.147</td>
+<td align="right">0.734</td>
+<td align="right">0.962</td>
+<td align="right">0.972</td>
+</tr>
+<tr class="odd">
+<td align="left">C011</td>
+<td align="right">257</td>
+<td align="right">257</td>
+<td align="right">0.113</td>
+<td align="right">0.739</td>
+<td align="right">0.987</td>
+<td align="right">0.942</td>
+</tr>
+<tr class="even">
+<td align="left">IC91</td>
+<td align="right">216</td>
+<td align="right">216</td>
+<td align="right">0.125</td>
+<td align="right">0.708</td>
+<td align="right">0.951</td>
+<td align="right">0.954</td>
+</tr>
+</tbody>
+</table>
+<p>L’indice dei prezzi qui è fittizio, a solo scopo illustrativo.
+<code><a href="../reference/write_results.html">write_results()</a></code> serializza il risultato secondo il
+contratto di uscita: tabelle piccole in RDS, cubi in FST (compressione
+85, con gli attributi conservati in <code>meta</code>).</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cartella</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"ccnl_output"</span><span class="op">)</span></span>
+<span><span class="va">manifesto</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/write_results.html">write_results</a></span><span class="op">(</span><span class="va">res</span>, <span class="va">cartella</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">manifesto</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">oggetto</span>, <span class="va">formato</span>, <span class="va">righe</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<thead><tr class="header">
+<th align="left">oggetto</th>
+<th align="left">formato</th>
+<th align="right">righe</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">meta</td>
+<td align="left">rds</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">ranking</td>
+<td align="left">rds</td>
+<td align="right">26</td>
+</tr>
+<tr class="odd">
+<td align="left">ranking_periodo</td>
+<td align="left">rds</td>
+<td align="right">156</td>
+</tr>
+<tr class="even">
+<td align="left">rilevanti</td>
+<td align="left">rds</td>
+<td align="right">7</td>
+</tr>
+<tr class="odd">
+<td align="left">keys</td>
+<td align="left">rds</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">cpi</td>
+<td align="left">fst</td>
+<td align="right">65</td>
+</tr>
+<tr class="odd">
+<td align="left">tipologie</td>
+<td align="left">fst</td>
+<td align="right">58</td>
+</tr>
+<tr class="even">
+<td align="left">retribuzioni</td>
+<td align="left">rds</td>
+<td align="right">30</td>
+</tr>
+<tr class="odd">
+<td align="left">qualita</td>
+<td align="left">rds</td>
+<td align="right">26</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="fasi-successive">Fasi successive<a class="anchor" aria-label="anchor" href="#fasi-successive"></a>
+</h2>
+<p>La funzione seguente è esportata e documentata ma non ancora
+implementata: nella versione corrente restituisce un errore che indica
+la fase prevista. Il blocco non viene eseguito e mostra l’uso
+previsto.</p>
 <p><code><a href="../reference/read_rapporti.html">read_rapporti()</a></code> (Fase 5) caricherà i rapporti da un file
 FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <code>sl2_rapporti_36m_classificati</code> prodotta da
 <code>cnelR</code>.</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dt</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_rapporti.html">read_rapporti</a></span><span class="op">(</span><span class="st">"output/rapporti_classificati.fst"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/validate_rapporti.html">validate_rapporti</a></span><span class="op">(</span><span class="va">dt</span>, require <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cpi"</span>, <span class="st">"retribuzione"</span>, <span class="st">"datore"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -1974,6 +2274,9 @@ FST/RDS o da una connessione DBI, per esempio la slice DuckDB
 <li>Retribuzioni: <code><a href="../reference/clean_retribuzione.html">?clean_retribuzione</a></code>,
 <code><a href="../reference/normalize_fte.html">?normalize_fte</a></code>, <code><a href="../reference/median_retribuzione.html">?median_retribuzione</a></code>,
 <code><a href="../reference/deflate_retribuzione.html">?deflate_retribuzione</a></code>.</li>
+<li>Giornate effettive, analisi completa e serializzazione:
+<code><a href="../reference/compute_giornate_effettive.html">?compute_giornate_effettive</a></code>, <code><a href="../reference/analyze_ccnl.html">?analyze_ccnl</a></code>,
+<code><a href="../reference/write_results.html">?write_results</a></code>.</li>
 <li>Perimetro contrattuale: <code><a href="../reference/filter_perimetro.html">?filter_perimetro</a></code>.</li>
 <li>Misure e quote del ranking: <code><a href="../reference/rank_ccnl.html">?rank_ccnl</a></code>,
 <code><a href="../reference/select_ccnl_rilevanti.html">?select_ccnl_rilevanti</a></code>.</li>

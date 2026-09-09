@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,7 +50,7 @@
 <h2 id="confini-con-gli-altri-pacchetti">Confini con gli altri pacchetti<a class="anchor" aria-label="anchor" href="#confini-con-gli-altri-pacchetti"></a></h2>
 <ul><li>Raccordo dei codici CCNL (warehouse CO → INPS → CNEL): <code>cnelR</code> in <code>../CCNL/</code>. Non reimplementare il bridge; consumare <code>codice_cnel</code> già prodotto.</li>
 <li>Mapping comune → CPI: <code>longworkR::add_cpi_via_belfiore()</code>. Non copiare le utilità geografiche.</li>
-<li>Segmentazione intervalli e giornate: <code>vecshift::vecshift()</code> (colonne <code>arco</code>, <code>durata</code>).</li>
+<li>Segmentazione intervalli e giornate: <code>vecshift::vecshift()</code> è il riferimento (colonne <code>arco</code>, <code>durata</code>); <code><a href="reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code> usa una scansione interna a estremi inclusivi e verifica nei test che i totali per persona coincidano con quelli di vecshift.</li>
 <li>
 <code>data_pipeline</code> non porta la colonna <code>ccnl</code>: la lineage con CCNL è la slice DuckDB di <code>cnelR</code> (<code>sl2_rapporti_36m_classificati</code>).</li>
 </ul></div>

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">ccnlcob</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,18 @@
       <small>Source: <a href="https://github.com/gmontaletti/ccnlcob/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="ccnlcob-050">ccnlcob 0.5.0<a class="anchor" aria-label="anchor" href="#ccnlcob-050"></a></h2>
+<div class="section level3">
+<h3 id="nuove-funzionalità-0-5-0">Nuove funzionalità<a class="anchor" aria-label="anchor" href="#nuove-funzionalit%C3%A0-0-5-0"></a></h3>
+<ul><li>
+<code><a href="../reference/compute_giornate_effettive.html">compute_giornate_effettive()</a></code> ripartisce pro quota (1/<code>arco</code>) i giorni in cui la stessa persona ha più rapporti concorrenti, così che la somma per persona coincida con i giorni-persona occupati nella finestra; la segmentazione interna usa estremi inclusivi ed è verificata nei test contro i totali di <code>vecshift::vecshift()</code>.</li>
+<li>
+<code><a href="../reference/analyze_ccnl.html">analyze_ccnl()</a></code> esegue l’intero flusso (preparazione, giornate effettive, CPI, ranking per finestra e per periodo, selezione, distribuzioni per CPI e tipologia, retribuzioni con deflazione opzionale, tabella di qualità) e restituisce un oggetto <code>ccnlcob_result</code> con metadati e passi eseguiti o saltati; <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> ne riassume il contenuto.</li>
+<li>
+<code><a href="../reference/write_results.html">write_results()</a></code> serializza il risultato secondo il contratto di uscita (tabelle piccole in RDS, cubi in FST con compressione 85) e restituisce il manifesto dei file scritti.</li>
+</ul><hr></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.0" id="ccnlcob-040">ccnlcob 0.4.0<a class="anchor" aria-label="anchor" href="#ccnlcob-040"></a></h2>
 <div class="section level3">

@@ -1,5 +1,29 @@
 # Changelog
 
+## ccnlcob 0.5.0
+
+### Nuove funzionalità
+
+- [`compute_giornate_effettive()`](https://gmontaletti.github.io/ccnlcob/reference/compute_giornate_effettive.md)
+  ripartisce pro quota (1/`arco`) i giorni in cui la stessa persona ha
+  più rapporti concorrenti, così che la somma per persona coincida con i
+  giorni-persona occupati nella finestra; la segmentazione interna usa
+  estremi inclusivi ed è verificata nei test contro i totali di
+  `vecshift::vecshift()`.
+- [`analyze_ccnl()`](https://gmontaletti.github.io/ccnlcob/reference/analyze_ccnl.md)
+  esegue l’intero flusso (preparazione, giornate effettive, CPI, ranking
+  per finestra e per periodo, selezione, distribuzioni per CPI e
+  tipologia, retribuzioni con deflazione opzionale, tabella di qualità)
+  e restituisce un oggetto `ccnlcob_result` con metadati e passi
+  eseguiti o saltati; [`print()`](https://rdrr.io/r/base/print.html) ne
+  riassume il contenuto.
+- [`write_results()`](https://gmontaletti.github.io/ccnlcob/reference/write_results.md)
+  serializza il risultato secondo il contratto di uscita (tabelle
+  piccole in RDS, cubi in FST con compressione 85) e restituisce il
+  manifesto dei file scritti.
+
+------------------------------------------------------------------------
+
 ## ccnlcob 0.4.0
 
 ### Nuove funzionalità

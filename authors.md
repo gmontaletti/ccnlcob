@@ -11,13 +11,13 @@ Source:
 [`inst/CITATION`](https://github.com/gmontaletti/ccnlcob/blob/main/inst/CITATION)
 
 Montaletti, G. (2026). ccnlcob: Analysis of COB Microdata by National
-Collective Labour Agreement (CCNL) (Version 0.4.0) \[R package\].
+Collective Labour Agreement (CCNL) (Version 0.5.0) \[R package\].
 https://github.com/gmontaletti/ccnlcob
 
     @Manual{montaletti2026ccnlcob,
       title = {ccnlcob: Analysis of COB Microdata by National Collective Labour Agreement (CCNL)},
       author = {Giampaolo Montaletti},
       year = {2026},
-      note = {R package version 0.4.0},
+      note = {R package version 0.5.0},
       url = {https://github.com/gmontaletti/ccnlcob},
     }
