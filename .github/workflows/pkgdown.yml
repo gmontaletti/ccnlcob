@@ -34,7 +34,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: '"hard"'
-          extra-packages: any::pkgdown, any::knitr, any::rmarkdown, local::.
+          extra-packages: any::pkgdown, any::knitr, any::rmarkdown, any::ggplot2, local::.
 
       - name: Build pkgdown site
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)

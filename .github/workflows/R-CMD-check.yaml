@@ -40,7 +40,7 @@ jobs:
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           dependencies: '"hard"'
-          extra-packages: any::rcmdcheck, any::testthat, any::knitr, any::rmarkdown
+          extra-packages: any::rcmdcheck, any::testthat, any::knitr, any::rmarkdown, any::ggplot2
 
       - uses: r-lib/actions/check-r-package@v2
         with:

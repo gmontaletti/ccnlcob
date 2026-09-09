@@ -131,6 +131,7 @@ test_that("theme_ccnlcob() restituisce un tema ggplot2 applicabile", {
 })
 
 test_that("palette_ccnlcob() restituisce n colori Okabe-Ito validi", {
+  skip_if_not_installed("ggplot2")
   pal <- palette_ccnlcob(4)
   expect_type(pal, "character")
   expect_length(pal, 4L)
@@ -139,6 +140,7 @@ test_that("palette_ccnlcob() restituisce n colori Okabe-Ito validi", {
 })
 
 test_that("palette_ccnlcob() rifiuta n oltre la capienza della palette", {
+  skip_if_not_installed("ggplot2")
   expect_error(palette_ccnlcob(9), "Okabe-Ito")
   expect_error(palette_ccnlcob(0), "intero positivo")
   expect_error(palette_ccnlcob(NA), "intero positivo")
@@ -219,6 +221,7 @@ test_that("plot_ranking() accetta un ccnlcob_result e usa x$ranking", {
 })
 
 test_that("plot_ranking() segnala misura o colonne mancanti", {
+  skip_if_not_installed("ggplot2")
   expect_error(
     plot_ranking(.ranking_mano(), measure = "inesistente"),
     "assente"
@@ -227,6 +230,7 @@ test_that("plot_ranking() segnala misura o colonne mancanti", {
 })
 
 test_that("plot_ranking() segnala il raggruppamento residuo per by/periodo", {
+  skip_if_not_installed("ggplot2")
   dt <- data.table::data.table(
     ccnl_key = c("A", "A"),
     giornate = c(10L, 20L),
@@ -238,6 +242,7 @@ test_that("plot_ranking() segnala il raggruppamento residuo per by/periodo", {
 })
 
 test_that("plot_ranking() richiede top_n intero positivo", {
+  skip_if_not_installed("ggplot2")
   expect_error(plot_ranking(.ranking_mano(), top_n = 0), "top_n")
   expect_error(plot_ranking(.ranking_mano(), top_n = 1.5), "top_n")
 })
@@ -265,6 +270,7 @@ test_that("plot_ranking_periodo() con quota = FALSE traccia il valore grezzo", {
 })
 
 test_that("plot_ranking_periodo() rifiuta più di 8 chiavi", {
+  skip_if_not_installed("ggplot2")
   expect_error(
     plot_ranking_periodo(.res, measure = "giornate", keys = LETTERS[1:9]),
     "Okabe-Ito"
@@ -272,6 +278,7 @@ test_that("plot_ranking_periodo() rifiuta più di 8 chiavi", {
 })
 
 test_that("plot_ranking_periodo() segnala misura assente e periodo mancante", {
+  skip_if_not_installed("ggplot2")
   expect_error(
     plot_ranking_periodo(.res, measure = "non_misura"),
     "assente"
@@ -331,6 +338,7 @@ test_that("plot_cpi() mette sempre FUORI in coda all'ordine delle colonne", {
 })
 
 test_that("plot_cpi() segnala colonne mancanti", {
+  skip_if_not_installed("ggplot2")
   expect_error(plot_cpi(data.frame(a = 1)), "ccnl_by_cpi")
 })
 
@@ -423,6 +431,7 @@ test_that("plot_retribuzioni() formatta l'asse y in euro con punto delle migliai
 })
 
 test_that("plot_retribuzioni() con reale = TRUE richiede le colonne _reale", {
+  skip_if_not_installed("ggplot2")
   expect_error(
     plot_retribuzioni(.retr_mano(), keys = c("A", "B"), reale = TRUE),
     "deflate_retribuzione"
@@ -430,6 +439,7 @@ test_that("plot_retribuzioni() con reale = TRUE richiede le colonne _reale", {
 })
 
 test_that("plot_retribuzioni() rifiuta più di 8 chiavi e copertura_min fuori [0,1]", {
+  skip_if_not_installed("ggplot2")
   dt9 <- data.table::rbindlist(lapply(LETTERS[1:9], function(k) {
     d <- .retr_mano()[ccnl_key == "A"]
     d[, ccnl_key := k]
@@ -447,6 +457,7 @@ test_that("plot_retribuzioni() rifiuta più di 8 chiavi e copertura_min fuori [0
 # 9. Errori comuni e disponibilità di ggplot2 -----
 
 test_that(".check_ggplot2() segnala con chiarezza l'assenza di ggplot2", {
+  skip_if_not_installed("ggplot2")
   testthat::local_mocked_bindings(
     requireNamespace = function(...) FALSE,
     .package = "base"
@@ -455,6 +466,7 @@ test_that(".check_ggplot2() segnala con chiarezza l'assenza di ggplot2", {
 })
 
 test_that(".apply_labels() valida la tabella labels e restituisce le chiavi senza etichette", {
+  skip_if_not_installed("ggplot2")
   expect_error(ccnlcob:::.apply_labels("A", data.frame(x = 1)), "ccnl_titolo")
   out <- ccnlcob:::.apply_labels(c("A", "Z"), .etichette[ccnl_key == "A011"])
   expect_identical(unname(out), c("A", "Z"))
